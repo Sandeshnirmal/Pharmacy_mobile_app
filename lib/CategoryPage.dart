@@ -2,18 +2,8 @@ import 'package:flutter/material.dart';
 import 'AccountScreen.dart';
 import 'CartScreen.dart';
 import 'ScannerScreen.dart';
-//import 'ProductDetailsScreen.dart'; // Import the ProductDetailsScreen
+import 'SearchResultsScreen.dart';
 import 'main.dart';
-
-// Assuming these screens exist in your project.
-// Replace with your actual paths.
-// For demonstration, I'm commenting them out if they don't exist yet.
-// import 'package:pharmacy/screens/home_screen.dart'; // Adjust path as needed
-// import 'package:pharmacy/screens/cart_screen.dart'; // Adjust path as needed
-// import 'package:pharmacy/screens/account_screen.dart'; // Adjust path as needed
-// import 'package:pharmacy/screens/scanner_screen.dart'; // Adjust path as needed
-
-
 
 // --- Category Model ---
 class Category {
@@ -25,47 +15,150 @@ class Category {
 }
 
 // --- CategoryPage Widget ---
-class CategoryPage extends StatelessWidget {
+class CategoryPage extends StatefulWidget {
   const CategoryPage({super.key});
 
+  @override
+  State<CategoryPage> createState() => _CategoryPageState();
+}
+
+class _CategoryPageState extends State<CategoryPage> {
+  final TextEditingController _searchController = TextEditingController();
+  
   final List<Category> categories = const [
-    const Category(id: '1', name: 'Prescription Drugs', icon: Icons.medication_liquid),
-    const Category(id: '2', name: 'Over-the-Counter', icon: Icons.healing),
-    const Category(id: '3', name: 'Vitamins & Supplements', icon: Icons.medication),
-    const Category(id: '4', name: 'Personal Care', icon: Icons.shower),
-    const Category(id: '5', name: 'Baby Care', icon: Icons.child_care),
-    const Category(id: '6', name: 'First Aid', icon: Icons.medical_services),
-    const Category(id: '7', name: 'Homeopathy', icon: Icons.biotech),
-    const Category(id: '8', name: 'Ayurveda', icon: Icons.grass),
-    const Category(id: '9', name: 'Healthcare Devices', icon: Icons.monitor_heart),
-    const Category(id: '10', name: 'Pet Care', icon: Icons.pets),
+    Category(id: '1', name: 'Prescription Drugs', icon: Icons.medication_liquid),
+    Category(id: '2', name: 'Over-the-Counter', icon: Icons.healing),
+    Category(id: '3', name: 'Vitamins & Supplements', icon: Icons.medication),
+    Category(id: '4', name: 'Personal Care', icon: Icons.shower),
+    Category(id: '5', name: 'Baby Care', icon: Icons.child_care),
+    Category(id: '6', name: 'First Aid', icon: Icons.medical_services),
+    Category(id: '7', name: 'Homeopathy', icon: Icons.biotech),
+    Category(id: '8', name: 'Ayurveda', icon: Icons.grass),
+    Category(id: '9', name: 'Healthcare Devices', icon: Icons.monitor_heart),
+    Category(id: '10', name: 'Pet Care', icon: Icons.pets),
   ];
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  void _searchCategory(String categoryName) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SearchResultsScreen(
+          searchQuery: categoryName,
+          isFromPrescription: false,
+        ),
+      ),
+    );
+  }
+
+  void _performSearch(String query) {
+    if (query.isNotEmpty) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SearchResultsScreen(
+            searchQuery: query,
+            isFromPrescription: false,
+          ),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: const Text('Shop by Category'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        elevation: 0,
         centerTitle: true,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: GridView.builder(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 10.0,
-            mainAxisSpacing: 10.0,
-            childAspectRatio: 3 / 2,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.shopping_cart),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CartScreen()),
+              );
+            },
           ),
-          itemCount: categories.length,
-          itemBuilder: (context, index) {
-            final category = categories[index];
-            return CategoryCard(category: category);
-          },
-        ),
+        ],
       ),
+      body: Column(
+        children: [
+          // Search Bar
+          Container(
+            padding: const EdgeInsets.all(16),
+            color: Colors.white,
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search medicines by category...',
+                prefixIcon: const Icon(Icons.search, color: Colors.teal),
+                suffixIcon: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.camera_alt_outlined, color: Colors.teal),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => const ScannerScreen()),
+                        );
+                      },
+                      tooltip: 'Scan Prescription',
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.clear, color: Colors.grey),
+                      onPressed: () {
+                        _searchController.clear();
+                      },
+                    ),
+                  ],
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(25),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(25),
+                  borderSide: const BorderSide(color: Colors.teal, width: 2),
+                ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+              ),
+              onSubmitted: _performSearch,
+            ),
+          ),
 
-      // --- Bottom Navigation Bar ---
+          // Categories Grid
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: GridView.builder(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 16,
+                  mainAxisSpacing: 16,
+                  childAspectRatio: 1.1,
+                ),
+                itemCount: categories.length,
+                itemBuilder: (context, index) {
+                  final category = categories[index];
+                  return _buildCategoryCard(category);
+                },
+              ),
+            ),
+          ),
+        ],
+      ),
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
         notchMargin: 4.0,
@@ -77,31 +170,25 @@ class CategoryPage extends StatelessWidget {
             IconButton(
               icon: const Icon(Icons.home_outlined),
               onPressed: () {
-                // If this is the main nav, you might navigate back to home
-                // or just stay if already there.
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => const PharmacyHomePage()),
                 );
-                // print('Home tapped'); // Removed print for production code
               },
               iconSize: 30.0,
-              color: Colors.grey[700], // CategoryPage is not Home, so set Home to grey
+              color: Colors.grey[700],
             ),
             IconButton(
-              icon: const Icon(Icons.category_outlined),
-              onPressed: () {
-
-              },
-              iconSize: 30.0, // Increased icon size
+              icon: const Icon(Icons.category),
+              onPressed: () {},
+              iconSize: 30.0,
               color: Colors.teal,
             ),
-            // This is the floating action button for the scanner
-            const SizedBox(width: 48), // The space for the FAB
+            const SizedBox(width: 48), // Space for FAB
             IconButton(
               icon: const Icon(Icons.shopping_cart_outlined),
               onPressed: () {
-                Navigator.pushReplacement(
+                Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const CartScreen()),
                 );
@@ -110,9 +197,9 @@ class CategoryPage extends StatelessWidget {
               color: Colors.grey[700],
             ),
             IconButton(
-              icon: const Icon(Icons.person_outline),
+              icon: const Icon(Icons.person_outlined),
               onPressed: () {
-                Navigator.pushReplacement(
+                Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const AccountScreen()),
                 );
@@ -126,65 +213,65 @@ class CategoryPage extends StatelessWidget {
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          Navigator.pushReplacement(
+          Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const ScannerScreen()),
           );
         },
         backgroundColor: Colors.teal,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30.0), // Makes it circular
-        ),
-        elevation: 8.0, // Added elevation for the FAB
+        elevation: 8.0,
         child: const Icon(Icons.qr_code_scanner, color: Colors.white),
       ),
     );
   }
-}
 
-// --- CategoryCard Widget (No changes needed here for color, as it uses Theme.of(context).primaryColor) ---
-class CategoryCard extends StatelessWidget {
-  final Category category;
-
-  const CategoryCard({super.key, required this.category});
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildCategoryCard(Category category) {
     return Card(
-      elevation: 3,
+      elevation: 4,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: InkWell(
         onTap: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Navigating to ${category.name} products')),
-          );
-          // TODO: Implement actual navigation to a ProductListPage
-          // Navigator.push(
-          //   context,
-          //   MaterialPageRoute(
-          //     builder: (context) => ProductListPage(categoryId: category.id, categoryName: category.name),
-          //   ),
-          // );
+          _searchCategory(category.name);
         },
-        child: Padding(
-          padding: const EdgeInsets.all(8.0),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Colors.teal.shade50,
+                Colors.teal.shade100,
+              ],
+            ),
+          ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                category.icon,
-                size: 40,
-                color: Colors.teal, // Explicitly set to teal
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.teal.shade600,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  category.icon,
+                  size: 32,
+                  color: Colors.white,
+                ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               Text(
                 category.name,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 16,
+                style: TextStyle(
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
+                  color: Colors.teal.shade700,
                 ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,

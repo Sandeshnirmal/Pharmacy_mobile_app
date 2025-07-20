@@ -1,236 +1,423 @@
 import 'package:flutter/material.dart';
-import 'main.dart';
-import 'CartScreen.dart';
-import 'ScannerScreen.dart';
-//import 'ProductDetailsScreen.dart'; // Import the ProductDetailsScreen
-import 'CategoryPage.dart' ;
+import 'package:fluttertoast/fluttertoast.dart';
+import 'LoginScreen.dart';
+import 'RegisterScreen.dart';
+import 'ProfileDetailsScreen.dart';
+import 'services/auth_service.dart';
 
-
-import 'CartScreen.dart';
-import 'ScannerScreen.dart';
-class AccountScreen extends StatelessWidget {
+class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
+
+  @override
+  State<AccountScreen> createState() => _AccountScreenState();
+}
+
+class _AccountScreenState extends State<AccountScreen> {
+  final AuthService _authService = AuthService();
+
+  // Sample user data - in real app, this would come from API/authentication
+  Map<String, dynamic>? _userProfile;
+  bool _isAuthenticated = false;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkAuthStatus();
+  }
+
+  Future<void> _checkAuthStatus() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final isAuth = await _authService.isAuthenticated();
+      if (isAuth) {
+        final userData = await _authService.getCurrentUser();
+        setState(() {
+          _isAuthenticated = true;
+          _userProfile = userData ?? {
+            'first_name': 'John',
+            'last_name': 'Doe',
+            'email': 'john.doe@example.com',
+            'phone': '+91 9876543210',
+          };
+        });
+      } else {
+        setState(() {
+          _isAuthenticated = false;
+          _userProfile = null;
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isAuthenticated = false;
+        _userProfile = null;
+      });
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _logout() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      await _authService.logout();
+      setState(() {
+        _isAuthenticated = false;
+        _userProfile = null;
+      });
+
+      Fluttertoast.showToast(
+        msg: 'Logged out successfully',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.green,
+        textColor: Colors.white,
+      );
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: 'Logout failed: $e',
+        toastLength: Toast.LENGTH_SHORT,
+        gravity: ToastGravity.BOTTOM,
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+      );
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-          backgroundColor: Colors.white,
+        backgroundColor: Colors.white,
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          icon: const Icon(Icons.arrow_back, color: Colors.black87),
+          onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Account'),
+        title: const Text(
+          'Profile',
+          style: TextStyle(
+            color: Colors.black87,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
         centerTitle: true,
+        actions: [
+          if (_isAuthenticated)
+            IconButton(
+              icon: const Icon(Icons.logout, color: Colors.red),
+              onPressed: _logout,
+            ),
+        ],
       ),
-      body: SingleChildScrollView(
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.teal),
+              ),
+            )
+          : !_isAuthenticated
+              ? _buildLoginPrompt()
+              : _buildAuthenticatedProfile(),
+    );
+  }
+
+  Widget _buildLoginPrompt() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const SizedBox(height: 20),
-            // User Profile Section
-            Column(
-              children: [
-                CircleAvatar(
-                  radius: 60,
-                  backgroundColor: Colors.grey[300],
-                  backgroundImage: const AssetImage(
-                      'assets/profile_image.png'), // Replace with your image asset
-                ),
-                const SizedBox(height: 10),
-                const Text(
-                  'Ethan Carter',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 5),
-                Text(
-                  '+1 (555) 123-4567',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[600],
-                  ),
-                ),
-                Text(
-                  'ethan.carter@email.com',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                color: Colors.teal.shade50,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.teal.shade200, width: 2),
+              ),
+              child: Icon(
+                Icons.person_outline,
+                size: 60,
+                color: Colors.teal.shade600,
+              ),
             ),
-            const SizedBox(height: 30),
-            // Account Options List
-            _buildAccountOption(
-              icon: Icons.storage,
-              title: 'My Order..',
-              onTap: () {
-                // Handle My Orders tap
-                print('My Orders tapped');
-              },
+            const SizedBox(height: 32),
+            const Text(
+              'Welcome to Pharmacy App',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+              textAlign: TextAlign.center,
             ),
-            _buildAccountOption(
-              icon: Icons.receipt_long,
-              title: 'Uploaded Prescriptio...',
-              onTap: () {
-                // Handle Uploaded Prescriptions tap
-                print('Uploaded Prescriptions tapped');
-              },
-            ),
-            _buildAccountOption(
-              icon: Icons.location_on_outlined,
-              title: 'Saved Addresses',
-              onTap: () {
-                // Handle Saved Addresses tap
-                print('Saved Addresses tapped');
-              },
-            ),
-            _buildAccountOption(
-              icon: Icons.description_outlined,
-              title: 'Medical History',
-              onTap: () {
-                // Handle Medical History tap
-                print('Medical History tapped');
-              },
+            const SizedBox(height: 16),
+            Text(
+              'Sign in to access your profile, orders, and personalized recommendations',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
             ),
             const SizedBox(height: 40),
-            // Logout Button
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // Handle Logout
-                    print('Logout tapped');
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red[50], // Light red background
-                    padding: const EdgeInsets.symmetric(vertical: 15),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    side: const BorderSide(color: Colors.red), // Red border
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.teal,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: const Text(
-                    'Logout',
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.red, // Red text
-                      fontWeight: FontWeight.bold,
-                    ),
+                ),
+                child: const Text(
+                  'Sign In',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
             ),
-            const SizedBox(height: 20),
-          ],
-        ),
-      ),
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 4.0, // Reduced notchMargin from 8.0 to 4.0
-        color: Colors.white,
-        elevation: 10.0, // Added elevation for a subtle lift
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: <Widget>[
-            IconButton(
-              icon: const Icon(Icons.home_outlined),
+            const SizedBox(height: 16),
+            TextButton(
               onPressed: () {
-                // This is the current page, so no navigation needed or pop until this route
-                Navigator.pushReplacement(
+                Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const PharmacyHomePage()),
+                  MaterialPageRoute(builder: (context) => const RegisterScreen()),
                 );
               },
-              iconSize: 30.0, // Increased icon size
-              color: Colors.grey[700], // Highlight Home icon as it's the current screen
-            ),
-            IconButton(
-              icon: const Icon(Icons.category_outlined),
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const CategoryPage()),
-                );
-              },
-              iconSize: 30.0, // Increased icon size
-              color: Colors.grey[700],
-            ),
-            // This is the floating action button for the scanner
-            const SizedBox(width: 48), // The space for the FAB
-            IconButton(
-              icon: const Icon(Icons.shopping_cart_outlined),
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const CartScreen()),
-                );
-              },
-              iconSize: 30.0, // Increased icon size
-              color: Colors.grey[700],
-            ),
-            IconButton(
-              icon: const Icon(Icons.person_outline),
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const AccountScreen()),
-                );
-              },
-              iconSize: 30.0, // Increased icon size
-              color: Colors.teal,
+              child: const Text(
+                'Create New Account',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.teal,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ],
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const ScannerScreen()),
-          );
-        },
-        backgroundColor: Colors.teal,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30.0), // Makes it circular
-        ),
-        elevation: 8.0, // Added elevation for the FAB
-        child: const Icon(Icons.qr_code_scanner, color: Colors.white),
+    );
+  }
+
+  Widget _buildAuthenticatedProfile() {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          const SizedBox(height: 20),
+          // User Profile Section
+          Column(
+            children: [
+              CircleAvatar(
+                radius: 60,
+                backgroundColor: Colors.teal.shade100,
+                child: Text(
+                  '${_userProfile?['first_name']?[0] ?? 'U'}${_userProfile?['last_name']?[0] ?? ''}',
+                  style: TextStyle(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.teal.shade700,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '${_userProfile?['first_name'] ?? ''} ${_userProfile?['last_name'] ?? ''}',
+                style: const TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _userProfile?['email'] ?? '',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _userProfile?['phone'] ?? '',
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 24),
+
+          // View Full Profile Button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ProfileDetailsScreen()),
+                );
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'View Full Profile',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // Account Options
+          Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withValues(alpha: 0.1),
+                  spreadRadius: 1,
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                _buildOptionTile(
+                  icon: Icons.shopping_bag_outlined,
+                  title: 'My Orders',
+                  subtitle: 'View your order history',
+                  onTap: () => _showFeatureComingSoon('My Orders'),
+                ),
+                _buildDivider(),
+                _buildOptionTile(
+                  icon: Icons.location_on_outlined,
+                  title: 'Addresses',
+                  subtitle: 'Manage delivery addresses',
+                  onTap: () => _showFeatureComingSoon('Address Management'),
+                ),
+                _buildDivider(),
+                _buildOptionTile(
+                  icon: Icons.medical_services_outlined,
+                  title: 'Prescriptions',
+                  subtitle: 'View uploaded prescriptions',
+                  onTap: () => _showFeatureComingSoon('Prescription History'),
+                ),
+                _buildDivider(),
+                _buildOptionTile(
+                  icon: Icons.settings_outlined,
+                  title: 'Settings',
+                  subtitle: 'App preferences and privacy',
+                  onTap: () => _showFeatureComingSoon('Settings'),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 32),
+        ],
       ),
+    );
+  }
+
+  Widget _buildOptionTile({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return ListTile(
+      leading: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.teal.shade50,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          icon,
+          color: Colors.teal.shade600,
+          size: 24,
+        ),
+      ),
+      title: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: Colors.black87,
+        ),
+      ),
+      subtitle: Text(
+        subtitle,
+        style: TextStyle(
+          fontSize: 14,
+          color: Colors.grey[600],
+        ),
+      ),
+      trailing: Icon(
+        Icons.arrow_forward_ios,
+        size: 16,
+        color: Colors.grey[400],
+      ),
+      onTap: onTap,
+    );
+  }
+
+  Widget _buildDivider() {
+    return Divider(
+      height: 1,
+      color: Colors.grey.shade200,
+      indent: 16,
+      endIndent: 16,
+    );
+  }
+
+  void _showFeatureComingSoon(String feature) {
+    Fluttertoast.showToast(
+      msg: '$feature feature coming soon!',
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: Colors.teal,
+      textColor: Colors.white,
     );
   }
 }
-
-  Widget _buildAccountOption({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-  }) {
-    return Column(
-      children: [
-        ListTile(
-          leading: Icon(icon, color: Colors.grey[700]),
-          title: Text(
-            title,
-            style: const TextStyle(fontSize: 18),
-          ),
-          trailing: const Icon(Icons.arrow_forward_ios, size: 18),
-          onTap: onTap,
-        ),
-        Divider(
-          height: 1,
-          thickness: 1,
-          indent: 20,
-          endIndent: 20,
-          color: Colors.grey[200],
-        ),
-      ],
-    );
-  }

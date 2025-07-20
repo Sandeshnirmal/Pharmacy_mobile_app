@@ -1,0 +1,161 @@
+// Product Provider for Flutter Pharmacy App
+import 'package:flutter/foundation.dart';
+import '../models/product_model.dart';
+import '../services/api_service.dart';
+
+class ProductProvider with ChangeNotifier {
+  final ApiService _apiService = ApiService();
+  
+  // State variables
+  List<ProductModel> _products = [];
+  List<ProductModel> _searchResults = [];
+  bool _isLoading = false;
+  bool _isSearching = false;
+  String? _error;
+  String _searchQuery = '';
+
+  // Getters
+  List<ProductModel> get products => _products;
+  List<ProductModel> get searchResults => _searchResults;
+  bool get isLoading => _isLoading;
+  bool get isSearching => _isSearching;
+  String? get error => _error;
+  String get searchQuery => _searchQuery;
+
+  bool get hasProducts => _products.isNotEmpty;
+  bool get hasSearchResults => _searchResults.isNotEmpty;
+
+  // Load all products
+  Future<void> loadProducts({bool refresh = false}) async {
+    if (_isLoading && !refresh) return;
+
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final result = await _apiService.getProducts();
+      
+      if (result.isSuccess) {
+        _products = result.data!;
+        _setLoading(false);
+      } else {
+        _setError(result.error!);
+        _setLoading(false);
+      }
+    } catch (e) {
+      _setError('Failed to load products: $e');
+      _setLoading(false);
+    }
+  }
+
+  // Search products
+  Future<void> searchProducts(String query) async {
+    if (query.trim().isEmpty) {
+      _searchResults.clear();
+      _searchQuery = '';
+      notifyListeners();
+      return;
+    }
+
+    _setSearching(true);
+    _clearError();
+    _searchQuery = query;
+
+    try {
+      final result = await _apiService.searchProducts(query);
+      
+      if (result.isSuccess) {
+        _searchResults = result.data!;
+        _setSearching(false);
+      } else {
+        _setError(result.error!);
+        _setSearching(false);
+      }
+    } catch (e) {
+      _setError('Search failed: $e');
+      _setSearching(false);
+    }
+  }
+
+  // Get products by category
+  Future<void> getProductsByCategory(String category) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final result = await _apiService.getProducts(
+        queryParams: {'category': category},
+      );
+      
+      if (result.isSuccess) {
+        _products = result.data!;
+        _setLoading(false);
+      } else {
+        _setError(result.error!);
+        _setLoading(false);
+      }
+    } catch (e) {
+      _setError('Failed to load category products: $e');
+      _setLoading(false);
+    }
+  }
+
+  // Get featured products
+  List<ProductModel> getFeaturedProducts() {
+    return _products.where((product) => product.isActive).take(10).toList();
+  }
+
+  // Get products on sale
+  List<ProductModel> getProductsOnSale() {
+    return _products.where((product) => product.isOnSale).toList();
+  }
+
+  // Get products by prescription requirement
+  List<ProductModel> getProductsByPrescriptionRequirement(bool requiresPrescription) {
+    return _products.where((product) => product.requiresPrescription == requiresPrescription).toList();
+  }
+
+  // Get product by ID
+  ProductModel? getProductById(int id) {
+    try {
+      return _products.firstWhere((product) => product.id == id);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  // Clear search results
+  void clearSearch() {
+    _searchResults.clear();
+    _searchQuery = '';
+    notifyListeners();
+  }
+
+  // Clear error
+  void clearError() {
+    _clearError();
+  }
+
+  // Private helper methods
+  void _setLoading(bool loading) {
+    _isLoading = loading;
+    notifyListeners();
+  }
+
+  void _setSearching(bool searching) {
+    _isSearching = searching;
+    notifyListeners();
+  }
+
+  void _setError(String error) {
+    _error = error;
+    notifyListeners();
+  }
+
+  void _clearError() {
+    _error = null;
+    notifyListeners();
+  }
+
+
+}
