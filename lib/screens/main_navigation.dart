@@ -1,15 +1,13 @@
 // Main Navigation with Bottom Navigation Bar
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'home/home_screen.dart';
 import 'products/products_screen.dart';
 import '../PrescriptionCameraScreen.dart';
 import 'orders/orders_screen.dart';
 import 'profile/profile_screen.dart';
-import '../providers/auth_provider.dart';
 
 class MainNavigation extends StatefulWidget {
-  const MainNavigation({Key? key}) : super(key: key);
+  const MainNavigation({super.key});
 
   @override
   State<MainNavigation> createState() => _MainNavigationState();

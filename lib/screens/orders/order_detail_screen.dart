@@ -3,22 +3,22 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../../providers/order_provider.dart';
-import '../../models/product_model.dart';
+import '../../models/order.dart';
 
 class OrderDetailScreen extends StatefulWidget {
   final int orderId;
 
   const OrderDetailScreen({
-    Key? key,
+    super.key,
     required this.orderId,
-  }) : super(key: key);
+  });
 
   @override
   State<OrderDetailScreen> createState() => _OrderDetailScreenState();
 }
 
 class _OrderDetailScreenState extends State<OrderDetailScreen> {
-  OrderModel? _order;
+  Order? _order;
   bool _isLoading = true;
 
   @override
@@ -41,7 +41,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(_order != null ? 'Order #${_order!.orderNumber}' : 'Order Details'),
+        title: Text(_order != null ? 'Order #${_order!.id}' : 'Order Details'),
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
         actions: [
@@ -100,7 +100,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       const SizedBox(height: 16),
                       
                       // Delivery Information
-                      if (_order!.deliveryAddress != null)
+                      if (_order!.shippingAddress != null)
                         _buildDeliveryInfoCard(),
                       
                       const SizedBox(height: 16),
@@ -156,12 +156,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             
             const SizedBox(height: 16),
             
-            _buildInfoRow('Order Date', _formatDate(_order!.orderDate)),
+            _buildInfoRow('Order Date', _formatDate(_order!.createdAt)),
             if (_order!.estimatedDelivery != null)
               _buildInfoRow('Estimated Delivery', _formatDate(_order!.estimatedDelivery!)),
             if (_order!.trackingNumber != null)
               _buildInfoRow('Tracking Number', _order!.trackingNumber!),
-            if (_order!.isPrescriptionOrder)
+            if (_order!.notes?.contains('prescription') == true)
               _buildInfoRow('Prescription Order', 'Yes'),
           ],
         ),
@@ -194,7 +194,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 
-  Widget _buildOrderItem(OrderItemModel item) {
+  Widget _buildOrderItem(OrderItem item) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(12),
@@ -212,11 +212,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               color: Colors.grey[200],
               borderRadius: BorderRadius.circular(8),
             ),
-            child: item.product.imageUrl != null
+            child: item.productImage != null
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(8),
                     child: Image.network(
-                      item.product.imageUrl!,
+                      item.productImage!,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) => const Icon(
                         Icons.medical_services,
@@ -238,7 +238,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.product.displayName,
+                  item.productName,
                   style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -250,7 +250,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 const SizedBox(height: 4),
                 
                 Text(
-                  'By ${item.product.manufacturer}',
+                  'Qty: ${item.quantity}',
                   style: TextStyle(
                     fontSize: 14,
                     color: Colors.grey[600],
@@ -323,7 +323,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    _order!.deliveryAddress!.fullAddress,
+                    _order!.shippingAddress!.fullAddress,
                     style: const TextStyle(fontSize: 14),
                   ),
                 ],
@@ -353,7 +353,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             
             const SizedBox(height: 16),
             
-            _buildInfoRow('Payment Method', _order!.paymentMethod),
+            _buildInfoRow('Payment Method', _order!.paymentMethod ?? 'Not specified'),
             if (_order!.paymentStatus != null)
               _buildInfoRow('Payment Status', _order!.paymentStatus!),
           ],

@@ -9,10 +9,10 @@ class PrescriptionResultScreen extends StatefulWidget {
   final PrescriptionSuggestionsResponse suggestions;
 
   const PrescriptionResultScreen({
-    Key? key,
+    super.key,
     required this.prescriptionId,
     required this.suggestions,
-  }) : super(key: key);
+  });
 
   @override
   State<PrescriptionResultScreen> createState() => _PrescriptionResultScreenState();

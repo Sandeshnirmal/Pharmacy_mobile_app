@@ -2,11 +2,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/order_provider.dart';
-import '../../models/product_model.dart';
+import '../../models/order.dart';
 import 'order_detail_screen.dart';
 
 class OrdersScreen extends StatefulWidget {
-  const OrdersScreen({Key? key}) : super(key: key);
+  const OrdersScreen({super.key});
 
   @override
   State<OrdersScreen> createState() => _OrdersScreenState();
@@ -125,7 +125,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildOrdersList(List<OrderModel> orders) {
+  Widget _buildOrdersList(List<Order> orders) {
     if (orders.isEmpty) {
       return const Center(
         child: Text(
@@ -148,7 +148,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildOrderCard(OrderModel order) {
+  Widget _buildOrderCard(Order order) {
     return Card(
       elevation: 4,
       margin: const EdgeInsets.only(bottom: 16),
@@ -203,7 +203,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
 
               // Order Date
               Text(
-                'Ordered on ${_formatDate(order.orderDate)}',
+                'Ordered on ${_formatDate(order.createdAt)}',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey[600],
@@ -236,11 +236,11 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                           color: Colors.grey[100],
                           borderRadius: BorderRadius.circular(8),
                         ),
-                        child: item.product.imageUrl != null
+                        child: item.productImage != null
                             ? ClipRRect(
                                 borderRadius: BorderRadius.circular(8),
                                 child: Image.network(
-                                  item.product.imageUrl!,
+                                  item.productImage!,
                                   fit: BoxFit.cover,
                                   errorBuilder: (context, error, stackTrace) => const Icon(
                                     Icons.medical_services,
@@ -294,11 +294,11 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                   ),
                   Row(
                     children: [
-                      if (order.isPrescriptionOrder)
+                      if (order.notes?.contains('prescription') == true)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: Colors.blue.withOpacity(0.1),
+                            color: Colors.blue.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Row(
@@ -338,7 +338,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: Colors.green.withOpacity(0.1),
+                    color: Colors.green.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(

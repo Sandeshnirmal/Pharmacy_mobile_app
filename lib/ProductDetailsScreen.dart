@@ -21,8 +21,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   int _quantity = 1;
   bool _isInWishlist = false;
   bool _isAddingToCart = false;
-  double _averageRating = 4.2;
-  int _totalReviews = 156;
+  final double _averageRating = 4.2;
+  final int _totalReviews = 156;
   List<Map<String, dynamic>> _reviews = [];
 
   @override
@@ -499,7 +499,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             IconButton(
               icon: const Icon(Icons.home_outlined),
               onPressed: () {
-                print('Home tapped');
+    // print('Home tapped'); // Debug print removed
                 // Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomePage()));
               },
               iconSize: 30.0,
@@ -508,7 +508,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             IconButton(
               icon: const Icon(Icons.category_outlined),
               onPressed: () {
-                print('Categories tapped');
+    // print('Categories tapped'); // Debug print removed
                 // Navigator.push(context, MaterialPageRoute(builder: (context) => const CategoriesPage()));
               },
               iconSize: 30.0,
@@ -529,7 +529,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             IconButton(
               icon: const Icon(Icons.person_outline),
               onPressed: () {
-                print('Profile tapped');
+    // print('Profile tapped'); // Debug print removed
                 // Navigator.push(context, MaterialPageRoute(builder: (context) => const AccountScreen()));
               },
               iconSize: 30.0,
@@ -541,7 +541,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          print('Scanner tapped');
+    // print('Scanner tapped'); // Debug print removed
           // Navigator.push(context, MaterialPageRoute(builder: (context) => const ScannerScreen()));
         },
         backgroundColor: Colors.teal,

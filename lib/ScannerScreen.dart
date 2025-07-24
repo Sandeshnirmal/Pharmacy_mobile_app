@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -7,12 +7,12 @@ import 'main.dart';
 import 'services/prescription_service.dart';
 import 'services/auth_service.dart';
 import 'services/api_service.dart';
-import 'PrescriptionProcessingScreen.dart';
+
 import 'LoginScreen.dart';
 
-/// ScannerScreen - For prescription scanning and medicine discovery
-/// This screen is used to scan prescriptions to find and discover medicines,
-/// NOT for order authentication. For order prescription upload, use OrderPrescriptionUploadScreen.
+/// ScannerScreen - For prescription upload and admin verification
+/// This screen is used to upload prescriptions for admin verification and medicine discovery.
+/// No AI processing - direct upload for manual admin review.
 class ScannerScreen extends StatefulWidget {
   const ScannerScreen({super.key});
 
@@ -221,7 +221,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                     const SizedBox(width: 8),
                     const Expanded(
                       child: Text(
-                        'Make sure the prescription is clear and all text is readable',
+                        'Make sure the prescription is clear and readable for admin verification',
                         style: TextStyle(fontSize: 14),
                       ),
                     ),
@@ -263,7 +263,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
-            child: const Text('Upload & Process'),
+            child: const Text('Upload for Verification'),
           ),
         ],
       ),
@@ -288,25 +288,26 @@ class _ScannerScreenState extends State<ScannerScreen> {
       // Show upload progress
       _showUploadProgressDialog();
 
-      // Real prescription upload using API
-      final uploadResult = await _apiService.uploadPrescription(_selectedImage!);
+      // Simple prescription upload for admin verification
+      final uploadResult = await _apiService.uploadPrescriptionForOrder(_selectedImage!);
 
       if (mounted) {
         Navigator.pop(context); // Close progress dialog
 
         if (uploadResult.isSuccess) {
-          final uploadResponse = uploadResult.data!;
-
           Fluttertoast.showToast(
-            msg: 'Prescription uploaded successfully! Processing with AI...',
+            msg: 'Prescription uploaded successfully for admin verification!',
             toastLength: Toast.LENGTH_SHORT,
             gravity: ToastGravity.BOTTOM,
             backgroundColor: Colors.green,
             textColor: Colors.white,
           );
 
-          // Navigate to prescription processing screen with real ID
-          _showProcessingScreen(uploadResponse.prescriptionId);
+          // Navigate back to home screen
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const PharmacyHomePage()),
+          );
         } else {
           Fluttertoast.showToast(
             msg: 'Upload failed: ${uploadResult.error}',
@@ -397,7 +398,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Please wait while we process your image',
+              'Please wait while we upload your prescription for admin verification',
               style: TextStyle(
                 fontSize: 14,
                 color: Colors.grey[600],
@@ -410,16 +411,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
     );
   }
 
-  void _showProcessingScreen(int prescriptionId) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => PrescriptionProcessingScreen(
-          prescriptionId: prescriptionId,
-        ),
-      ),
-    );
-  }
+
 
   void _showFeatureComingSoon(String feature) {
     Fluttertoast.showToast(
@@ -536,15 +528,150 @@ class _ScannerScreenState extends State<ScannerScreen> {
                   }),
                 ],
               ),
-              // You would typically have the camera preview here
-              const SizedBox(height: 100), // Space for camera feed
-              Text(
-                'Place item in the frame to scan',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[600],
+              // Camera preview area with enhanced UI
+              const SizedBox(height: 40),
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 40),
+                height: 300,
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: Colors.teal.shade300,
+                    width: 2,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  color: Colors.grey.shade50,
+                ),
+                child: Stack(
+                  children: [
+                    // Corner brackets for scanning frame
+                    Positioned(
+                      top: 20,
+                      left: 20,
+                      child: Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          border: Border(
+                            top: BorderSide(color: Colors.teal.shade600, width: 4),
+                            left: BorderSide(color: Colors.teal.shade600, width: 4),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 20,
+                      right: 20,
+                      child: Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          border: Border(
+                            top: BorderSide(color: Colors.teal.shade600, width: 4),
+                            right: BorderSide(color: Colors.teal.shade600, width: 4),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 20,
+                      left: 20,
+                      child: Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(color: Colors.teal.shade600, width: 4),
+                            left: BorderSide(color: Colors.teal.shade600, width: 4),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 20,
+                      right: 20,
+                      child: Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          border: Border(
+                            bottom: BorderSide(color: Colors.teal.shade600, width: 4),
+                            right: BorderSide(color: Colors.teal.shade600, width: 4),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Center content
+                    Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.receipt_long_outlined,
+                            size: 60,
+                            color: Colors.teal.shade400,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Place prescription in the frame',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Make sure the text is clear and readable',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
+              // Tips Section
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.teal.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.teal.shade200),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.lightbulb_outline,
+                          color: Colors.teal.shade600,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Tips for better scanning',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.teal.shade800,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    _buildTipItem('Ensure good lighting'),
+                    _buildTipItem('Keep prescription flat and straight'),
+                    _buildTipItem('Make sure text is clearly visible'),
+                    _buildTipItem('Avoid shadows and reflections'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
               // This Expanded widget will push the content above it to the top
               // and allow the bottom buttons to be positioned relative to the bottom of the screen.
               const Expanded(child: SizedBox.shrink()),
@@ -588,7 +715,7 @@ class _ScannerScreenState extends State<ScannerScreen> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
-                        print('Capture Strip tapped');
+    // print('Capture Strip tapped'); // Debug print removed
                         // Handle capture strip action
                       },
                       style: ElevatedButton.styleFrom(
@@ -626,23 +753,23 @@ class _ScannerScreenState extends State<ScannerScreen> {
                   FloatingActionButton(
                     heroTag: 'gallery_fab', // Unique tag for multiple FABs
                     onPressed: () {
-                      print('Bottom Gallery FAB tapped');
+    // print('Bottom Gallery FAB tapped'); // Debug print removed
                       // Handle gallery action
                     },
                     backgroundColor: Colors.blueAccent,
-                    child: const Icon(Icons.image_outlined, color: Colors.white),
                     elevation: 4,
+                    child: const Icon(Icons.image_outlined, color: Colors.white),
                   ),
                   const SizedBox(height: 16),
                   FloatingActionButton(
                     heroTag: 'delete_fab', // Unique tag for multiple FABs
                     onPressed: () {
-                      print('Delete tapped');
+    // print('Delete tapped'); // Debug print removed
                       // Handle delete action
                     },
                     backgroundColor: Colors.blueAccent,
-                    child: const Icon(Icons.delete_outline, color: Colors.white),
                     elevation: 4,
+                    child: const Icon(Icons.delete_outline, color: Colors.white),
                   ),
                 ],
               ),
@@ -677,6 +804,31 @@ class _ScannerScreenState extends State<ScannerScreen> {
           size: 40, // Larger icon size
           color: isPrimary ? Colors.white : Colors.grey[700], // White for primary, dark grey for others
         ),
+      ),
+    );
+  }
+
+  Widget _buildTipItem(String tip) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        children: [
+          Icon(
+            Icons.check_circle_outline,
+            size: 16,
+            color: Colors.teal.shade600,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              tip,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.teal.shade700,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

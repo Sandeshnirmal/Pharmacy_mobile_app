@@ -2,7 +2,6 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import '../models/prescription_model.dart';
-import '../models/api_response.dart';
 import '../services/prescription_service.dart';
 
 class PrescriptionProvider with ChangeNotifier {

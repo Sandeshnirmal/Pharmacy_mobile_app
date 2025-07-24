@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 // import 'package:carousel_slider/carousel_slider.dart' as carousel;
 // import 'package:shimmer/shimmer.dart';
@@ -12,6 +13,10 @@ import 'SearchResultsScreen.dart';
 import 'services/api_service.dart';
 import 'services/cart_service.dart';
 import 'models/product_model.dart';
+import 'providers/theme_provider.dart';
+import 'providers/auth_provider.dart';
+import 'providers/order_provider.dart';
+import 'providers/prescription_provider.dart';
 
 void main() {
   runApp(const MyApp());
@@ -22,15 +27,25 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Pharmacy App',
-      theme: ThemeData(
-        primarySwatch: Colors.teal,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-        scaffoldBackgroundColor: Colors.white,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => OrderProvider()),
+        ChangeNotifierProvider(create: (_) => PrescriptionProvider()),
+      ],
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return MaterialApp(
+            title: 'Pharmacy App',
+            theme: themeProvider.lightTheme,
+            darkTheme: themeProvider.darkTheme,
+            themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+            home: const SplashScreen(),
+            debugShowCheckedModeBanner: false,
+          );
+        },
       ),
-      home: const SplashScreen(),
-      debugShowCheckedModeBanner: false,
     );
   }
 }
@@ -555,6 +570,8 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
               ),
               const SizedBox(height: 20),
             ],
+
+
 
             // Categories Section
             Padding(

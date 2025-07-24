@@ -31,7 +31,7 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
   bool _processingComplete = false;
   Map<String, dynamic>? _processingResult;
   List<Map<String, dynamic>> _recommendedProducts = [];
-  List<Map<String, dynamic>> _selectedProducts = [];
+  final List<Map<String, dynamic>> _selectedProducts = [];
 
   @override
   void initState() {
@@ -610,7 +610,7 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
+              color: Colors.grey.withValues(alpha: 0.1),
               spreadRadius: 1,
               blurRadius: 4,
               offset: const Offset(0, 2),

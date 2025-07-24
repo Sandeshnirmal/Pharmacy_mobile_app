@@ -4,11 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'services/api_service.dart';
-import 'models/prescription_model.dart';
 import 'PrescriptionResultScreen.dart';
 
 class PrescriptionCameraScreen extends StatefulWidget {
-  const PrescriptionCameraScreen({Key? key}) : super(key: key);
+  const PrescriptionCameraScreen({super.key});
 
   @override
   State<PrescriptionCameraScreen> createState() => _PrescriptionCameraScreenState();

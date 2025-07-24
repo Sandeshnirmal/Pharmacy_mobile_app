@@ -16,16 +16,33 @@ class PrescriptionService {
   // Processing queue to track prescription status
   final Map<int, PrescriptionProcessingInfo> _processingQueue = {};
 
-  // Upload prescription image and start AI processing
+  // Simple prescription upload without AI processing (for order verification)
+  Future<ApiResponse<bool>> uploadPrescriptionSimple(File imageFile) async {
+    try {
+      // Simple upload for order verification - no AI processing needed
+      final result = await _apiService.uploadPrescriptionForOrder(imageFile);
+
+      if (result.isSuccess) {
+        return ApiResponse.success(true);
+      } else {
+        return ApiResponse.error(result.error!, result.statusCode);
+      }
+    } catch (error) {
+      print('Simple prescription upload error: $error');
+      return ApiResponse.error('Failed to upload prescription: $error', 0);
+    }
+  }
+
+  // Upload prescription image and start AI processing (for medicine discovery)
   Future<ApiResponse<PrescriptionUploadResponse>> uploadPrescription(File imageFile) async {
     try {
-      print('Uploading prescription: ${imageFile.path}');
-      
+    // print('Uploading prescription: ${imageFile.path}'); // Debug print removed
+
       final result = await _apiService.uploadPrescription(imageFile);
-      
+
       if (result.isSuccess) {
         final response = result.data!;
-        
+
         // Store processing info
         _processingQueue[response.prescriptionId] = PrescriptionProcessingInfo(
           prescriptionId: response.prescriptionId,

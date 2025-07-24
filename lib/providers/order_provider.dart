@@ -1,19 +1,18 @@
 // Order Provider for Flutter Pharmacy App
 import 'package:flutter/foundation.dart';
-import '../models/product_model.dart';
-import '../models/api_response.dart';
+import '../models/order.dart';
 import '../services/api_service.dart';
 
 class OrderProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
-  
+
   // State variables
-  List<OrderModel> _orders = [];
+  List<Order> _orders = [];
   bool _isLoading = false;
   String? _error;
 
   // Getters
-  List<OrderModel> get orders => _orders;
+  List<Order> get orders => _orders;
   bool get isLoading => _isLoading;
   String? get error => _error;
 
@@ -28,12 +27,28 @@ class OrderProvider with ChangeNotifier {
 
     try {
       final result = await _apiService.getOrders();
-      
-      if (result.isSuccess) {
-        _orders = result.data!;
+
+      if (result.isSuccess && result.data != null) {
+        // Convert OrderModel list to Order list
+        _orders = result.data!.map((orderModel) => Order(
+          id: orderModel.id,
+          status: orderModel.status,
+          createdAt: orderModel.orderDate,
+          totalAmount: orderModel.totalAmount,
+          items: orderModel.items.map((item) => OrderItem(
+            id: item.id,
+            productId: item.product.id,
+            productName: item.product.displayName,
+            productImage: item.product.imageUrl,
+            quantity: item.quantity,
+            unitPrice: item.price,
+            totalPrice: item.totalPrice,
+          )).toList(),
+          userId: 0, // Default value
+        )).toList();
         _setLoading(false);
       } else {
-        _setError(result.error!);
+        _setError(result.error ?? 'Failed to load orders');
         _setLoading(false);
       }
     } catch (e) {
@@ -43,14 +58,30 @@ class OrderProvider with ChangeNotifier {
   }
 
   // Get order by ID
-  Future<OrderModel?> getOrderById(int orderId) async {
+  Future<Order?> getOrderById(int orderId) async {
     try {
       final result = await _apiService.getOrderDetails(orderId);
-      
-      if (result.isSuccess) {
-        return result.data!;
+
+      if (result.isSuccess && result.data != null) {
+        final orderModel = result.data!;
+        return Order(
+          id: orderModel.id,
+          status: orderModel.status,
+          createdAt: orderModel.orderDate,
+          totalAmount: orderModel.totalAmount,
+          items: orderModel.items.map((item) => OrderItem(
+            id: item.id,
+            productId: item.product.id,
+            productName: item.product.displayName,
+            productImage: item.product.imageUrl,
+            quantity: item.quantity,
+            unitPrice: item.price,
+            totalPrice: item.totalPrice,
+          )).toList(),
+          userId: 0, // Default value
+        );
       } else {
-        _setError(result.error!);
+        _setError(result.error ?? 'Failed to get order details');
         return null;
       }
     } catch (e) {
@@ -60,20 +91,20 @@ class OrderProvider with ChangeNotifier {
   }
 
   // Get orders by status
-  List<OrderModel> getOrdersByStatus(String status) {
+  List<Order> getOrdersByStatus(String status) {
     return _orders.where((order) => order.status.toLowerCase() == status.toLowerCase()).toList();
   }
 
   // Get recent orders
-  List<OrderModel> getRecentOrders({int limit = 5}) {
-    final sortedOrders = List<OrderModel>.from(_orders);
-    sortedOrders.sort((a, b) => b.orderDate.compareTo(a.orderDate));
+  List<Order> getRecentOrders({int limit = 5}) {
+    final sortedOrders = List<Order>.from(_orders);
+    sortedOrders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return sortedOrders.take(limit).toList();
   }
 
   // Get prescription orders
-  List<OrderModel> getPrescriptionOrders() {
-    return _orders.where((order) => order.isPrescriptionOrder).toList();
+  List<Order> getPrescriptionOrders() {
+    return _orders.where((order) => order.notes?.contains('prescription') == true).toList();
   }
 
   // Calculate total spent
@@ -114,8 +145,4 @@ class OrderProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
 }

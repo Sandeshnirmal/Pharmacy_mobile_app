@@ -2,10 +2,9 @@ import 'dart:convert';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
+import '../config/api_config.dart';
 import 'api_service.dart';
-import '../models/user_model.dart';
-import '../models/api_response.dart';
-
+import '../utils/logger.dart';
 class AuthService {
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
   final ApiService _apiService = ApiService();
@@ -38,7 +37,7 @@ class AuthService {
 
       // Verify token is still valid by making a test API call
       final response = await http.get(
-        Uri.parse('http://192.168.129.6:8001/api/auth/user/'),
+        Uri.parse(ApiConfig.userProfileUrl),
         headers: {
           'Authorization': 'Token $token',  // Django TokenAuthentication uses 'Token' not 'Bearer'
           'Content-Type': 'application/json',
@@ -58,7 +57,7 @@ class AuthService {
 
       return isAuth;
     } catch (e) {
-      print('Auth check error: $e');
+      Logger.auth('Auth check error: $e');
       _cachedAuthState = false;
       _lastAuthCheck = DateTime.now();
       return false;
@@ -72,7 +71,7 @@ class AuthService {
       if (token == null) return null;
 
       final response = await http.get(
-        Uri.parse('http://192.168.129.6:8001/api/auth/user/'),
+        Uri.parse(ApiConfig.userProfileUrl),
         headers: {
           'Authorization': 'Token $token',  // Django TokenAuthentication uses 'Token' not 'Bearer'
           'Content-Type': 'application/json',
@@ -99,7 +98,7 @@ class AuthService {
   Future<Map<String, dynamic>> login(String email, String password) async {
     try {
       final response = await http.post(
-        Uri.parse('http://192.168.129.6:8001/api/auth/login/'),
+        Uri.parse(ApiConfig.loginUrl),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -147,7 +146,7 @@ class AuthService {
         };
       }
     } catch (e) {
-      print('Login error: $e');
+      Logger.auth('Login error: $e');
       return {
         'success': false,
         'message': 'Network error. Please check your connection.',
@@ -158,10 +157,10 @@ class AuthService {
   // Register user with real API
   Future<Map<String, dynamic>> register(Map<String, dynamic> userData) async {
     try {
-      print('Attempting registration with data: $userData');
+    // print('Attempting registration with data: $userData'); // Debug print removed
 
       final response = await http.post(
-        Uri.parse('http://192.168.129.6:8001/api/auth/register/'),
+        Uri.parse(ApiConfig.registerUrl),
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
@@ -170,8 +169,8 @@ class AuthService {
         body: json.encode(userData),
       );
 
-      print('Registration response status: ${response.statusCode}');
-      print('Registration response body: ${response.body}');
+    // print('Registration response status: ${response.statusCode}'); // Debug print removed
+    // print('Registration response body: ${response.body}'); // Debug print removed
 
       final responseData = json.decode(response.body);
 

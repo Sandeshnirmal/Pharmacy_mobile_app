@@ -1,13 +1,12 @@
 // Products Screen with Real API Data
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import '../../providers/product_provider.dart';
 import '../../models/product_model.dart';
 import 'product_detail_screen.dart';
 
 class ProductsScreen extends StatefulWidget {
-  const ProductsScreen({Key? key}) : super(key: key);
+  const ProductsScreen({super.key});
 
   @override
   State<ProductsScreen> createState() => _ProductsScreenState();
@@ -120,7 +119,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                     label: Text(category),
                     selected: isSelected,
                     onSelected: (_) => _onCategoryChanged(category),
-                    selectedColor: Colors.teal.withOpacity(0.2),
+                    selectedColor: Colors.teal.withValues(alpha: 0.2),
                     checkmarkColor: Colors.teal,
                   ),
                 );

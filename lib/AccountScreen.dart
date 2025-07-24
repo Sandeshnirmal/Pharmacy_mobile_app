@@ -3,7 +3,12 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'LoginScreen.dart';
 import 'RegisterScreen.dart';
 import 'ProfileDetailsScreen.dart';
+import './screens/profile/my_orders_screen.dart';
 import 'services/auth_service.dart';
+import './screens/profile/prescription_history_screen.dart';
+import './screens/profile/address_screen.dart';
+import './screens/profile/settings_screen.dart';
+
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -37,12 +42,14 @@ class _AccountScreenState extends State<AccountScreen> {
         final userData = await _authService.getCurrentUser();
         setState(() {
           _isAuthenticated = true;
-          _userProfile = userData ?? {
-            'first_name': 'John',
-            'last_name': 'Doe',
-            'email': 'john.doe@example.com',
-            'phone': '+91 9876543210',
-          };
+          _userProfile =
+              userData ??
+              {
+                'first_name': 'John',
+                'last_name': 'Doe',
+                'email': 'john.doe@example.com',
+                'phone': '+91 9876543210',
+              };
         });
       } else {
         setState(() {
@@ -109,10 +116,7 @@ class _AccountScreenState extends State<AccountScreen> {
         ),
         title: const Text(
           'Profile',
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
         ),
         centerTitle: true,
         actions: [
@@ -130,8 +134,8 @@ class _AccountScreenState extends State<AccountScreen> {
               ),
             )
           : !_isAuthenticated
-              ? _buildLoginPrompt()
-              : _buildAuthenticatedProfile(),
+          ? _buildLoginPrompt()
+          : _buildAuthenticatedProfile(),
     );
   }
 
@@ -169,10 +173,7 @@ class _AccountScreenState extends State<AccountScreen> {
             const SizedBox(height: 16),
             Text(
               'Sign in to access your profile, orders, and personalized recommendations',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 40),
@@ -182,7 +183,9 @@ class _AccountScreenState extends State<AccountScreen> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => const LoginScreen(),
+                    ),
                   );
                 },
                 style: ElevatedButton.styleFrom(
@@ -195,10 +198,7 @@ class _AccountScreenState extends State<AccountScreen> {
                 ),
                 child: const Text(
                   'Sign In',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
@@ -207,7 +207,9 @@ class _AccountScreenState extends State<AccountScreen> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const RegisterScreen(),
+                  ),
                 );
               },
               child: const Text(
@@ -257,18 +259,12 @@ class _AccountScreenState extends State<AccountScreen> {
               const SizedBox(height: 8),
               Text(
                 _userProfile?['email'] ?? '',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
               ),
               const SizedBox(height: 4),
               Text(
                 _userProfile?['phone'] ?? '',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
               ),
             ],
           ),
@@ -282,7 +278,9 @@ class _AccountScreenState extends State<AccountScreen> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const ProfileDetailsScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const ProfileDetailsScreen(),
+                  ),
                 );
               },
               style: ElevatedButton.styleFrom(
@@ -295,10 +293,7 @@ class _AccountScreenState extends State<AccountScreen> {
               ),
               child: const Text(
                 'View Full Profile',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -326,28 +321,48 @@ class _AccountScreenState extends State<AccountScreen> {
                   icon: Icons.shopping_bag_outlined,
                   title: 'My Orders',
                   subtitle: 'View your order history',
-                  onTap: () => _showFeatureComingSoon('My Orders'),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const MyOrdersScreen()),
+                    );
+                  },
                 ),
                 _buildDivider(),
                 _buildOptionTile(
                   icon: Icons.location_on_outlined,
                   title: 'Addresses',
                   subtitle: 'Manage delivery addresses',
-                  onTap: () => _showFeatureComingSoon('Address Management'),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const AddressScreen()),
+                    );
+                  },
                 ),
                 _buildDivider(),
                 _buildOptionTile(
                   icon: Icons.medical_services_outlined,
                   title: 'Prescriptions',
                   subtitle: 'View uploaded prescriptions',
-                  onTap: () => _showFeatureComingSoon('Prescription History'),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const PrescriptionHistoryScreen()),
+                    );
+                  },
                 ),
                 _buildDivider(),
                 _buildOptionTile(
                   icon: Icons.settings_outlined,
                   title: 'Settings',
                   subtitle: 'App preferences and privacy',
-                  onTap: () => _showFeatureComingSoon('Settings'),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                    );
+                  },
                 ),
               ],
             ),
@@ -372,11 +387,7 @@ class _AccountScreenState extends State<AccountScreen> {
           color: Colors.teal.shade50,
           borderRadius: BorderRadius.circular(8),
         ),
-        child: Icon(
-          icon,
-          color: Colors.teal.shade600,
-          size: 24,
-        ),
+        child: Icon(icon, color: Colors.teal.shade600, size: 24),
       ),
       title: Text(
         title,
@@ -388,10 +399,7 @@ class _AccountScreenState extends State<AccountScreen> {
       ),
       subtitle: Text(
         subtitle,
-        style: TextStyle(
-          fontSize: 14,
-          color: Colors.grey[600],
-        ),
+        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
       ),
       trailing: Icon(
         Icons.arrow_forward_ios,
@@ -411,13 +419,13 @@ class _AccountScreenState extends State<AccountScreen> {
     );
   }
 
-  void _showFeatureComingSoon(String feature) {
-    Fluttertoast.showToast(
-      msg: '$feature feature coming soon!',
-      toastLength: Toast.LENGTH_SHORT,
-      gravity: ToastGravity.BOTTOM,
-      backgroundColor: Colors.teal,
-      textColor: Colors.white,
-    );
-  }
+  // void _showFeatureComingSoon(String feature) {
+  //   Fluttertoast.showToast(
+  //     msg: '$feature feature coming soon!',
+  //     toastLength: Toast.LENGTH_SHORT,
+  //     gravity: ToastGravity.BOTTOM,
+  //     backgroundColor: Colors.teal,
+  //     textColor: Colors.white,
+  //   );
+  // }
 }

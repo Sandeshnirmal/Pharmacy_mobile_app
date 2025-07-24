@@ -5,9 +5,13 @@ import 'package:fluttertoast/fluttertoast.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/order_provider.dart';
 import '../auth/login_screen.dart';
+import 'address_screen.dart';
+import 'my_orders_screen.dart';
+import 'prescription_history_screen.dart';
+import 'settings_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+  const ProfileScreen({super.key});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -38,9 +42,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             TextButton(
               onPressed: () async {
                 Navigator.pop(context);
+                final navigator = Navigator.of(context);
                 await context.read<AuthProvider>().logout();
                 if (mounted) {
-                  Navigator.of(context).pushAndRemoveUntil(
+                  navigator.pushAndRemoveUntil(
                     MaterialPageRoute(builder: (context) => const LoginScreen()),
                     (route) => false,
                   );
@@ -172,7 +177,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.teal.withOpacity(0.1),
+                color: Colors.teal.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
@@ -278,7 +283,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Column(
@@ -315,10 +320,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             'My Addresses',
             Icons.location_on,
             () {
-              Fluttertoast.showToast(
-                msg: "Address management coming soon!",
-                toastLength: Toast.LENGTH_SHORT,
-                gravity: ToastGravity.BOTTOM,
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AddressScreen()),
               );
             },
           ),
@@ -327,34 +331,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
             'Prescription History',
             Icons.receipt,
             () {
-              Fluttertoast.showToast(
-                msg: "Prescription history coming soon!",
-                toastLength: Toast.LENGTH_SHORT,
-                gravity: ToastGravity.BOTTOM,
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const PrescriptionHistoryScreen()),
               );
             },
           ),
           const Divider(height: 1),
           _buildOptionTile(
-            'Notifications',
-            Icons.notifications,
+            'My Orders',
+            Icons.shopping_bag,
             () {
-              Fluttertoast.showToast(
-                msg: "Notification settings coming soon!",
-                toastLength: Toast.LENGTH_SHORT,
-                gravity: ToastGravity.BOTTOM,
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const MyOrdersScreen()),
               );
             },
           ),
           const Divider(height: 1),
           _buildOptionTile(
-            'Help & Support',
-            Icons.help,
+            'Settings',
+            Icons.settings,
             () {
-              Fluttertoast.showToast(
-                msg: "Help & support coming soon!",
-                toastLength: Toast.LENGTH_SHORT,
-                gravity: ToastGravity.BOTTOM,
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
               );
             },
           ),

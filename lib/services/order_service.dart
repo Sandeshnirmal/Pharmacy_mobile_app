@@ -1,9 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../config/api_config.dart';
 
 class OrderService {
-  static const String baseUrl = 'http://192.168.129.6:8001/api';
+  static String get baseUrl => ApiConfig.apiBaseUrl;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
   // Create order

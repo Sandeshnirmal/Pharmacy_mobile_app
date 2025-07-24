@@ -3,14 +3,15 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../config/api_config.dart';
 import '../models/api_response.dart';
 import '../models/user_model.dart';
 import '../models/prescription_model.dart';
 import '../models/product_model.dart';
 
 class ApiService {
-  static const String baseUrl = 'http://192.168.129.6:8001'; // Current Linux machine IP
-  static const int timeoutDuration = 10000; // 10 seconds
+  static String get baseUrl => ApiConfig.baseUrl;
+  static int get timeoutDuration => ApiConfig.timeoutDuration;
   
   // Singleton pattern
   static final ApiService _instance = ApiService._internal();
@@ -79,7 +80,7 @@ class ApiService {
   Future<ApiResponse<UserModel>> login(String email, String password) async {
     try {
       final response = await _client.post(
-        Uri.parse('$baseUrl/api/auth/login/'),
+        Uri.parse(ApiConfig.loginUrl),
         headers: await _getHeaders(includeAuth: false),
         body: json.encode({
           'email': email,
@@ -119,11 +120,47 @@ class ApiService {
   }
 
   // Prescription APIs
+
+  // Simple prescription upload for order verification (no AI processing)
+  Future<ApiResponse<bool>> uploadPrescriptionForOrder(File imageFile) async {
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse(ApiConfig.prescriptionForOrderUrl),
+      );
+
+      // Add headers
+      final headers = await _getHeaders();
+      request.headers.addAll(headers);
+
+      // Add image file
+      request.files.add(
+        await http.MultipartFile.fromPath('prescription_image', imageFile.path),
+      );
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return ApiResponse.success(true);
+      } else {
+        final errorData = json.decode(response.body);
+        return ApiResponse.error(
+          errorData['error'] ?? 'Upload failed',
+          response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error('Network error: $e', 0);
+    }
+  }
+
+  // Full prescription upload with AI processing (for medicine discovery)
   Future<ApiResponse<PrescriptionUploadResponse>> uploadPrescription(File imageFile) async {
     try {
       final request = http.MultipartRequest(
         'POST',
-        Uri.parse('$baseUrl/prescription/mobile/upload/'),
+        Uri.parse(ApiConfig.prescriptionUploadUrl),
       );
 
       // Add headers
@@ -188,7 +225,7 @@ class ApiService {
   // Product APIs
   Future<ApiResponse<List<ProductModel>>> getProducts({Map<String, String>? queryParams}) async {
     try {
-      final uri = Uri.parse('$baseUrl/product/products/').replace(queryParameters: queryParams);
+      final uri = Uri.parse(ApiConfig.productsUrl).replace(queryParameters: queryParams);
       
       final response = await _client.get(
         uri,
@@ -264,7 +301,7 @@ class ApiService {
   Future<ApiResponse<List<OrderModel>>> getOrders() async {
     try {
       final response = await _client.get(
-        Uri.parse('$baseUrl/order/orders/'),
+        Uri.parse(ApiConfig.ordersUrl),
         headers: await _getHeaders(),
       ).timeout(Duration(milliseconds: timeoutDuration));
 
@@ -420,6 +457,205 @@ class ApiService {
       return _handleResponse(response, (data) => data);
     } catch (e) {
       return ApiResponse.error('Network error: $e', 0);
+    }
+  }
+
+  // Additional API methods for profile features
+
+  // Forgot Password
+  Future<Map<String, dynamic>> forgotPassword(String email) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$baseUrl/user/forgot-password/'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'email': email}),
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'data': json.decode(response.body),
+        };
+      } else {
+        final errorData = json.decode(response.body);
+        return {
+          'success': false,
+          'error': errorData['error'] ?? 'Failed to send reset email',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'error': 'Network error: $e',
+      };
+    }
+  }
+
+  // Change Password
+  Future<Map<String, dynamic>> changePassword(String currentPassword, String newPassword) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$baseUrl/user/change-password/'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'current_password': currentPassword,
+          'new_password': newPassword,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'data': json.decode(response.body),
+        };
+      } else {
+        final errorData = json.decode(response.body);
+        return {
+          'success': false,
+          'error': errorData['error'] ?? 'Failed to change password',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'error': 'Network error: $e',
+      };
+    }
+  }
+
+  // Address Management
+  Future<Map<String, dynamic>> getAddresses() async {
+    try {
+      final response = await _client.get(
+        Uri.parse('$baseUrl/user/addresses/'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'data': json.decode(response.body),
+        };
+      } else {
+        final errorData = json.decode(response.body);
+        return {
+          'success': false,
+          'error': errorData['error'] ?? 'Failed to load addresses',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'error': 'Network error: $e',
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> addAddress(Map<String, dynamic> addressData) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$baseUrl/user/addresses/'),
+        headers: await _getHeaders(),
+        body: json.encode(addressData),
+      );
+
+      if (response.statusCode == 201) {
+        return {
+          'success': true,
+          'data': json.decode(response.body),
+        };
+      } else {
+        final errorData = json.decode(response.body);
+        return {
+          'success': false,
+          'error': errorData['error'] ?? 'Failed to add address',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'error': 'Network error: $e',
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> updateAddress(int id, Map<String, dynamic> addressData) async {
+    try {
+      final response = await _client.put(
+        Uri.parse('$baseUrl/user/addresses/$id/'),
+        headers: await _getHeaders(),
+        body: json.encode(addressData),
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'data': json.decode(response.body),
+        };
+      } else {
+        final errorData = json.decode(response.body);
+        return {
+          'success': false,
+          'error': errorData['error'] ?? 'Failed to update address',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'error': 'Network error: $e',
+      };
+    }
+  }
+
+  Future<Map<String, dynamic>> deleteAddress(int id) async {
+    try {
+      final response = await _client.delete(
+        Uri.parse('$baseUrl/user/addresses/$id/'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode == 204) {
+        return {'success': true};
+      } else {
+        final errorData = json.decode(response.body);
+        return {
+          'success': false,
+          'error': errorData['error'] ?? 'Failed to delete address',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'error': 'Network error: $e',
+      };
+    }
+  }
+
+  // Prescription Management
+  Future<Map<String, dynamic>> getPrescriptions() async {
+    try {
+      final response = await _client.get(
+        Uri.parse('$baseUrl/prescription/prescriptions/'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        return {
+          'success': true,
+          'data': json.decode(response.body),
+        };
+      } else {
+        final errorData = json.decode(response.body);
+        return {
+          'success': false,
+          'error': errorData['error'] ?? 'Failed to load prescriptions',
+        };
+      }
+    } catch (e) {
+      return {
+        'success': false,
+        'error': 'Network error: $e',
+      };
     }
   }
 
