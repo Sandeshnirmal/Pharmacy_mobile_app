@@ -38,10 +38,13 @@ class ApiConfig {
   static const String prescriptionStatusUrl = '$baseUrl/prescription/mobile/status/';
   static const String medicineSuggestionsUrl = '$baseUrl/prescription/mobile/suggestions/';
   static const String prescriptionForOrderUrl = '$baseUrl/prescription/upload-for-order/';
+  static const String prescriptionCreateOrderUrl = '$baseUrl/prescription/mobile/create-order/';
 
   // Order URLs
   static const String ordersUrl = '$baseUrl/order/orders/';
   static const String orderDetailsUrl = '$baseUrl/order/details/';
+  static const String createOrderUrl = '$baseUrl/order/orders/';
+  static const String applyCouponUrl = '$baseUrl/order/apply-coupon/';
 
   // API Configuration
   static const int timeoutDuration = 30000; // milliseconds

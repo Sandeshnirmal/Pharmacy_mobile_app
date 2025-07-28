@@ -113,7 +113,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         'notes': _notesController.text.trim(),
       };
 
-      final result = await _orderService.mockCreateOrder(orderData);
+      final result = await _orderService.createOrder(orderData);
 
       if (result['success'] == true) {
         // Clear cart after successful order

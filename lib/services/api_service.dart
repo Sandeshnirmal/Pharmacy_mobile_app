@@ -211,7 +211,7 @@ class ApiService {
   Future<ApiResponse<OrderResponse>> createPrescriptionOrder(Map<String, dynamic> orderData) async {
     try {
       final response = await _client.post(
-        Uri.parse('$baseUrl/prescription/mobile/create-order/'),
+        Uri.parse(ApiConfig.prescriptionCreateOrderUrl),
         headers: await _getHeaders(),
         body: json.encode(orderData),
       ).timeout(Duration(milliseconds: timeoutDuration));
@@ -431,7 +431,7 @@ class ApiService {
   Future<ApiResponse<Map<String, dynamic>>> applyCoupon(String couponCode, double cartTotal) async {
     try {
       final response = await _client.post(
-        Uri.parse('$baseUrl/order/apply-coupon/'),
+        Uri.parse(ApiConfig.applyCouponUrl),
         headers: await _getHeaders(),
         body: json.encode({
           'coupon_code': couponCode,
@@ -449,7 +449,7 @@ class ApiService {
   Future<ApiResponse<Map<String, dynamic>>> createOrder(Map<String, dynamic> orderData) async {
     try {
       final response = await _client.post(
-        Uri.parse('$baseUrl/order/orders/'),
+        Uri.parse(ApiConfig.createOrderUrl),
         headers: await _getHeaders(),
         body: json.encode(orderData),
       ).timeout(Duration(milliseconds: timeoutDuration));

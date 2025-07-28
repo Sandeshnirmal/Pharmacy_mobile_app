@@ -13,7 +13,7 @@ class OrderService {
       final token = await _storage.read(key: 'auth_token');
       
       final response = await http.post(
-        Uri.parse('$baseUrl/orders/create/'),
+        Uri.parse('$baseUrl/order/orders/'),
         headers: {
           'Content-Type': 'application/json',
           if (token != null) 'Authorization': 'Bearer $token',
@@ -51,7 +51,7 @@ class OrderService {
       final token = await _storage.read(key: 'auth_token');
       
       final response = await http.get(
-        Uri.parse('$baseUrl/orders/$orderId/'),
+        Uri.parse('$baseUrl/order/orders/$orderId/'),
         headers: {
           'Content-Type': 'application/json',
           if (token != null) 'Authorization': 'Bearer $token',
@@ -74,7 +74,7 @@ class OrderService {
       final token = await _storage.read(key: 'auth_token');
       
       final response = await http.get(
-        Uri.parse('$baseUrl/orders/my-orders/'),
+        Uri.parse('$baseUrl/order/orders/'),
         headers: {
           'Content-Type': 'application/json',
           if (token != null) 'Authorization': 'Bearer $token',
@@ -98,7 +98,7 @@ class OrderService {
       final token = await _storage.read(key: 'auth_token');
       
       final response = await http.post(
-        Uri.parse('$baseUrl/orders/$orderId/cancel/'),
+        Uri.parse('$baseUrl/order/orders/$orderId/cancel/'),
         headers: {
           'Content-Type': 'application/json',
           if (token != null) 'Authorization': 'Bearer $token',
@@ -121,7 +121,7 @@ class OrderService {
       final token = await _storage.read(key: 'auth_token');
       
       final response = await http.get(
-        Uri.parse('$baseUrl/orders/$orderId/track/'),
+        Uri.parse('$baseUrl/order/orders/$orderId/track/'),
         headers: {
           'Content-Type': 'application/json',
           if (token != null) 'Authorization': 'Bearer $token',
@@ -220,7 +220,7 @@ class OrderService {
       final token = await _storage.read(key: 'auth_token');
       
       final response = await http.get(
-        Uri.parse('$baseUrl/orders/$orderId/status-updates/'),
+        Uri.parse('$baseUrl/order/orders/$orderId/status-updates/'),
         headers: {
           'Content-Type': 'application/json',
           if (token != null) 'Authorization': 'Bearer $token',
