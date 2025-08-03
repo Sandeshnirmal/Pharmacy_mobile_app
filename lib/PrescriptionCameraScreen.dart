@@ -257,7 +257,7 @@ class _PrescriptionCameraScreenState extends State<PrescriptionCameraScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'AI Prescription Processing',
+                      'Prescription Processing',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
@@ -266,7 +266,7 @@ class _PrescriptionCameraScreenState extends State<PrescriptionCameraScreen> {
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Take a clear photo of your prescription or select from gallery. Our AI will extract medicines and suggest available products.',
+                      'Take a clear photo of your prescription or select from gallery. Our system will extract medicines and suggest available products.',
                       style: TextStyle(fontSize: 14),
                     ),
                   ],

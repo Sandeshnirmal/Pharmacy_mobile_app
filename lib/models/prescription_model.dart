@@ -15,14 +15,12 @@ class PrescriptionUploadResponse {
   final bool success;
   final int prescriptionId;
   final String message;
-  final double aiConfidence;
   final String status;
 
   PrescriptionUploadResponse({
     required this.success,
     required this.prescriptionId,
     required this.message,
-    required this.aiConfidence,
     required this.status,
   });
 
@@ -31,7 +29,6 @@ class PrescriptionUploadResponse {
       success: json['success'] ?? false,
       prescriptionId: json['prescription_id'] ?? 0,
       message: json['message'] ?? '',
-      aiConfidence: _parseDouble(json['ai_confidence']),
       status: json['status'] ?? '',
     );
   }
@@ -39,22 +36,19 @@ class PrescriptionUploadResponse {
 
 class PrescriptionStatusResponse {
   final String status;
-  final bool aiProcessed;
-  final double? confidenceScore;
+  final bool processed;
   final bool isReady;
 
   PrescriptionStatusResponse({
     required this.status,
-    required this.aiProcessed,
-    this.confidenceScore,
+    required this.processed,
     required this.isReady,
   });
 
   factory PrescriptionStatusResponse.fromJson(Map<String, dynamic> json) {
     return PrescriptionStatusResponse(
       status: json['status'] ?? '',
-      aiProcessed: json['ai_processed'] ?? false,
-      confidenceScore: _parseDouble(json['confidence_score']),
+      processed: json['processed'] ?? json['ai_processed'] ?? false,
       isReady: json['is_ready'] ?? false,
     );
   }
@@ -63,7 +57,6 @@ class PrescriptionStatusResponse {
 class PrescriptionSuggestionsResponse {
   final int prescriptionId;
   final String status;
-  final double aiConfidence;
   final PrescriptionSummary summary;
   final List<MedicineModel> medicines;
   final PricingModel pricing;
@@ -72,7 +65,6 @@ class PrescriptionSuggestionsResponse {
   PrescriptionSuggestionsResponse({
     required this.prescriptionId,
     required this.status,
-    required this.aiConfidence,
     required this.summary,
     required this.medicines,
     required this.pricing,
@@ -83,7 +75,6 @@ class PrescriptionSuggestionsResponse {
     return PrescriptionSuggestionsResponse(
       prescriptionId: json['prescription_id'] ?? 0,
       status: json['status'] ?? '',
-      aiConfidence: _parseDouble(json['ai_confidence']),
       summary: PrescriptionSummary.fromJson(json['summary'] ?? {}),
       medicines: (json['medicines'] as List? ?? [])
           .map((medicine) => MedicineModel.fromJson(medicine))

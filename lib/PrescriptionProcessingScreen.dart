@@ -57,7 +57,7 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
     await Future.delayed(const Duration(seconds: 2));
 
     try {
-      // Wait for AI processing to complete and get medicine suggestions
+      // Wait for processing to complete and get medicine suggestions
       final result = await _prescriptionService.waitForProcessing(
         widget.prescriptionId,
         maxWaitTime: Duration(seconds: 30),
@@ -71,7 +71,6 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
           _isProcessing = false;
           _processingComplete = true;
           _processingResult = {
-            'confidence': suggestions.aiConfidence,
             'prescription_id': suggestions.prescriptionId,
             'status': suggestions.status,
             'total_medicines': suggestions.summary.totalMedicines,

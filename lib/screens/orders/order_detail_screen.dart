@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../../providers/order_provider.dart';
 import '../../models/order.dart';
+import '../../models/order_model.dart';
+import 'order_tracking_screen.dart';
 
 class OrderDetailScreen extends StatefulWidget {
   final int orderId;
@@ -45,6 +47,33 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
         actions: [
+          if (_order != null)
+            IconButton(
+              icon: const Icon(Icons.local_shipping),
+              tooltip: 'Track Order',
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => OrderTrackingScreen(
+                      order: OrderModel(
+                        id: _order!.id,
+                        orderNumber: _order!.id.toString(),
+                        orderDate: _order!.createdAt,
+                        status: _order!.status,
+                        statusDisplayName: _order!.status,
+                        totalAmount: _order!.totalAmount,
+                        totalItems: _order!.items.length,
+                        paymentStatus: _order!.paymentStatus ?? 'Unknown',
+                        paymentMethod: _order!.paymentMethod ?? 'Unknown',
+                        items: [],
+                        shippingAddress: null,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
           IconButton(
             icon: const Icon(Icons.share),
             onPressed: () {

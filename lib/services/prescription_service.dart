@@ -48,7 +48,7 @@ class PrescriptionService {
           prescriptionId: response.prescriptionId,
           status: 'processing',
           uploadTime: DateTime.now(),
-          confidence: response.aiConfidence,
+          confidence: 0.0, // No longer using AI confidence
         );
 
         return ApiResponse.success(response);
@@ -73,8 +73,8 @@ class PrescriptionService {
         if (_processingQueue.containsKey(prescriptionId)) {
           _processingQueue[prescriptionId] = _processingQueue[prescriptionId]!.copyWith(
             status: response.status,
-            aiProcessed: response.aiProcessed,
-            confidence: response.confidenceScore,
+            aiProcessed: response.processed,
+            confidence: 0.0, // No longer using confidence scores
           );
         }
 

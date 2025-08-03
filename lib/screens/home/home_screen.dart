@@ -62,47 +62,75 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Welcome card with user stats
-            Consumer2<AuthProvider, OrderProvider>(
-              builder: (context, authProvider, orderProvider, child) {
-                final user = authProvider.user;
-                final orders = orderProvider.orders;
+      body: RefreshIndicator(
+        onRefresh: () async {
+          if (mounted) {
+            await context.read<ProductProvider>().loadProducts();
+            await context.read<OrderProvider>().loadOrders();
+          }
+        },
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Enhanced Welcome card with gradient background
+              Consumer2<AuthProvider, OrderProvider>(
+                builder: (context, authProvider, orderProvider, child) {
+                  final user = authProvider.user;
+                  final orders = orderProvider.orders;
 
-                return Card(
-                  elevation: 4,
-                  child: Padding(
-                    padding: const EdgeInsets.all(20.0),
-                    child: Column(
-                      children: [
-                        const Icon(
-                          Icons.local_pharmacy,
-                          size: 60,
-                          color: Colors.teal,
+                  return Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Colors.teal, Colors.teal.shade300],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.teal.withValues(alpha: 0.3),
+                          blurRadius: 10,
+                          offset: const Offset(0, 5),
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          user != null ? 'Welcome back, ${user.firstName}!' : 'Welcome to Pharmacy App',
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.teal,
+                      ],
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(50),
+                            ),
+                            child: const Icon(
+                              Icons.local_pharmacy,
+                              size: 50,
+                              color: Colors.white,
+                            ),
                           ),
-                          textAlign: TextAlign.center,
-                        ),
-                        const SizedBox(height: 8),
-                        const Text(
-                          'AI-powered prescription processing and medicine delivery',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.grey,
+                          const SizedBox(height: 20),
+                          Text(
+                            user != null ? 'Welcome back, ${user.firstName}!' : 'Welcome to Pharmacy App',
+                            style: const TextStyle(
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                          textAlign: TextAlign.center,
-                        ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'Smart prescription processing and medicine delivery',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.white70,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
                         if (orders.isNotEmpty) ...[
                           const SizedBox(height: 16),
                           Row(
@@ -121,6 +149,16 @@ class _HomeScreenState extends State<HomeScreen> {
               },
             ),
             
+            const SizedBox(height: 24),
+
+            // Prescription Scan CTA
+            _buildPrescriptionScanCTA(),
+
+            const SizedBox(height: 24),
+
+            // Medicine Search Section
+            _buildMedicineSearchSection(),
+
             const SizedBox(height: 24),
 
             // Featured Products
@@ -376,9 +414,20 @@ class _HomeScreenState extends State<HomeScreen> {
               'Get your medicines delivered to your doorstep quickly',
               Icons.local_shipping,
             ),
+
+            const SizedBox(height: 24),
+
+            // Featured Products
+            _buildFeaturedProducts(),
+
+            const SizedBox(height: 24),
+
+            // Recent Orders
+            _buildRecentOrders(),
           ],
         ),
       ),
+      )
     );
   }
 
@@ -679,6 +728,157 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         );
       },
+    );
+  }
+
+  Widget _buildPrescriptionScanCTA() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Colors.teal.shade400, Colors.teal.shade600],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.teal.withValues(alpha: 0.3),
+            blurRadius: 15,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            Navigator.pushNamed(context, '/camera-scan');
+          },
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(
+                    Icons.camera_alt,
+                    color: Colors.white,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Scan Prescription',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'AI-powered medicine recognition',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.white70,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMedicineSearchSection() {
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.search,
+                  color: Colors.teal,
+                  size: 24,
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Smart Medicine Search',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.teal,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Find medicines by name, composition, or brand. Our AI matches your search with available medicines.',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/medicine-search');
+                    },
+                    icon: const Icon(Icons.search),
+                    label: const Text('Search Medicines'),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.teal),
+                      foregroundColor: Colors.teal,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/products');
+                    },
+                    icon: const Icon(Icons.medication),
+                    label: const Text('Browse All'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.teal,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 

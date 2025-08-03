@@ -7,7 +7,6 @@ class AppTheme {
   static const Color secondaryColor = Color(0xFF03DAC6);
   static const Color backgroundColor = Colors.white;
   static const Color surfaceColor = Colors.white;
-  static const Color errorColor = Color(0xFFB00020);
 
   // Text colors
   static const Color textPrimary = Color(0xFF212121);
@@ -17,12 +16,8 @@ class AppTheme {
   // Status colors
   static const Color successColor = Color(0xFF4CAF50);
   static const Color warningColor = Color(0xFFFF9800);
+  static const Color errorColor = Color(0xFFF44336);
   static const Color infoColor = Color(0xFF2196F3);
-
-  // Confidence colors for AI
-  static const Color highConfidence = Color(0xFF4CAF50);
-  static const Color mediumConfidence = Color(0xFFFF9800);
-  static const Color lowConfidence = Color(0xFFF44336);
 
   static ThemeData get lightTheme {
     return ThemeData(
@@ -199,18 +194,22 @@ class AppTheme {
     );
   }
 
-  // Helper methods for confidence colors
-  static Color getConfidenceColor(double confidence) {
-    if (confidence >= 0.8) return highConfidence;
-    if (confidence >= 0.6) return mediumConfidence;
-    return lowConfidence;
-  }
-
-  static String getConfidenceText(double confidence) {
-    if (confidence >= 0.9) return 'Excellent';
-    if (confidence >= 0.8) return 'Very Good';
-    if (confidence >= 0.7) return 'Good';
-    if (confidence >= 0.6) return 'Fair';
-    return 'Poor';
+  // Helper methods for status colors
+  static Color getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'completed':
+      case 'verified':
+      case 'available':
+        return successColor;
+      case 'processing':
+      case 'pending':
+        return warningColor;
+      case 'failed':
+      case 'rejected':
+      case 'unavailable':
+        return errorColor;
+      default:
+        return Colors.grey;
+    }
   }
 }

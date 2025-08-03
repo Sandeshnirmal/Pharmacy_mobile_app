@@ -138,7 +138,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     }
   }
 
-  void _performSearch(String query) {
+  void _performSearch(String query) async {
     if (query.isEmpty && !widget.isFromPrescription) {
       setState(() {
         _searchResults = [];
@@ -155,13 +155,29 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
         if (query.isEmpty || query == 'Prescription medicines') {
           results = _allProducts;
         } else {
-          // Filter prescription products by search query
-          results = _allProducts.where((product) =>
-            product.name.toLowerCase().contains(query.toLowerCase()) ||
-            product.manufacturer.toLowerCase().contains(query.toLowerCase()) ||
-            (product.genericName?.toLowerCase().contains(query.toLowerCase()) ?? false) ||
-            (product.description?.toLowerCase().contains(query.toLowerCase()) ?? false)
-          ).toList();
+          // Use the new prescription search API for better results
+          try {
+            final response = await _apiService.searchPrescriptionMedicines(query);
+            if (response.isSuccess && response.data != null) {
+              results = response.data!;
+            } else {
+              // Fallback to local search
+              results = _allProducts.where((product) =>
+                product.name.toLowerCase().contains(query.toLowerCase()) ||
+                product.manufacturer.toLowerCase().contains(query.toLowerCase()) ||
+                (product.genericName?.toLowerCase().contains(query.toLowerCase()) ?? false) ||
+                (product.description?.toLowerCase().contains(query.toLowerCase()) ?? false)
+              ).toList();
+            }
+          } catch (e) {
+            // Fallback to local search on error
+            results = _allProducts.where((product) =>
+              product.name.toLowerCase().contains(query.toLowerCase()) ||
+              product.manufacturer.toLowerCase().contains(query.toLowerCase()) ||
+              (product.genericName?.toLowerCase().contains(query.toLowerCase()) ?? false) ||
+              (product.description?.toLowerCase().contains(query.toLowerCase()) ?? false)
+            ).toList();
+          }
         }
       } else if (widget.extractedMedicines != null) {
         // Fallback: Search based on extracted medicine names

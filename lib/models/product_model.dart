@@ -47,26 +47,77 @@ class ProductModel {
     return 0.0;
   }
 
+  // Helper method to safely parse int from various types
+  static int _parseInt(dynamic value) {
+    if (value == null) return 0;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) {
+      return int.tryParse(value) ?? 0;
+    }
+    return 0;
+  }
+
+  // Helper method to safely parse string from various types
+  static String _parseString(dynamic value) {
+    if (value == null) return '';
+    if (value is String) return value;
+    if (value is int || value is double) return value.toString();
+    return value.toString();
+  }
+
   factory ProductModel.fromJson(Map<String, dynamic> json) {
     return ProductModel(
-      id: json['id'] ?? 0,
-      name: json['name'] ?? '',
-      description: json['description'],
-      strength: json['strength'],
-      form: json['form'],
+      id: _parseInt(json['id']),
+      name: _parseString(json['name']),
+      description: json['description']?.toString(),
+      strength: json['strength']?.toString(),
+      form: json['form']?.toString(),
       price: _parseDouble(json['price']),
       mrp: _parseDouble(json['mrp']),
-      manufacturer: json['manufacturer'] ?? '',
-      category: json['category'] is Map ? json['category']['name'] : json['category'],
-      genericName: json['generic_name'] is Map ? json['generic_name']['name'] : json['generic_name'],
-      requiresPrescription: json['is_prescription_required'] ?? false,
-      stockQuantity: json['stock_quantity'] ?? 0,
-      isActive: json['is_active'] ?? true,
-      imageUrl: json['image_url'],
-      expiryDate: json['expiry_date'] != null 
-          ? DateTime.parse(json['expiry_date']) 
+      manufacturer: _parseString(json['manufacturer']),
+      category: _parseCategoryName(json),
+      genericName: _parseGenericName(json),
+      requiresPrescription: json['is_prescription_required'] == true,
+      stockQuantity: _parseInt(json['stock_quantity']),
+      isActive: json['is_active'] == true,
+      imageUrl: json['image_url']?.toString(),
+      expiryDate: json['expiry_date'] != null
+          ? DateTime.tryParse(json['expiry_date'].toString())
           : null,
     );
+  }
+
+  // Helper method to parse category name from various formats
+  static String? _parseCategoryName(Map<String, dynamic> json) {
+    final category = json['category'];
+    if (category == null) return null;
+
+    if (category is Map<String, dynamic>) {
+      return category['name']?.toString();
+    } else if (category is String) {
+      return category;
+    } else if (category is int) {
+      // If it's an ID, try to get the category_name field
+      return json['category_name']?.toString();
+    }
+    return category.toString();
+  }
+
+  // Helper method to parse generic name from various formats
+  static String? _parseGenericName(Map<String, dynamic> json) {
+    final genericName = json['generic_name'];
+    if (genericName == null) return null;
+
+    if (genericName is Map<String, dynamic>) {
+      return genericName['name']?.toString();
+    } else if (genericName is String) {
+      return genericName;
+    } else if (genericName is int) {
+      // If it's an ID, try to get the generic_name_display field
+      return json['generic_name_display']?.toString();
+    }
+    return genericName.toString();
   }
 
   Map<String, dynamic> toJson() {

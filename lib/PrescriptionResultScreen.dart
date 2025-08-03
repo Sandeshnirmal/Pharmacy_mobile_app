@@ -108,19 +108,7 @@ class _PrescriptionResultScreenState extends State<PrescriptionResultScreen> {
     return medicine.id != 0 ? medicine.selectedQuantity : 0;
   }
 
-  Color _getConfidenceColor(double confidence) {
-    if (confidence >= 0.8) return Colors.green;
-    if (confidence >= 0.6) return Colors.orange;
-    return Colors.red;
-  }
 
-  String _getConfidenceText(double confidence) {
-    if (confidence >= 0.9) return 'Excellent';
-    if (confidence >= 0.8) return 'Very Good';
-    if (confidence >= 0.7) return 'Good';
-    if (confidence >= 0.6) return 'Fair';
-    return 'Poor';
-  }
 
   Future<void> _proceedToOrder() async {
     if (_selectedMedicines.isEmpty) {
@@ -147,7 +135,7 @@ class _PrescriptionResultScreenState extends State<PrescriptionResultScreen> {
         }).toList(),
         'address_id': 1, // Dummy address ID
         'payment_method': 'UPI', // Dummy payment method
-        'special_instructions': 'Order from prescription AI processing',
+        'special_instructions': 'Order from prescription processing',
       };
 
       final result = await _apiService.createPrescriptionOrder(orderData);
@@ -219,16 +207,16 @@ class _PrescriptionResultScreenState extends State<PrescriptionResultScreen> {
                     const SizedBox(height: 12),
                     Row(
                       children: [
-                        const Text('AI Confidence: '),
+                        const Text('Processing Status: '),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: _getConfidenceColor(widget.suggestions.aiConfidence),
+                            color: Colors.green,
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Text(
-                            '${(widget.suggestions.aiConfidence * 100).round()}% - ${_getConfidenceText(widget.suggestions.aiConfidence)}',
-                            style: const TextStyle(
+                          child: const Text(
+                            'Completed',
+                            style: TextStyle(
                               color: Colors.white,
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
@@ -461,11 +449,11 @@ class _PrescriptionResultScreenState extends State<PrescriptionResultScreen> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: _getConfidenceColor(medicine.confidenceScore),
+                        color: medicine.isAvailable ? Colors.green : Colors.grey,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        '${(medicine.confidenceScore * 100).round()}%',
+                        medicine.isAvailable ? 'Available' : 'N/A',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 10,

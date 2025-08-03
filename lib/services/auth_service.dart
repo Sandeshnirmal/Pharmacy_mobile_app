@@ -14,16 +14,17 @@ class AuthService {
   factory AuthService() => _instance;
   AuthService._internal();
 
-  // Check if user is authenticated (with caching to avoid repeated API calls)
+  // Check if user is authenticated (with extended caching to avoid repeated API calls)
   static bool? _cachedAuthState;
   static DateTime? _lastAuthCheck;
+  static DateTime? _tokenTimestamp;
 
   Future<bool> isAuthenticated() async {
     try {
-      // Use cached result if it's less than 30 seconds old
+      // Use cached result if it's less than 5 minutes old (extended from 30 seconds)
       if (_cachedAuthState != null && _lastAuthCheck != null) {
         final timeDiff = DateTime.now().difference(_lastAuthCheck!);
-        if (timeDiff.inSeconds < 30) {
+        if (timeDiff.inMinutes < 5) {
           return _cachedAuthState!;
         }
       }
@@ -35,18 +36,37 @@ class AuthService {
         return false;
       }
 
-      // Verify token is still valid by making a test API call
+      // Check if token was stored recently (within last 24 hours)
+      final tokenTimestampStr = await _secureStorage.read(key: 'token_timestamp');
+      if (tokenTimestampStr != null) {
+        final tokenTimestamp = DateTime.parse(tokenTimestampStr);
+        final tokenAge = DateTime.now().difference(tokenTimestamp);
+
+        // If token is less than 23 hours old, consider it valid without API call
+        if (tokenAge.inHours < 23) {
+          _cachedAuthState = true;
+          _lastAuthCheck = DateTime.now();
+          return true;
+        }
+      }
+
+      // Only verify with API call if token is old or we haven't checked recently
       final response = await http.get(
         Uri.parse(ApiConfig.userProfileUrl),
         headers: {
-          'Authorization': 'Token $token',  // Django TokenAuthentication uses 'Token' not 'Bearer'
+          'Authorization': 'Token $token',
           'Content-Type': 'application/json',
         },
-      );
+      ).timeout(Duration(seconds: 10));
 
       final isAuth = response.statusCode == 200;
       _cachedAuthState = isAuth;
       _lastAuthCheck = DateTime.now();
+
+      // If token is invalid, clear it
+      if (!isAuth) {
+        await logout();
+      }
 
       // If token is invalid, clear it
       if (!isAuth) {
@@ -113,10 +133,11 @@ class AuthService {
       final responseData = json.decode(response.body);
 
       if (response.statusCode == 200) {
-        // Store auth token securely
+        // Store auth token securely with timestamp
         if (responseData['access'] != null) {
           await _secureStorage.write(key: 'access_token', value: responseData['access']);
           await _secureStorage.write(key: 'refresh_token', value: responseData['refresh']);
+          await _secureStorage.write(key: 'token_timestamp', value: DateTime.now().toIso8601String());
         }
 
         // Store user data

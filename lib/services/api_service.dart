@@ -2,12 +2,15 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../config/api_config.dart';
 import '../models/api_response.dart';
 import '../models/user_model.dart';
 import '../models/prescription_model.dart';
 import '../models/product_model.dart';
+import '../utils/api_logger.dart';
+import '../utils/network_helper.dart';
 
 class ApiService {
   static String get baseUrl => ApiConfig.baseUrl;
@@ -60,15 +63,26 @@ class ApiService {
     return headers;
   }
 
-  // Handle HTTP response
+  // Handle HTTP response with better error handling
   ApiResponse<T> _handleResponse<T>(http.Response response, T Function(Map<String, dynamic>) fromJson) {
     try {
+      ApiLogger.logResponse(response.statusCode, response.body);
+
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = json.decode(response.body);
         return ApiResponse.success(fromJson(data));
       } else {
-        final errorData = json.decode(response.body);
-        final errorMessage = errorData['error'] ?? errorData['detail'] ?? 'Request failed';
+        String errorMessage = 'Request failed';
+        try {
+          final errorData = json.decode(response.body);
+          errorMessage = errorData['error'] ??
+                        errorData['detail'] ??
+                        errorData['message'] ??
+                        errorData['non_field_errors']?.first ??
+                        'Request failed with status ${response.statusCode}';
+        } catch (e) {
+          errorMessage = 'Request failed with status ${response.statusCode}';
+        }
         return ApiResponse.error(errorMessage, response.statusCode);
       }
     } catch (e) {
@@ -76,9 +90,55 @@ class ApiService {
     }
   }
 
+  // Test API connectivity
+  Future<ApiResponse<bool>> testConnection() async {
+    try {
+      ApiLogger.log('Testing API connectivity...');
+
+      // First check network connectivity
+      final hasInternet = await NetworkHelper.hasInternetConnection();
+      if (!hasInternet) {
+        return ApiResponse.error('No internet connection', 0);
+      }
+
+      // Test server connectivity
+      final response = await _client.get(
+        Uri.parse('${ApiConfig.baseUrl}/'),
+        headers: await _getHeaders(includeAuth: false),
+      ).timeout(Duration(milliseconds: 10000));
+
+      ApiLogger.logResponse(response.statusCode, 'Connection test response');
+
+      if (response.statusCode < 500) {
+        return ApiResponse.success(true);
+      } else {
+        return ApiResponse.error('Server error: ${response.statusCode}', response.statusCode);
+      }
+    } catch (e) {
+      ApiLogger.logError('Connection test failed: $e');
+      return ApiResponse.error('Connection failed: $e', 0);
+    }
+  }
+
+  // Comprehensive connectivity check
+  Future<Map<String, dynamic>> checkSystemHealth() async {
+    ApiLogger.log('Performing system health check...');
+
+    final connectivity = await NetworkHelper.checkConnectivity();
+    final message = NetworkHelper.getConnectivityMessage(connectivity);
+
+    return {
+      'connectivity': connectivity,
+      'message': message,
+      'timestamp': DateTime.now().toIso8601String(),
+    };
+  }
+
   // Authentication APIs
   Future<ApiResponse<UserModel>> login(String email, String password) async {
     try {
+      ApiLogger.logRequest('POST', ApiConfig.loginUrl);
+
       final response = await _client.post(
         Uri.parse(ApiConfig.loginUrl),
         headers: await _getHeaders(includeAuth: false),
@@ -90,10 +150,17 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        await setTokens(data['access'], data['refresh']);
+
+        // Handle different response formats
+        String accessToken = data['access'] ?? data['token'] ?? data['access_token'] ?? '';
+        String refreshToken = data['refresh'] ?? data['refresh_token'] ?? '';
+
+        if (accessToken.isNotEmpty) {
+          await setTokens(accessToken, refreshToken);
+        }
 
         // Get user profile from response data
-        final userData = data['user'];
+        final userData = data['user'] ?? data;
         final user = UserModel.fromJson(userData);
         return ApiResponse.success(user);
       } else {
@@ -121,28 +188,71 @@ class ApiService {
 
   // Prescription APIs
 
-  // Simple prescription upload for order verification (no AI processing)
-  Future<ApiResponse<bool>> uploadPrescriptionForOrder(File imageFile) async {
+  // Simple prescription upload for order verification (NO AI/OCR processing)
+  Future<ApiResponse<Map<String, dynamic>>> uploadPrescriptionForOrder(File imageFile) async {
     try {
+      ApiLogger.log('Uploading prescription for order verification (NO AI/OCR)');
+      ApiLogger.log('File path: ${imageFile.path}');
+
+      // Validate file exists and is readable
+      if (!await imageFile.exists()) {
+        return ApiResponse.error('Image file not found', 0);
+      }
+
+      // Check file size (max 10MB)
+      final fileSize = await imageFile.length();
+      if (fileSize > 10 * 1024 * 1024) {
+        return ApiResponse.error('File size too large. Maximum 10MB allowed.', 0);
+      }
+
+      // Validate file extension
+      final fileName = imageFile.path.split('/').last.toLowerCase();
+      final allowedExtensions = ['jpg', 'jpeg', 'png', 'webp'];
+      final fileExtension = fileName.split('.').last;
+
+      if (!allowedExtensions.contains(fileExtension)) {
+        return ApiResponse.error('Invalid file format. Only JPG, PNG, and WebP images are allowed.', 0);
+      }
+
       final request = http.MultipartRequest(
         'POST',
         Uri.parse(ApiConfig.prescriptionForOrderUrl),
       );
 
-      // Add headers
+      // Add headers (remove Content-Type for multipart)
       final headers = await _getHeaders();
+      headers.remove('Content-Type');
       request.headers.addAll(headers);
 
-      // Add image file
+      // Determine proper MIME type
+      String mimeType = 'image/jpeg';
+      switch (fileExtension) {
+        case 'png':
+          mimeType = 'image/png';
+          break;
+        case 'webp':
+          mimeType = 'image/webp';
+          break;
+        default:
+          mimeType = 'image/jpeg';
+      }
+
+      // Add image file with proper field name and MIME type
       request.files.add(
-        await http.MultipartFile.fromPath('prescription_image', imageFile.path),
+        await http.MultipartFile.fromPath(
+          'prescription_image',
+          imageFile.path,
+          filename: 'prescription.$fileExtension',
+          contentType: MediaType.parse(mimeType),
+        ),
       );
 
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        return ApiResponse.success(true);
+        final data = json.decode(response.body);
+        return ApiResponse.success(data);
       } else {
         final errorData = json.decode(response.body);
         return ApiResponse.error(
@@ -155,55 +265,77 @@ class ApiService {
     }
   }
 
-  // Full prescription upload with AI processing (for medicine discovery)
+  // Full prescription upload with processing (for medicine discovery)
   Future<ApiResponse<PrescriptionUploadResponse>> uploadPrescription(File imageFile) async {
     try {
+      ApiLogger.log('Uploading prescription to: ${ApiConfig.prescriptionUploadUrl}');
+      ApiLogger.log('File path: ${imageFile.path}');
+      ApiLogger.log('File size: ${await imageFile.length()} bytes');
+
       final request = http.MultipartRequest(
         'POST',
         Uri.parse(ApiConfig.prescriptionUploadUrl),
       );
 
-      // Add headers
+      // Add headers (remove Content-Type for multipart)
       final headers = await _getHeaders();
+      headers.remove('Content-Type'); // Let http package set this for multipart
       request.headers.addAll(headers);
 
-      // Add file
+      // Validate file exists and is readable
+      if (!await imageFile.exists()) {
+        return ApiResponse.error('Image file not found', 0);
+      }
+
+      // Add file with proper field name
       request.files.add(await http.MultipartFile.fromPath(
-        'image',
+        'prescription_image', // Match backend field name
         imageFile.path,
+        filename: 'prescription.jpg',
       ));
 
       final streamedResponse = await request.send().timeout(Duration(milliseconds: timeoutDuration * 3));
       final response = await http.Response.fromStream(streamedResponse);
 
+      ApiLogger.logResponse(response.statusCode, response.body);
+
       return _handleResponse(response, (data) => PrescriptionUploadResponse.fromJson(data));
     } catch (e) {
+      ApiLogger.logError('Upload error: $e');
       return ApiResponse.error('Upload failed: $e', 0);
     }
   }
 
   Future<ApiResponse<PrescriptionStatusResponse>> getPrescriptionStatus(int prescriptionId) async {
     try {
+      final url = '${ApiConfig.baseUrl}/prescription/mobile/status/$prescriptionId/';
+      ApiLogger.logRequest('GET', url);
+
       final response = await _client.get(
-        Uri.parse('$baseUrl/prescription/mobile/status/$prescriptionId/'),
+        Uri.parse(url),
         headers: await _getHeaders(),
       ).timeout(Duration(milliseconds: timeoutDuration));
 
       return _handleResponse(response, (data) => PrescriptionStatusResponse.fromJson(data));
     } catch (e) {
+      ApiLogger.logError('Prescription status error: $e');
       return ApiResponse.error('Network error: $e', 0);
     }
   }
 
   Future<ApiResponse<PrescriptionSuggestionsResponse>> getMedicineSuggestions(int prescriptionId) async {
     try {
+      final url = '${ApiConfig.baseUrl}/prescription/mobile/suggestions/$prescriptionId/';
+      ApiLogger.logRequest('GET', url);
+
       final response = await _client.get(
-        Uri.parse('$baseUrl/prescription/mobile/suggestions/$prescriptionId/'),
+        Uri.parse(url),
         headers: await _getHeaders(),
       ).timeout(Duration(milliseconds: timeoutDuration));
 
       return _handleResponse(response, (data) => PrescriptionSuggestionsResponse.fromJson(data));
     } catch (e) {
+      ApiLogger.logError('Medicine suggestions error: $e');
       return ApiResponse.error('Network error: $e', 0);
     }
   }
@@ -225,7 +357,7 @@ class ApiService {
   // Product APIs
   Future<ApiResponse<List<ProductModel>>> getProducts({Map<String, String>? queryParams}) async {
     try {
-      final uri = Uri.parse(ApiConfig.productsUrl).replace(queryParameters: queryParams);
+      final uri = Uri.parse(ApiConfig.enhancedProductsUrl).replace(queryParameters: queryParams);
       
       final response = await _client.get(
         uri,
@@ -257,6 +389,46 @@ class ApiService {
   // Search products
   Future<ApiResponse<List<ProductModel>>> searchProducts(String query) async {
     return getProducts(queryParams: {'search': query});
+  }
+
+  // Search prescription-based medicines
+  Future<ApiResponse<List<ProductModel>>> searchPrescriptionMedicines(String query) async {
+    try {
+      final response = await _client.get(
+        Uri.parse('${ApiConfig.prescriptionSearchUrl}?q=$query&limit=20'),
+        headers: await _getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['success'] == true) {
+          final List<dynamic> productsJson = data['products'];
+          final products = productsJson.map((json) => ProductModel(
+            id: json['id'],
+            name: json['name'],
+            manufacturer: json['manufacturer'],
+            price: json['price'].toDouble(),
+            mrp: json['mrp'].toDouble(),
+            imageUrl: json['image_url'] ?? 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400',
+            description: json['description'] ?? 'Medicine',
+            genericName: json['generic_name'] ?? '',
+            requiresPrescription: json['is_prescription_required'] ?? false,
+            stockQuantity: json['stock_quantity'] ?? 0,
+            isActive: json['in_stock'] ?? false,
+            strength: json['strength'] ?? '',
+            form: json['form'] ?? '',
+          )).toList();
+
+          return ApiResponse.success(products);
+        } else {
+          return ApiResponse.error(data['error'] ?? 'Search failed', response.statusCode);
+        }
+      } else {
+        return ApiResponse.error('HTTP ${response.statusCode}', response.statusCode);
+      }
+    } catch (e) {
+      return ApiResponse.error('Network error: $e', 0);
+    }
   }
 
   // Get prescription-based products for search
@@ -336,6 +508,230 @@ class ApiService {
       ).timeout(Duration(milliseconds: timeoutDuration));
 
       return _handleResponse(response, (data) => OrderModel.fromJson(data));
+    } catch (e) {
+      return ApiResponse.error('Network error: $e', 0);
+    }
+  }
+
+  // Get order tracking information
+  Future<ApiResponse<Map<String, dynamic>>> getOrderTracking(int orderId) async {
+    try {
+      final response = await _client.get(
+        Uri.parse('$baseUrl/order/tracking/$orderId/'),
+        headers: await _getHeaders(),
+      ).timeout(Duration(milliseconds: timeoutDuration));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return ApiResponse.success(data);
+      } else {
+        final errorData = json.decode(response.body);
+        return ApiResponse.error(
+          errorData['error'] ?? 'Failed to load tracking data',
+          response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error('Network error: $e', 0);
+    }
+  }
+
+  // Intelligent Medicine Search
+  Future<ApiResponse<Map<String, dynamic>>> intelligentMedicineSearch(List<String> medicines) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$baseUrl/prescription/search/medicines/'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'medicines': medicines,
+          'limit': 5,
+        }),
+      ).timeout(Duration(milliseconds: timeoutDuration));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return ApiResponse.success(data);
+      } else {
+        final errorData = json.decode(response.body);
+        return ApiResponse.error(
+          errorData['error'] ?? 'Medicine search failed',
+          response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error('Network error: $e', 0);
+    }
+  }
+
+  // Search by Composition
+  Future<ApiResponse<Map<String, dynamic>>> searchByComposition(List<Map<String, String>> compositions) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$baseUrl/prescription/search/composition/'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'compositions': compositions,
+        }),
+      ).timeout(Duration(milliseconds: timeoutDuration));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return ApiResponse.success(data);
+      } else {
+        final errorData = json.decode(response.body);
+        return ApiResponse.error(
+          errorData['error'] ?? 'Composition search failed',
+          response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error('Network error: $e', 0);
+    }
+  }
+
+  // Upload prescription with OCR processing
+  Future<ApiResponse<Map<String, dynamic>>> uploadPrescriptionWithOCR(String base64Image) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$baseUrl/prescription/mobile/upload/'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'image': base64Image,
+          'process_with_ai': true,
+        }),
+      ).timeout(Duration(milliseconds: timeoutDuration * 3)); // Longer timeout for OCR
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = json.decode(response.body);
+        return ApiResponse.success(data);
+      } else {
+        final errorData = json.decode(response.body);
+        return ApiResponse.error(
+          errorData['error'] ?? 'Prescription upload failed',
+          response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error('Network error: $e', 0);
+    }
+  }
+
+  // OCR Analysis of prescription image
+  Future<ApiResponse<Map<String, dynamic>>> analyzePrescriptionOCR(String base64Image) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$baseUrl/prescription/ocr/analyze/'),
+        headers: await _getHeaders(),
+        body: json.encode({
+          'image': base64Image,
+        }),
+      ).timeout(Duration(milliseconds: timeoutDuration * 3)); // Longer timeout for OCR
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return ApiResponse.success(data);
+      } else {
+        final errorData = json.decode(response.body);
+        return ApiResponse.error(
+          errorData['error'] ?? 'OCR analysis failed',
+          response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error('Network error: $e', 0);
+    }
+  }
+
+  // Create pending order (before prescription verification)
+  Future<ApiResponse<Map<String, dynamic>>> createPendingOrder(Map<String, dynamic> orderData) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$baseUrl/order/pending/'),
+        headers: await _getHeaders(),
+        body: json.encode(orderData),
+      ).timeout(Duration(milliseconds: timeoutDuration));
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = json.decode(response.body);
+        return ApiResponse.success(data);
+      } else {
+        final errorData = json.decode(response.body);
+        return ApiResponse.error(
+          errorData['error'] ?? 'Failed to create pending order',
+          response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error('Network error: $e', 0);
+    }
+  }
+
+  // Upload prescription for paid order verification (after payment)
+  Future<ApiResponse<Map<String, dynamic>>> uploadPrescriptionForPaidOrder(Map<String, dynamic> prescriptionData) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$baseUrl/prescription/upload-for-order/'),
+        headers: await _getHeaders(),
+        body: json.encode(prescriptionData),
+      ).timeout(Duration(milliseconds: timeoutDuration * 2));
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = json.decode(response.body);
+        return ApiResponse.success(data);
+      } else {
+        final errorData = json.decode(response.body);
+        return ApiResponse.error(
+          errorData['error'] ?? 'Failed to upload prescription',
+          response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error('Network error: $e', 0);
+    }
+  }
+
+  // Get prescription verification status
+  Future<ApiResponse<Map<String, dynamic>>> getPrescriptionVerificationStatus(int prescriptionId) async {
+    try {
+      final response = await _client.get(
+        Uri.parse('$baseUrl/prescription/verification-status/$prescriptionId/'),
+        headers: await _getHeaders(),
+      ).timeout(Duration(milliseconds: timeoutDuration));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return ApiResponse.success(data);
+      } else {
+        final errorData = json.decode(response.body);
+        return ApiResponse.error(
+          errorData['error'] ?? 'Failed to get verification status',
+          response.statusCode,
+        );
+      }
+    } catch (e) {
+      return ApiResponse.error('Network error: $e', 0);
+    }
+  }
+
+  // Confirm prescription order after verification
+  Future<ApiResponse<Map<String, dynamic>>> confirmPrescriptionOrder(int orderId) async {
+    try {
+      final response = await _client.post(
+        Uri.parse('$baseUrl/order/confirm-prescription/$orderId/'),
+        headers: await _getHeaders(),
+        body: json.encode({}),
+      ).timeout(Duration(milliseconds: timeoutDuration));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return ApiResponse.success(data);
+      } else {
+        final errorData = json.decode(response.body);
+        return ApiResponse.error(
+          errorData['error'] ?? 'Failed to confirm order',
+          response.statusCode,
+        );
+      }
     } catch (e) {
       return ApiResponse.error('Network error: $e', 0);
     }
