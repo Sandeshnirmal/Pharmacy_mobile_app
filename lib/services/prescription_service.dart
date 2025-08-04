@@ -1,6 +1,10 @@
 // Prescription Service for AI Integration in Flutter
 import 'dart:io';
 import 'dart:async';
+import 'dart:convert';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+import '../config/api_config.dart';
 import '../models/api_response.dart';
 import '../models/prescription_model.dart';
 import 'api_service.dart';
@@ -16,6 +20,73 @@ class PrescriptionService {
   // Processing queue to track prescription status
   final Map<int, PrescriptionProcessingInfo> _processingQueue = {};
 
+  // Upload prescription for paid order verification (payment-first flow)
+  Future<ApiResponse<Map<String, dynamic>>> uploadPrescriptionForPaidOrder({
+    required int orderId,
+    required File imageFile,
+  }) async {
+    try {
+      // Convert image to base64
+      final bytes = await imageFile.readAsBytes();
+      final base64Image = base64.encode(bytes);
+
+      final response = await http.post(
+        Uri.parse('${ApiConfig.apiBaseUrl}/prescriptions/upload-for-paid-order/'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'order_id': orderId,
+          'image': base64Image,
+        }),
+      );
+
+      final responseData = json.decode(response.body);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return ApiResponse.success(responseData);
+      } else {
+        return ApiResponse.error(
+          responseData['error'] ?? 'Failed to upload prescription',
+          response.statusCode,
+        );
+      }
+    } catch (error) {
+      if (kDebugMode) {
+        debugPrint('Prescription upload for paid order error: $error');
+      }
+      return ApiResponse.error('Failed to upload prescription: $error', 0);
+    }
+  }
+
+  // Get prescription verification status
+  Future<ApiResponse<Map<String, dynamic>>> getPrescriptionVerificationStatus(String prescriptionId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.apiBaseUrl}/prescriptions/verification-status/$prescriptionId/'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      );
+
+      final responseData = json.decode(response.body);
+
+      if (response.statusCode == 200) {
+        return ApiResponse.success(responseData);
+      } else {
+        return ApiResponse.error(
+          responseData['error'] ?? 'Failed to get verification status',
+          response.statusCode,
+        );
+      }
+    } catch (error) {
+      if (kDebugMode) {
+        debugPrint('Get verification status error: $error');
+      }
+      return ApiResponse.error('Failed to get verification status: $error', 0);
+    }
+  }
+
   // Simple prescription upload without AI processing (for order verification)
   Future<ApiResponse<bool>> uploadPrescriptionSimple(File imageFile) async {
     try {
@@ -28,7 +99,9 @@ class PrescriptionService {
         return ApiResponse.error(result.error!, result.statusCode);
       }
     } catch (error) {
-      print('Simple prescription upload error: $error');
+      if (kDebugMode) {
+        debugPrint('Simple prescription upload error: $error');
+      }
       return ApiResponse.error('Failed to upload prescription: $error', 0);
     }
   }
@@ -56,7 +129,9 @@ class PrescriptionService {
         return ApiResponse.error(result.error!, result.statusCode);
       }
     } catch (error) {
-      print('Prescription upload error: $error');
+      if (kDebugMode) {
+        debugPrint('Prescription upload error: $error');
+      }
       return ApiResponse.error('Failed to upload prescription: $error', 0);
     }
   }
@@ -83,7 +158,9 @@ class PrescriptionService {
         return ApiResponse.error(result.error!, result.statusCode);
       }
     } catch (error) {
-      print('Status check error: $error');
+      if (kDebugMode) {
+        debugPrint('Status check error: $error');
+      }
       return ApiResponse.error('Failed to check status: $error', 0);
     }
   }
@@ -109,7 +186,9 @@ class PrescriptionService {
         return ApiResponse.error(result.error!, result.statusCode);
       }
     } catch (error) {
-      print('Get suggestions error: $error');
+      if (kDebugMode) {
+        debugPrint('Get suggestions error: $error');
+      }
       return ApiResponse.error('Failed to get medicine suggestions: $error', 0);
     }
   }
@@ -169,7 +248,9 @@ class PrescriptionService {
         return ApiResponse.error(result.error!, result.statusCode);
       }
     } catch (error) {
-      print('Create order error: $error');
+      if (kDebugMode) {
+        debugPrint('Create order error: $error');
+      }
       return ApiResponse.error('Failed to create order: $error', 0);
     }
   }

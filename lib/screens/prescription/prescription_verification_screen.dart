@@ -1,21 +1,23 @@
-// Prescription Verification Screen - After Payment Confirmation
+// Prescription Verification Screen - Payment First Flow
+import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import '../../services/api_service.dart';
-import '../../models/api_response.dart';
-import '../../utils/api_logger.dart';
 import '../orders/order_confirmation_screen.dart';
 
 class PrescriptionVerificationScreen extends StatefulWidget {
   final int orderId;
   final String orderNumber;
-  final int prescriptionId;
+  final int? prescriptionId; // Nullable since it's set after upload
   final double totalAmount;
 
   const PrescriptionVerificationScreen({
     super.key,
     required this.orderId,
     required this.orderNumber,
-    required this.prescriptionId,
+    this.prescriptionId, // Made optional
     required this.totalAmount,
   });
 
@@ -25,98 +27,155 @@ class PrescriptionVerificationScreen extends StatefulWidget {
 
 class _PrescriptionVerificationScreenState extends State<PrescriptionVerificationScreen> {
   final ApiService _apiService = ApiService();
+  final ImagePicker _picker = ImagePicker();
   
-  String _verificationStatus = 'pending';
+  String _orderStatus = 'pending_payment'; // Start with pending payment
   String? _verificationNotes;
   bool _isLoading = true;
   String? _error;
   String? _prescriptionImageUrl;
+  int? _currentPrescriptionId;
+  bool _isPrescriptionUploaded = false;
+  bool _isUploading = false;
 
   @override
   void initState() {
     super.initState();
-    _loadVerificationStatus();
+    _currentPrescriptionId = widget.prescriptionId;
+    _isPrescriptionUploaded = widget.prescriptionId != null;
+    _loadOrderStatus();
     _startStatusPolling();
   }
 
-  Future<void> _loadVerificationStatus() async {
+  Future<void> _loadOrderStatus() async {
     try {
       setState(() {
         _isLoading = true;
         _error = null;
       });
 
-      // Get prescription verification status
-      final response = await _apiService.getPrescriptionVerificationStatus(widget.prescriptionId);
+      // Get order status
+      final response = await _apiService.getOrderDetails(widget.orderId);
       
       if (response.isSuccess && response.data != null) {
+        final order = response.data!;
         setState(() {
-          _verificationStatus = response.data!['status'] ?? 'pending';
-          _verificationNotes = response.data!['verification_notes'];
-          _prescriptionImageUrl = response.data!['image_url'];
+          _orderStatus = order.status ?? 'pending_payment';
+          // Check if prescription is uploaded
+          if (order.prescriptionId != null && !_isPrescriptionUploaded) {
+            _currentPrescriptionId = order.prescriptionId;
+            _isPrescriptionUploaded = true;
+          }
         });
 
         // If verified, automatically confirm the order
-        if (_verificationStatus == 'verified') {
+        if (_orderStatus == 'verified') {
           await _confirmOrder();
         }
       } else {
         setState(() {
-          _error = response.error ?? 'Failed to load verification status';
+          _error = response.error ?? 'Failed to load order status';
         });
       }
-
-      setState(() {
-        _isLoading = false;
-      });
     } catch (e) {
       setState(() {
-        _error = 'Failed to load verification status: $e';
+        _error = 'Error loading order status: $e';
+      });
+    } finally {
+      setState(() {
         _isLoading = false;
       });
-      ApiLogger.logError('Verification status error: $e');
     }
   }
 
   void _startStatusPolling() {
-    // Poll status every 15 seconds if still pending
-    Future.delayed(const Duration(seconds: 15), () {
-      if (mounted && (_verificationStatus == 'pending' || _verificationStatus == 'under_review')) {
-        _loadVerificationStatus();
+    // Poll every 5 seconds for status updates
+    Future.delayed(const Duration(seconds: 5), () {
+      if (mounted && _orderStatus != 'confirmed' && _orderStatus != 'cancelled') {
+        _loadOrderStatus();
         _startStatusPolling();
       }
     });
   }
 
+  Future<void> _uploadPrescription() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 80,
+      );
+
+      if (image == null) return;
+
+      setState(() {
+        _isUploading = true;
+      });
+
+      // Convert image to base64
+      final bytes = await image.readAsBytes();
+      final base64Image = base64Encode(bytes);
+
+      // Upload prescription for paid order
+      final uploadData = {
+        'order_id': widget.orderId,
+        'image': base64Image,
+        'process_with_ai': true,
+      };
+
+      final response = await _apiService.uploadPrescriptionForPaidOrder(uploadData);
+
+      if (response.isSuccess && response.data != null) {
+        setState(() {
+          _currentPrescriptionId = response.data!['prescription_id'];
+          _isPrescriptionUploaded = true;
+          _orderStatus = 'pending_verification';
+          _prescriptionImageUrl = response.data!['image_url'];
+        });
+
+        Fluttertoast.showToast(
+          msg: 'Prescription uploaded successfully!',
+          backgroundColor: Colors.green,
+        );
+      } else {
+        Fluttertoast.showToast(
+          msg: response.error ?? 'Failed to upload prescription',
+          backgroundColor: Colors.red,
+        );
+      }
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: 'Error uploading prescription: $e',
+        backgroundColor: Colors.red,
+      );
+    } finally {
+      setState(() {
+        _isUploading = false;
+      });
+    }
+  }
+
   Future<void> _confirmOrder() async {
     try {
-      // Confirm the order after prescription verification
       final response = await _apiService.confirmPrescriptionOrder(widget.orderId);
       
       if (response.isSuccess) {
         // Navigate to order confirmation
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => OrderConfirmationScreen(
-                orderId: widget.orderId,
-                orderNumber: widget.orderNumber,
-                totalAmount: widget.totalAmount,
-              ),
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OrderConfirmationScreen(
+              orderId: widget.orderId,
+              orderNumber: widget.orderNumber,
+              totalAmount: widget.totalAmount,
             ),
-          );
-        }
-      } else {
-        setState(() {
-          _error = response.error ?? 'Failed to confirm order';
-        });
+          ),
+        );
       }
     } catch (e) {
-      setState(() {
-        _error = 'Order confirmation failed: $e';
-      });
-      ApiLogger.logError('Order confirmation error: $e');
+      Fluttertoast.showToast(
+        msg: 'Error confirming order: $e',
+        backgroundColor: Colors.red,
+      );
     }
   }
 
@@ -124,109 +183,205 @@ class _PrescriptionVerificationScreenState extends State<PrescriptionVerificatio
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Prescription Verification'),
+        title: Text('Order #${widget.orderNumber}'),
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
-        elevation: 0,
-        automaticallyImplyLeading: false, // Prevent going back
       ),
-      body: _buildBody(),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? _buildErrorState()
+              : _buildContent(),
     );
   }
 
-  Widget _buildBody() {
-    if (_isLoading) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(color: Colors.teal),
-            SizedBox(height: 16),
-            Text('Loading verification status...'),
-          ],
-        ),
-      );
-    }
-
-    if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(_error!, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadVerificationStatus,
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+  Widget _buildErrorState() {
+    return Center(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _buildPaymentConfirmation(),
-          const SizedBox(height: 24),
-          _buildVerificationStatus(),
-          const SizedBox(height: 24),
-          if (_prescriptionImageUrl != null) _buildPrescriptionImage(),
-          const SizedBox(height: 24),
-          _buildOrderDetails(),
-          const SizedBox(height: 24),
-          _buildNextSteps(),
+          Icon(Icons.error_outline, size: 64, color: Colors.red),
+          const SizedBox(height: 16),
+          Text(
+            _error!,
+            style: const TextStyle(fontSize: 16),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          ElevatedButton(
+            onPressed: _loadOrderStatus,
+            child: const Text('Retry'),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildPaymentConfirmation() {
+  Widget _buildContent() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildStatusCard(),
+          const SizedBox(height: 20),
+          _buildOrderSummary(),
+          const SizedBox(height: 20),
+          if (!_isPrescriptionUploaded) _buildUploadSection(),
+          if (_isPrescriptionUploaded) _buildVerificationSection(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusCard() {
+    IconData statusIcon;
+    Color statusColor;
+    String statusText;
+    String statusDescription;
+
+    switch (_orderStatus) {
+      case 'pending_payment':
+        statusIcon = Icons.payment;
+        statusColor = Colors.orange;
+        statusText = 'Payment Confirmed';
+        statusDescription = 'Your payment has been confirmed. Please upload your prescription.';
+        break;
+      case 'pending_verification':
+        statusIcon = Icons.hourglass_empty;
+        statusColor = Colors.blue;
+        statusText = 'Under Review';
+        statusDescription = 'Our pharmacist is reviewing your prescription.';
+        break;
+      case 'verified':
+        statusIcon = Icons.check_circle;
+        statusColor = Colors.green;
+        statusText = 'Prescription Verified';
+        statusDescription = 'Your prescription has been verified and order is being processed.';
+        break;
+      case 'confirmed':
+        statusIcon = Icons.shopping_bag;
+        statusColor = Colors.green;
+        statusText = 'Order Confirmed';
+        statusDescription = 'Your order has been confirmed and will be shipped soon.';
+        break;
+      default:
+        statusIcon = Icons.info;
+        statusColor = Colors.grey;
+        statusText = 'Processing';
+        statusDescription = 'Your order is being processed.';
+    }
+
     return Card(
       elevation: 4,
-      color: Colors.green.shade50,
       child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.green,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.check_circle,
-                color: Colors.white,
-                size: 24,
+            Icon(statusIcon, size: 48, color: statusColor),
+            const SizedBox(height: 12),
+            Text(
+              statusText,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: statusColor,
               ),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Payment Confirmed',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green,
-                    ),
+            const SizedBox(height: 8),
+            Text(
+              statusDescription,
+              style: const TextStyle(fontSize: 14),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildOrderSummary() {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Order Summary',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Order Number:'),
+                Text(
+                  widget.orderNumber,
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Total Amount:'),
+                Text(
+                  '₹${widget.totalAmount.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.teal,
+                    fontSize: 16,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Order #${widget.orderNumber} • ₹${widget.totalAmount.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
-                  ),
-                ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUploadSection() {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Upload Prescription',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Please take a clear photo of your prescription. Make sure all text is readable.',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: _isUploading ? null : _uploadPrescription,
+              icon: _isUploading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.camera_alt),
+              label: Text(_isUploading ? 'Uploading...' : 'Take Photo'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.teal,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
               ),
             ),
           ],
@@ -235,338 +390,78 @@ class _PrescriptionVerificationScreenState extends State<PrescriptionVerificatio
     );
   }
 
-  Widget _buildVerificationStatus() {
-    Color statusColor;
-    IconData statusIcon;
-    String statusText;
-    String statusDescription;
-
-    switch (_verificationStatus) {
-      case 'pending':
-        statusColor = Colors.orange;
-        statusIcon = Icons.hourglass_empty;
-        statusText = 'Verification Pending';
-        statusDescription = 'Your prescription is in queue for verification by our pharmacist';
-        break;
-      case 'under_review':
-        statusColor = Colors.blue;
-        statusIcon = Icons.visibility;
-        statusText = 'Under Review';
-        statusDescription = 'Our pharmacist is reviewing your prescription';
-        break;
-      case 'verified':
-        statusColor = Colors.green;
-        statusIcon = Icons.verified;
-        statusText = 'Verified Successfully';
-        statusDescription = 'Prescription verified! Your order is being processed';
-        break;
-      case 'rejected':
-        statusColor = Colors.red;
-        statusIcon = Icons.cancel;
-        statusText = 'Verification Failed';
-        statusDescription = 'Prescription could not be verified. Please contact support';
-        break;
-      default:
-        statusColor = Colors.grey;
-        statusIcon = Icons.help;
-        statusText = 'Unknown Status';
-        statusDescription = 'Status unknown';
-    }
-
+  Widget _buildVerificationSection() {
     return Card(
-      elevation: 4,
+      elevation: 2,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: statusColor.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(statusIcon, color: statusColor, size: 24),
+            const Text(
+              'Prescription Status',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            if (_prescriptionImageUrl != null)
+              Container(
+                height: 200,
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        statusText,
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: statusColor,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        statusDescription,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Image.network(
+                    _prescriptionImageUrl!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) {
+                      return const Center(
+                        child: Icon(Icons.image_not_supported, size: 48),
+                      );
+                    },
                   ),
                 ),
-                if (_verificationStatus == 'pending' || _verificationStatus == 'under_review')
-                  const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  ),
-              ],
+              ),
+            const SizedBox(height: 12),
+            Text(
+              _orderStatus == 'pending_verification'
+                  ? 'Your prescription is being reviewed by our pharmacist. This usually takes 15-30 minutes.'
+                  : _orderStatus == 'verified'
+                      ? 'Your prescription has been verified! Your order will be confirmed automatically.'
+                      : 'Prescription uploaded successfully.',
+              style: const TextStyle(fontSize: 14),
             ),
             if (_verificationNotes != null) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
+                  color: Colors.blue.shade50,
                   borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Verification Notes:',
+                      'Pharmacist Notes:',
                       style: TextStyle(
-                        fontSize: 14,
                         fontWeight: FontWeight.bold,
+                        color: Colors.blue,
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      _verificationNotes!,
-                      style: const TextStyle(fontSize: 14),
-                    ),
+                    Text(_verificationNotes!),
                   ],
                 ),
               ),
             ],
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildPrescriptionImage() {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Uploaded Prescription',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.teal,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              height: 200,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.shade300),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  _prescriptionImageUrl!,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return Container(
-                      color: Colors.grey.shade100,
-                      child: const Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.image_not_supported, size: 48, color: Colors.grey),
-                            SizedBox(height: 8),
-                            Text('Image not available', style: TextStyle(color: Colors.grey)),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildOrderDetails() {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Order Details',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.teal,
-              ),
-            ),
-            const SizedBox(height: 12),
-            _buildDetailRow('Order Number', widget.orderNumber),
-            _buildDetailRow('Order ID', '#${widget.orderId}'),
-            _buildDetailRow('Total Amount', '₹${widget.totalAmount.toStringAsFixed(2)}'),
-            _buildDetailRow('Order Type', 'Prescription Order'),
-            _buildDetailRow('Payment Status', 'Confirmed'),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 2,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
-            ),
-          ),
-          Expanded(
-            flex: 3,
-            child: Text(
-              value,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNextSteps() {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.info_outline, color: Colors.teal, size: 24),
-                const SizedBox(width: 8),
-                const Text(
-                  'What happens next?',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.teal,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildStepItem(
-              1,
-              'Prescription Verification',
-              _verificationStatus == 'verified' ? 'Completed' : 'In Progress',
-              _verificationStatus == 'verified',
-            ),
-            _buildStepItem(
-              2,
-              'Order Processing',
-              _verificationStatus == 'verified' ? 'In Progress' : 'Waiting',
-              false,
-            ),
-            _buildStepItem(
-              3,
-              'Medicine Preparation',
-              'Waiting',
-              false,
-            ),
-            _buildStepItem(
-              4,
-              'Delivery',
-              'Waiting',
-              false,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStepItem(int step, String title, String status, bool isCompleted) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Container(
-            width: 24,
-            height: 24,
-            decoration: BoxDecoration(
-              color: isCompleted ? Colors.green : Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Center(
-              child: isCompleted
-                  ? const Icon(Icons.check, color: Colors.white, size: 16)
-                  : Text(
-                      step.toString(),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  status,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isCompleted ? Colors.green : Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }

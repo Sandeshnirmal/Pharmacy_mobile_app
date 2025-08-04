@@ -646,7 +646,7 @@ class ApiService {
   Future<ApiResponse<Map<String, dynamic>>> createPendingOrder(Map<String, dynamic> orderData) async {
     try {
       final response = await _client.post(
-        Uri.parse('$baseUrl/order/pending/'),
+        Uri.parse('$baseUrl/api/order/pending/'),
         headers: await _getHeaders(),
         body: json.encode(orderData),
       ).timeout(Duration(milliseconds: timeoutDuration));
@@ -670,7 +670,7 @@ class ApiService {
   Future<ApiResponse<Map<String, dynamic>>> uploadPrescriptionForPaidOrder(Map<String, dynamic> prescriptionData) async {
     try {
       final response = await _client.post(
-        Uri.parse('$baseUrl/prescription/upload-for-order/'),
+        Uri.parse('$baseUrl/api/prescriptions/upload-for-paid-order/'),
         headers: await _getHeaders(),
         body: json.encode(prescriptionData),
       ).timeout(Duration(milliseconds: timeoutDuration * 2));
@@ -694,7 +694,7 @@ class ApiService {
   Future<ApiResponse<Map<String, dynamic>>> getPrescriptionVerificationStatus(int prescriptionId) async {
     try {
       final response = await _client.get(
-        Uri.parse('$baseUrl/prescription/verification-status/$prescriptionId/'),
+        Uri.parse('$baseUrl/api/prescriptions/verification-status/$prescriptionId/'),
         headers: await _getHeaders(),
       ).timeout(Duration(milliseconds: timeoutDuration));
 
@@ -717,7 +717,7 @@ class ApiService {
   Future<ApiResponse<Map<String, dynamic>>> confirmPrescriptionOrder(int orderId) async {
     try {
       final response = await _client.post(
-        Uri.parse('$baseUrl/order/confirm-prescription/$orderId/'),
+        Uri.parse('$baseUrl/api/order/confirm-prescription/$orderId/'),
         headers: await _getHeaders(),
         body: json.encode({}),
       ).timeout(Duration(milliseconds: timeoutDuration));

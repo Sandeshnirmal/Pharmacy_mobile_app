@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'CheckoutScreen.dart';
 import 'LoginScreen.dart';
-import 'OrderPrescriptionUploadScreen.dart';
 import 'models/cart_model.dart';
 import 'services/cart_service.dart';
 import 'services/auth_service.dart';
+import 'screens/checkout/prescription_checkout_screen.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -165,14 +165,25 @@ class _CartScreenState extends State<CartScreen> {
       return;
     }
 
-    // Check if prescription items require prescription upload
+    // Check if cart has prescription items - use payment-first flow
     final prescriptionItems = _cart.items.where((item) => item.requiresPrescription).toList();
     if (prescriptionItems.isNotEmpty) {
-      _navigateToOrderPrescriptionUpload(prescriptionItems);
+      // Navigate to prescription checkout (payment-first flow)
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PrescriptionCheckoutScreen(
+              cartItems: _cart.items,
+              totalAmount: _cart.total,
+            ),
+          ),
+        );
+      }
       return;
     }
 
-    // Navigate to checkout screen
+    // Navigate to regular checkout screen for non-prescription items
     if (mounted) {
       Navigator.push(
         context,
@@ -221,17 +232,7 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  void _navigateToOrderPrescriptionUpload(List<CartItem> prescriptionItems) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => OrderPrescriptionUploadScreen(
-          cart: _cart,
-          prescriptionItems: prescriptionItems,
-        ),
-      ),
-    );
-  }
+
 
   void _showSuccessToast(String message) {
     Fluttertoast.showToast(

@@ -13,7 +13,7 @@ class OrderService {
       final token = await _storage.read(key: 'auth_token');
       
       final response = await http.post(
-        Uri.parse('$baseUrl/order/orders/'),
+        Uri.parse('$baseUrl/prescription/enhanced-prescriptions/'),
         headers: {
           'Content-Type': 'application/json',
           if (token != null) 'Authorization': 'Bearer $token',

@@ -1,16 +1,17 @@
-// Prescription Checkout Screen - Payment First, Then Prescription Upload
+// Prescription Checkout Screen - Prescription Before Payment Flow
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import '../../models/cart_model.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/api_service.dart';
-import '../../services/payment_service.dart';
-import '../../models/api_response.dart';
-import '../../utils/api_logger.dart';
 import '../prescription/prescription_verification_screen.dart';
 
 class PrescriptionCheckoutScreen extends StatefulWidget {
-  final List<Map<String, dynamic>> cartItems;
+  final List<CartItem> cartItems;
   final double totalAmount;
 
   const PrescriptionCheckoutScreen({
@@ -25,215 +26,36 @@ class PrescriptionCheckoutScreen extends StatefulWidget {
 
 class _PrescriptionCheckoutScreenState extends State<PrescriptionCheckoutScreen> {
   final ApiService _apiService = ApiService();
-  final PaymentService _paymentService = PaymentService();
   final ImagePicker _picker = ImagePicker();
-  
-  File? _prescriptionImage;
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _addressController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
+
   String _selectedPaymentMethod = 'cod';
-  bool _isProcessing = false;
-  String? _error;
-  
-  // Address fields
-  final _addressController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _nameController = TextEditingController();
+  bool _isProcessingOrder = false;
+  File? _prescriptionImage;
+
+  int _currentStep = 0;
+  final PageController _pageController = PageController();
 
   @override
-  void dispose() {
-    _addressController.dispose();
-    _phoneController.dispose();
-    _nameController.dispose();
-    _paymentService.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _loadUserData();
   }
 
-  Future<void> _selectPrescriptionImage() async {
+  Future<void> _loadUserData() async {
     try {
-      final XFile? image = await _picker.pickImage(
-        source: ImageSource.camera,
-        imageQuality: 80,
-        maxWidth: 1920,
-        maxHeight: 1080,
-      );
-
-      if (image != null) {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final user = authProvider.user;
+      if (user != null) {
         setState(() {
-          _prescriptionImage = File(image.path);
-          _error = null;
+          _nameController.text = '${user.firstName} ${user.lastName}';
+          _phoneController.text = user.phoneNumber ?? '';
         });
       }
     } catch (e) {
-      setState(() {
-        _error = 'Failed to capture prescription: $e';
-      });
-      ApiLogger.logError('Prescription capture error: $e');
-    }
-  }
-
-  Future<void> _selectFromGallery() async {
-    try {
-      final XFile? image = await _picker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 80,
-        maxWidth: 1920,
-        maxHeight: 1080,
-      );
-
-      if (image != null) {
-        setState(() {
-          _prescriptionImage = File(image.path);
-          _error = null;
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _error = 'Failed to select prescription: $e';
-      });
-      ApiLogger.logError('Prescription selection error: $e');
-    }
-  }
-
-  Future<void> _processCheckout() async {
-    // Validate inputs
-    if (_prescriptionImage == null) {
-      setState(() {
-        _error = 'Please upload prescription image';
-      });
-      return;
-    }
-
-    if (_nameController.text.trim().isEmpty ||
-        _addressController.text.trim().isEmpty ||
-        _phoneController.text.trim().isEmpty) {
-      setState(() {
-        _error = 'Please fill all delivery details';
-      });
-      return;
-    }
-
-    setState(() {
-      _isProcessing = true;
-      _error = null;
-    });
-
-    try {
-      // Step 1: Create pending order (without prescription verification)
-      final orderData = {
-        'items': widget.cartItems,
-        'delivery_address': {
-          'name': _nameController.text.trim(),
-          'address': _addressController.text.trim(),
-          'phone': _phoneController.text.trim(),
-        },
-        'payment_method': _selectedPaymentMethod,
-        'order_type': 'prescription',
-        'status': 'pending_payment',
-        'total_amount': widget.totalAmount,
-      };
-
-      final orderResponse = await _apiService.createPendingOrder(orderData);
-      
-      if (!orderResponse.isSuccess || orderResponse.data == null) {
-        setState(() {
-          _error = orderResponse.error ?? 'Failed to create order';
-        });
-        return;
-      }
-
-      final orderId = orderResponse.data!['order_id'];
-      final orderNumber = orderResponse.data!['order_number'];
-
-      // Step 2: Process payment
-      if (_selectedPaymentMethod == 'razorpay') {
-        await _processRazorpayPayment(orderId, orderNumber);
-      } else {
-        // COD - directly proceed to prescription upload
-        await _proceedToPrescrip​tionUpload(orderId, orderNumber);
-      }
-
-    } catch (e) {
-      setState(() {
-        _error = 'Checkout failed: $e';
-      });
-      ApiLogger.logError('Checkout error: $e');
-    } finally {
-      setState(() {
-        _isProcessing = false;
-      });
-    }
-  }
-
-  Future<void> _processRazorpayPayment(int orderId, String orderNumber) async {
-    try {
-      // Process Razorpay payment
-      final paymentResult = await _paymentService.processOrderPayment(
-        orderId: orderNumber,
-        amount: widget.totalAmount,
-        customerName: _nameController.text.trim(),
-        customerEmail: 'customer@example.com', // Get from user profile
-        customerPhone: _phoneController.text.trim(),
-        description: 'Prescription Order #$orderNumber',
-      );
-
-      if (paymentResult.isSuccess) {
-        // Payment successful, proceed to prescription upload
-        await _proceedToPrescrip​tionUpload(orderId, orderNumber);
-      } else {
-        setState(() {
-          _error = paymentResult.error ?? 'Payment failed';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _error = 'Payment processing failed: $e';
-      });
-      ApiLogger.logError('Payment error: $e');
-    }
-  }
-
-  Future<void> _proceedToPrescrip​tionUpload(int orderId, String orderNumber) async {
-    try {
-      // Convert prescription image to base64
-      final bytes = await _prescriptionImage!.readAsBytes();
-      final base64Image = base64Encode(bytes);
-
-      // Upload prescription linked to the paid order
-      final prescriptionData = {
-        'order_id': orderId,
-        'image': base64Image,
-        'upload_type': 'post_payment_verification',
-        'payment_confirmed': true,
-      };
-
-      final uploadResponse = await _apiService.uploadPrescriptionForPaidOrder(prescriptionData);
-      
-      if (uploadResponse.isSuccess && uploadResponse.data != null) {
-        final prescriptionId = uploadResponse.data!['prescription_id'];
-        
-        // Navigate to prescription verification screen
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (context) => PrescriptionVerificationScreen(
-                orderId: orderId,
-                orderNumber: orderNumber,
-                prescriptionId: prescriptionId,
-                totalAmount: widget.totalAmount,
-              ),
-            ),
-          );
-        }
-      } else {
-        setState(() {
-          _error = uploadResponse.error ?? 'Failed to upload prescription';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        _error = 'Prescription upload failed: $e';
-      });
-      ApiLogger.logError('Prescription upload error: $e');
+      // Handle error silently
     }
   }
 
@@ -244,36 +66,523 @@ class _PrescriptionCheckoutScreenState extends State<PrescriptionCheckoutScreen>
         title: const Text('Prescription Checkout'),
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
-        elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildOrderSummary(),
-            const SizedBox(height: 24),
-            _buildPrescriptionUpload(),
-            const SizedBox(height: 24),
-            _buildDeliveryDetails(),
-            const SizedBox(height: 24),
-            _buildPaymentMethod(),
-            if (_error != null) ...[
-              const SizedBox(height: 16),
-              _buildErrorCard(),
+      body: Column(
+        children: [
+          _buildStepIndicator(),
+          Expanded(
+            child: PageView(
+              controller: _pageController,
+              onPageChanged: (index) {
+                setState(() {
+                  _currentStep = index;
+                });
+              },
+              children: [
+                _buildDeliveryDetailsStep(),
+                _buildPaymentMethodStep(),
+                _buildPrescriptionUploadStep(),
+                _buildPaymentConfirmationStep(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStepIndicator() {
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      child: Row(
+        children: [
+          _buildStepCircle(0, 'Details'),
+          _buildStepLine(0),
+          _buildStepCircle(1, 'Payment'),
+          _buildStepLine(1),
+          _buildStepCircle(2, 'Prescription'),
+          _buildStepLine(2),
+          _buildStepCircle(3, 'Confirm'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStepCircle(int step, String label) {
+    bool isActive = _currentStep >= step;
+    return Expanded(
+      child: Column(
+        children: [
+          Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              color: isActive ? Colors.teal : Colors.grey.shade300,
+              borderRadius: BorderRadius.circular(15),
+            ),
+            child: Center(
+              child: Text(
+                '${step + 1}',
+                style: TextStyle(
+                  color: isActive ? Colors.white : Colors.grey.shade600,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: isActive ? Colors.teal : Colors.grey.shade600,
+              fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStepLine(int step) {
+    bool isActive = _currentStep > step;
+    return Expanded(
+      child: Container(
+        height: 2,
+        color: isActive ? Colors.teal : Colors.grey.shade300,
+        margin: const EdgeInsets.only(bottom: 20),
+      ),
+    );
+  }
+
+  Widget _buildDeliveryDetailsStep() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildOrderSummary(),
+          const SizedBox(height: 20),
+          Card(
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Delivery Address',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(
+                      labelText: 'Full Name',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.person),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _addressController,
+                    decoration: const InputDecoration(
+                      labelText: 'Complete Address',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.location_on),
+                    ),
+                    maxLines: 3,
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: _phoneController,
+                    decoration: const InputDecoration(
+                      labelText: 'Phone Number',
+                      border: OutlineInputBorder(),
+                      prefixIcon: Icon(Icons.phone),
+                    ),
+                    keyboardType: TextInputType.phone,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 30),
+          ElevatedButton(
+            onPressed: _validateDeliveryDetails,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.teal,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
+            ),
+            child: const Text(
+              'Continue to Payment Method',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentMethodStep() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Card(
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Payment Method',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  RadioListTile<String>(
+                    title: const Text('Cash on Delivery (COD)'),
+                    subtitle: const Text('Pay when your order is delivered'),
+                    value: 'cod',
+                    groupValue: _selectedPaymentMethod,
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedPaymentMethod = value!;
+                      });
+                    },
+                  ),
+                  RadioListTile<String>(
+                    title: const Text('Online Payment'),
+                    subtitle: const Text('Pay securely with Razorpay'),
+                    value: 'online',
+                    groupValue: _selectedPaymentMethod,
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedPaymentMethod = value!;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 30),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => _goToStep(0),
+                  child: const Text('Back'),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => _goToStep(2),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: const Text('Continue to Prescription'),
+                ),
+              ),
             ],
-          ],
-        ),
+          ),
+        ],
       ),
-      bottomNavigationBar: _buildBottomBar(),
+    );
+  }
+
+  Widget _buildPrescriptionUploadStep() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Card(
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text(
+                    'Upload Prescription',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (_prescriptionImage == null) ...[
+                    Container(
+                      height: 200,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300, width: 2),
+                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.grey.shade50,
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.camera_alt,
+                            size: 48,
+                            color: Colors.grey.shade400,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Take a photo of your prescription',
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Colors.grey.shade600,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Make sure all text is clearly visible',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey.shade500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () => _takePrescriptionPhoto(ImageSource.camera),
+                            icon: const Icon(Icons.camera_alt),
+                            label: const Text('Take Photo'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.teal,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: () => _takePrescriptionPhoto(ImageSource.gallery),
+                            icon: const Icon(Icons.photo_library),
+                            label: const Text('From Gallery'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.grey.shade600,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ] else ...[
+                    Container(
+                      height: 200,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.teal, width: 2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: Image.file(
+                          _prescriptionImage!,
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Icon(Icons.check_circle, color: Colors.green, size: 20),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'Prescription image captured successfully',
+                          style: TextStyle(
+                            color: Colors.green,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextButton.icon(
+                      onPressed: () => _takePrescriptionPhoto(ImageSource.camera),
+                      icon: const Icon(Icons.refresh),
+                      label: const Text('Retake Photo'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.teal,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 30),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => _goToStep(1),
+                  child: const Text('Back'),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _prescriptionImage != null ? () => _goToStep(3) : null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: const Text('Continue to Payment'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentConfirmationStep() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildOrderSummary(),
+          const SizedBox(height: 20),
+          Card(
+            elevation: 2,
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Order Confirmation',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildConfirmationItem('Name', _nameController.text),
+                  _buildConfirmationItem('Address', _addressController.text),
+                  _buildConfirmationItem('Phone', _phoneController.text),
+                  _buildConfirmationItem('Payment Method', _selectedPaymentMethod.toUpperCase()),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.green, size: 20),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Prescription uploaded successfully',
+                        style: TextStyle(
+                          color: Colors.green,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 30),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => _goToStep(2),
+                  child: const Text('Back'),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: _isProcessingOrder ? null : _processOrder,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.teal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                  ),
+                  child: _isProcessingOrder
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : Text(
+                          'Complete Payment • ₹${widget.totalAmount.toStringAsFixed(2)}',
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConfirmationItem(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 100,
+            child: Text(
+              '$label:',
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: Colors.grey,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildOrderSummary() {
     return Card(
-      elevation: 4,
+      elevation: 2,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -282,25 +591,25 @@ class _PrescriptionCheckoutScreenState extends State<PrescriptionCheckoutScreen>
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Colors.teal,
               ),
             ),
             const SizedBox(height: 12),
             ...widget.cartItems.map((item) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
+              padding: const EdgeInsets.symmetric(vertical: 4.0),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
                     child: Text(
-                      '${item['name']} x ${item['quantity']}',
+                      '${item.name} × ${item.quantity}',
                       style: const TextStyle(fontSize: 14),
                     ),
                   ),
                   Text(
-                    '₹${(item['price'] * item['quantity']).toStringAsFixed(2)}',
+                    '₹${(item.price * item.quantity).toStringAsFixed(2)}',
                     style: const TextStyle(
                       fontSize: 14,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
@@ -308,20 +617,19 @@ class _PrescriptionCheckoutScreenState extends State<PrescriptionCheckoutScreen>
             )),
             const Divider(),
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Expanded(
-                  child: Text(
-                    'Total Amount',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                const Text(
+                  'Total Amount:',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
                   '₹${widget.totalAmount.toStringAsFixed(2)}',
                   style: const TextStyle(
-                    fontSize: 18,
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: Colors.teal,
                   ),
@@ -334,301 +642,134 @@ class _PrescriptionCheckoutScreenState extends State<PrescriptionCheckoutScreen>
     );
   }
 
-  Widget _buildPrescriptionUpload() {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.upload_file, color: Colors.teal, size: 24),
-                const SizedBox(width: 8),
-                const Text(
-                  'Upload Prescription',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.teal,
-                  ),
-                ),
-                const Text(
-                  ' *',
-                  style: TextStyle(color: Colors.red, fontSize: 18),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'Upload your prescription. Verification will happen after payment confirmation.',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
-            ),
-            const SizedBox(height: 16),
-            
-            if (_prescriptionImage == null) ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _selectPrescriptionImage,
-                      icon: const Icon(Icons.camera_alt),
-                      label: const Text('Take Photo'),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.teal),
-                        foregroundColor: Colors.teal,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _selectFromGallery,
-                      icon: const Icon(Icons.photo_library),
-                      label: const Text('From Gallery'),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.teal),
-                        foregroundColor: Colors.teal,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ] else ...[
-              Container(
-                width: double.infinity,
-                height: 200,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.teal),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.file(
-                    _prescriptionImage!,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _selectPrescriptionImage,
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Retake'),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.teal),
-                        foregroundColor: Colors.teal,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const Expanded(
-                    child: Row(
-                      children: [
-                        Icon(Icons.check_circle, color: Colors.green, size: 20),
-                        SizedBox(width: 8),
-                        Text(
-                          'Prescription Ready',
-                          style: TextStyle(
-                            color: Colors.green,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ],
-        ),
-      ),
+  void _goToStep(int step) {
+    setState(() {
+      _currentStep = step;
+    });
+    _pageController.animateToPage(
+      step,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
     );
   }
 
-  Widget _buildDeliveryDetails() {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.location_on, color: Colors.teal, size: 24),
-                const SizedBox(width: 8),
-                const Text(
-                  'Delivery Details',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.teal,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Full Name *',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.person),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _phoneController,
-              decoration: const InputDecoration(
-                labelText: 'Phone Number *',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.phone),
-              ),
-              keyboardType: TextInputType.phone,
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _addressController,
-              decoration: const InputDecoration(
-                labelText: 'Delivery Address *',
-                border: OutlineInputBorder(),
-                prefixIcon: Icon(Icons.home),
-              ),
-              maxLines: 3,
-            ),
-          ],
-        ),
-      ),
+  void _validateDeliveryDetails() {
+    if (_nameController.text.trim().isEmpty) {
+      _showErrorToast('Please enter your name');
+      return;
+    }
+    if (_addressController.text.trim().isEmpty) {
+      _showErrorToast('Please enter your address');
+      return;
+    }
+    if (_phoneController.text.trim().isEmpty) {
+      _showErrorToast('Please enter your phone number');
+      return;
+    }
+    _goToStep(1);
+  }
+
+  Future<void> _takePrescriptionPhoto(ImageSource source) async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: source,
+        imageQuality: 80,
+        maxWidth: 1024,
+        maxHeight: 1024,
+      );
+
+      if (image != null) {
+        setState(() {
+          _prescriptionImage = File(image.path);
+        });
+      }
+    } catch (e) {
+      _showErrorToast('Error capturing image: $e');
+    }
+  }
+
+  void _showErrorToast(String message) {
+    Fluttertoast.showToast(
+      msg: message,
+      backgroundColor: Colors.red,
+      textColor: Colors.white,
     );
   }
 
-  Widget _buildPaymentMethod() {
-    return Card(
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(Icons.payment, color: Colors.teal, size: 24),
-                const SizedBox(width: 8),
-                const Text(
-                  'Payment Method',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.teal,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            RadioListTile<String>(
-              title: const Text('Cash on Delivery (COD)'),
-              subtitle: const Text('Pay when your order is delivered'),
-              value: 'cod',
-              groupValue: _selectedPaymentMethod,
-              onChanged: (value) {
-                setState(() {
-                  _selectedPaymentMethod = value!;
-                });
-              },
-              activeColor: Colors.teal,
-            ),
-            RadioListTile<String>(
-              title: const Text('Online Payment (Razorpay)'),
-              subtitle: const Text('Pay now using UPI, Card, or Net Banking'),
-              value: 'razorpay',
-              groupValue: _selectedPaymentMethod,
-              onChanged: (value) {
-                setState(() {
-                  _selectedPaymentMethod = value!;
-                });
-              },
-              activeColor: Colors.teal,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  Future<void> _processOrder() async {
+    setState(() {
+      _isProcessingOrder = true;
+    });
 
-  Widget _buildErrorCard() {
-    return Card(
-      color: Colors.red.shade50,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Icon(Icons.error_outline, color: Colors.red, size: 24),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                _error!,
-                style: const TextStyle(color: Colors.red, fontSize: 14),
+    try {
+      // Convert image to base64
+      final bytes = await _prescriptionImage!.readAsBytes();
+      final base64Image = base64Encode(bytes);
+
+      // Create order with prescription
+      final orderData = {
+        'items': widget.cartItems.map((item) => {
+          'product_id': item.productId,
+          'quantity': item.quantity,
+          'price': item.price,
+        }).toList(),
+        'delivery_address': {
+          'name': _nameController.text.trim(),
+          'address': _addressController.text.trim(),
+          'phone': _phoneController.text.trim(),
+        },
+        'payment_method': _selectedPaymentMethod.toUpperCase(),
+        'total_amount': widget.totalAmount,
+        'order_type': 'prescription',
+        'prescription_image': base64Image,
+      };
+
+      final result = await _apiService.createPendingOrder(orderData);
+
+      if (result.isSuccess && result.data != null) {
+        final orderId = result.data!['order_id'];
+        final orderNumber = result.data!['order_number'];
+
+        // Show success message
+        Fluttertoast.showToast(
+          msg: 'Order created successfully! Order #$orderNumber',
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.green,
+        );
+
+        // Navigate to prescription verification screen
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PrescriptionVerificationScreen(
+                orderId: orderId,
+                orderNumber: orderNumber,
+                prescriptionId: result.data!['prescription_id'],
+                totalAmount: widget.totalAmount,
               ),
             ),
-          ],
-        ),
-      ),
-    );
+          );
+        }
+      } else {
+        _showErrorToast(result.error ?? 'Failed to create order');
+      }
+    } catch (e) {
+      _showErrorToast('Error creating order: $e');
+    } finally {
+      setState(() {
+        _isProcessingOrder = false;
+      });
+    }
   }
 
-  Widget _buildBottomBar() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.3),
-            blurRadius: 10,
-            offset: const Offset(0, -5),
-          ),
-        ],
-      ),
-      child: ElevatedButton(
-        onPressed: _isProcessing ? null : _processCheckout,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.teal,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
-        ),
-        child: _isProcessing
-            ? const Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
-                  ),
-                  SizedBox(width: 12),
-                  Text('Processing...'),
-                ],
-              )
-            : Text(
-                _selectedPaymentMethod == 'cod' 
-                    ? 'Place Order (COD)' 
-                    : 'Pay ₹${widget.totalAmount.toStringAsFixed(2)}',
-                style: const TextStyle(fontSize: 16),
-              ),
-      ),
-    );
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _addressController.dispose();
+    _phoneController.dispose();
+    _pageController.dispose();
+    super.dispose();
   }
 }

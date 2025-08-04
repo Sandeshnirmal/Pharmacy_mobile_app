@@ -41,16 +41,16 @@ class Order {
     return Order(
       id: json['id'] ?? 0,
       status: json['status'] ?? 'pending',
-      createdAt: json['created_at'] != null 
+      createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
           : DateTime.now(),
-      updatedAt: json['updated_at'] != null 
+      updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'])
           : null,
-      totalAmount: (json['total_amount'] ?? 0.0).toDouble(),
-      discountAmount: json['discount_amount']?.toDouble(),
-      taxAmount: json['tax_amount']?.toDouble(),
-      shippingAmount: json['shipping_amount']?.toDouble(),
+      totalAmount: _parseDouble(json['total_amount']),
+      discountAmount: _parseDouble(json['discount_amount']),
+      taxAmount: _parseDouble(json['tax_amount']),
+      shippingAmount: _parseDouble(json['shipping_amount']),
       paymentMethod: json['payment_method'],
       paymentStatus: json['payment_status'],
       items: json['items'] != null
@@ -170,6 +170,17 @@ class Order {
         return status.toUpperCase();
     }
   }
+
+  // Helper method to safely parse double from various types
+  static double _parseDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) {
+      return double.tryParse(value) ?? 0.0;
+    }
+    return 0.0;
+  }
 }
 
 class OrderItem {
@@ -200,8 +211,8 @@ class OrderItem {
       productName: json['product_name'] ?? '',
       productImage: json['product_image'],
       quantity: json['quantity'] ?? 1,
-      unitPrice: (json['unit_price'] ?? 0.0).toDouble(),
-      totalPrice: (json['total_price'] ?? 0.0).toDouble(),
+      unitPrice: _parseDouble(json['unit_price']),
+      totalPrice: _parseDouble(json['total_price']),
       notes: json['notes'],
     );
   }
@@ -254,6 +265,17 @@ class OrderItem {
 
   @override
   int get hashCode => id.hashCode;
+
+  // Helper method to safely parse double from various types
+  static double _parseDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) {
+      return double.tryParse(value) ?? 0.0;
+    }
+    return 0.0;
+  }
 }
 
 class Address {
