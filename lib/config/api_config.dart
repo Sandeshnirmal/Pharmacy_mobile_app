@@ -1,4 +1,3 @@
-
 /// API Configuration for Pharmacy Mobile App
 ///
 /// This file contains all API-related configuration including base URLs,
@@ -9,19 +8,19 @@ library;
 class ApiConfig {
   // Base URL Configuration
   // Update this IP address when your backend server IP changes
-  static const String _baseIP = '192.168.202.6'; // Android emulator localhost
+  static const String _baseIP = '192.168.234.6'; // Android emulator localhost
   static const String _basePort = '8000';
 
   // Main API Base URLs
   static const String baseUrl = 'http://$_baseIP:$_basePort';
   static const String apiBaseUrl = 'http://$_baseIP:$_basePort/api';
 
-  // API Endpoints
+  // API Endpoints (Fixed to match backend structure)
   static const String authEndpoint = '$apiBaseUrl/auth';
-  static const String userEndpoint = '$apiBaseUrl/user';
-  static const String prescriptionEndpoint = '$apiBaseUrl/prescription';
+  static const String userEndpoint = '$apiBaseUrl/users';
+  static const String prescriptionEndpoint = '$apiBaseUrl/prescriptions';
   static const String orderEndpoint = '$apiBaseUrl/order';
-  static const String productEndpoint = '$apiBaseUrl/product';
+  static const String productEndpoint = '$apiBaseUrl/products';
   static const String cartEndpoint = '$apiBaseUrl/cart';
 
   // Specific Auth URLs
@@ -31,37 +30,81 @@ class ApiConfig {
   static const String logoutUrl = '$authEndpoint/logout/';
 
   // Product URLs (Fixed to match backend)
-  static const String productsUrl = '$baseUrl/product/products/';
-  static const String enhancedProductsUrl = '$baseUrl/product/enhanced-products/';
-  static const String categoriesUrl = '$baseUrl/product/categories/';
-  static const String genericNamesUrl = '$baseUrl/product/generic-names/';
+  static const String productsUrl = '$productEndpoint/products/';
+  static const String enhancedProductsUrl =
+      '$productEndpoint/enhanced-products/';
+  static const String categoriesUrl = '$productEndpoint/legacy/categories/';
+  static const String genericNamesUrl =
+      '$productEndpoint/legacy/generic-names/';
+  static const String compositionsUrl = '$productEndpoint/compositions/';
 
   // Prescription URLs - OCR/AI Processing (for medicine discovery)
-  static const String prescriptionUploadUrl = '$baseUrl/prescription/mobile/upload/';
-  static const String prescriptionStatusUrl = '$baseUrl/prescription/mobile/status/';
-  static const String medicineSuggestionsUrl = '$baseUrl/prescription/mobile/suggestions/';
-  static const String prescriptionSearchUrl = '$baseUrl/prescription/mobile/search/';
-  static const String prescriptionProductsUrl = '$baseUrl/prescription/mobile/products/';
+  static const String prescriptionUploadUrl =
+      '$prescriptionEndpoint/mobile/upload/';
+  static const String prescriptionStatusUrl =
+      '$prescriptionEndpoint/mobile/status/';
+  static const String medicineSuggestionsUrl =
+      '$prescriptionEndpoint/mobile/suggestions/';
+  static const String prescriptionSearchUrl =
+      '$prescriptionEndpoint/mobile/search/';
+  static const String prescriptionProductsUrl =
+      '$prescriptionEndpoint/mobile/products/';
+
+  // Prescription Scanner URLs (New enhanced features)
+  static const String prescriptionScanUrl =
+      '$prescriptionEndpoint/scanner/scan_prescription/';
+  static const String medicineSearchUrl =
+      '$prescriptionEndpoint/scanner/search_medicines/';
+  static const String scanHistoryUrl =
+      '$prescriptionEndpoint/scanner/scan_history/';
 
   // Prescription URLs - Simple Upload (for order verification - NO AI/OCR)
-  static const String prescriptionForOrderUrl = '$baseUrl/prescription/upload-for-order/';
+  static const String prescriptionForOrderUrl =
+      '$prescriptionEndpoint/upload-for-order/';
+  static const String prescriptionForPaidOrderUrl =
+      '$prescriptionEndpoint/upload-for-paid-order/';
 
   // Prescription Order Creation
-  static const String prescriptionCreateOrderUrl = '$baseUrl/prescription/mobile/create-order/';
+  static const String prescriptionCreateOrderUrl =
+      '$prescriptionEndpoint/mobile/create-order/';
 
-  // Order URLs
-  static const String ordersUrl = '$baseUrl/order/orders/';
-  static const String orderDetailsUrl = '$baseUrl/order/orders/';
-  static const String createOrderUrl = '$baseUrl/order/orders/';
-  static const String applyCouponUrl = '$baseUrl/order/apply-coupon/';
+  // Order URLs (Fixed to match backend)
+  static const String ordersUrl = '$orderEndpoint/orders/';
+  static const String orderDetailsUrl = '$orderEndpoint/orders/';
+  static const String createOrderUrl = '$orderEndpoint/orders/';
+  static const String applyCouponUrl = '$orderEndpoint/apply-coupon/';
+  static const String orderTrackingUrl = '$orderEndpoint/tracking/';
+  static const String orderStatusHistoryUrl = '$orderEndpoint/status-history/';
+
+  // Enhanced Order Flow URLs (Payment First Approach)
+  static const String createPaidOrderUrl =
+      '$orderEndpoint/enhanced/create-paid-order/';
+  static const String linkPrescriptionUrl =
+      '$orderEndpoint/enhanced/link-prescription/';
+  static const String verifyPrescriptionUrl =
+      '$orderEndpoint/enhanced/verify-prescription/';
+  static const String prescriptionReviewUrl =
+      '$orderEndpoint/enhanced/prescription-review/';
+  static const String awaitingPrescriptionUrl =
+      '$orderEndpoint/enhanced/awaiting-prescription/';
 
   // Payment URLs
   static const String createPaymentUrl = '$baseUrl/payment/create/';
   static const String verifyPaymentUrl = '$baseUrl/payment/verify/';
 
+  // Courier URLs (Professional courier integration)
+  static const String courierPartnersUrl = '$apiBaseUrl/courier/partners/';
+  static const String courierShipmentsUrl = '$apiBaseUrl/courier/shipments/';
+  static const String courierTrackingUrl =
+      '$apiBaseUrl/courier/shipments/track/';
+  static const String courierSchedulePickupUrl =
+      '$apiBaseUrl/courier/shipments/schedule_pickup/';
+
   // Razorpay Configuration (Update these with your actual keys)
-  static const String razorpayKeyId = 'rzp_test_YOUR_KEY_ID'; // Replace with your key
-  static const String razorpayKeySecret = 'YOUR_KEY_SECRET'; // Replace with your secret
+  static const String razorpayKeyId =
+      'rzp_test_YOUR_KEY_ID'; // Replace with your key
+  static const String razorpayKeySecret =
+      'YOUR_KEY_SECRET'; // Replace with your secret
 
   // API Configuration
   static const int timeoutDuration = 30000; // milliseconds
