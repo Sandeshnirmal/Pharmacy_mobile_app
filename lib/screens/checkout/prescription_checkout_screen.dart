@@ -1,13 +1,21 @@
-// Prescription Checkout Screen - Prescription Before Payment Flow
+// Prescription Checkout Screen - Secure Payment Flow
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'dart:convert';
-import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:provider/provider.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import '../../models/cart_model.dart';
-import '../../providers/auth_provider.dart';
+import '../orders/order_confirmation_screen.dart';
+import '../../utils/api_logger.dart';
 import '../../services/api_service.dart';
+import '../../services/order_service.dart';
+import '../../services/payment_handler_service.dart';
+import '../../services/secure_order_service.dart';
+import '../../services/payment_service.dart';
+import '../../models/cart_item.dart';
+import '../../models/payment_result.dart';
+import '../../providers/auth_provider.dart';
 import '../prescription/prescription_verification_screen.dart';
 
 class PrescriptionCheckoutScreen extends StatefulWidget {
@@ -21,27 +29,60 @@ class PrescriptionCheckoutScreen extends StatefulWidget {
   });
 
   @override
-  State<PrescriptionCheckoutScreen> createState() => _PrescriptionCheckoutScreenState();
+  State<PrescriptionCheckoutScreen> createState() =>
+      _PrescriptionCheckoutScreenState();
 }
 
-class _PrescriptionCheckoutScreenState extends State<PrescriptionCheckoutScreen> {
-  final ApiService _apiService = ApiService();
+class _PrescriptionCheckoutScreenState
+    extends State<PrescriptionCheckoutScreen> {
   final ImagePicker _picker = ImagePicker();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
+  final PageController _pageController = PageController();
 
-  String _selectedPaymentMethod = 'cod';
+  // Services
+  final _apiService = ApiService();
+  late final OrderService _orderService;
+  late final PaymentHandlerService _paymentHandler;
+  late final SecureOrderService _secureOrderService;
+  late final PaymentService _paymentService;
+
+  // State
+  String _selectedPaymentMethod = 'razorpay'; // Default to online payment
+  String? _backendOrderIdForPayment;
   bool _isProcessingOrder = false;
   File? _prescriptionImage;
-
   int _currentStep = 0;
-  final PageController _pageController = PageController();
+
+  // Payment related fields
+  StreamSubscription<PaymentResult>? _paymentSubscription;
 
   @override
   void initState() {
     super.initState();
+    _orderService = OrderService();
+    _paymentHandler = PaymentHandlerService();
+    _secureOrderService = SecureOrderService();
+    _paymentService = PaymentService();
+
+    // Listen for payment results
+    _paymentSubscription = _paymentService.onPaymentResult.listen(
+      _handlePaymentResult,
+    );
+
     _loadUserData();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _addressController.dispose();
+    _phoneController.dispose();
+    _pageController.dispose();
+    _paymentSubscription?.cancel();
+    _paymentService.dispose();
+    super.dispose();
   }
 
   Future<void> _loadUserData() async {
@@ -78,6 +119,7 @@ class _PrescriptionCheckoutScreenState extends State<PrescriptionCheckoutScreen>
                   _currentStep = index;
                 });
               },
+              physics: const NeverScrollableScrollPhysics(), // Disable swipe
               children: [
                 _buildDeliveryDetailsStep(),
                 _buildPaymentMethodStep(),
@@ -172,10 +214,7 @@ class _PrescriptionCheckoutScreenState extends State<PrescriptionCheckoutScreen>
                 children: [
                   const Text(
                     'Delivery Address',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
                   TextField(
@@ -246,10 +285,7 @@ class _PrescriptionCheckoutScreenState extends State<PrescriptionCheckoutScreen>
                 children: [
                   const Text(
                     'Payment Method',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
                   RadioListTile<String>(
@@ -321,17 +357,17 @@ class _PrescriptionCheckoutScreenState extends State<PrescriptionCheckoutScreen>
                 children: [
                   const Text(
                     'Upload Prescription',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
                   if (_prescriptionImage == null) ...[
                     Container(
                       height: 200,
                       decoration: BoxDecoration(
-                        border: Border.all(color: Colors.grey.shade300, width: 2),
+                        border: Border.all(
+                          color: Colors.grey.shade300,
+                          width: 2,
+                        ),
                         borderRadius: BorderRadius.circular(12),
                         color: Colors.grey.shade50,
                       ),
@@ -368,7 +404,8 @@ class _PrescriptionCheckoutScreenState extends State<PrescriptionCheckoutScreen>
                       children: [
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: () => _takePrescriptionPhoto(ImageSource.camera),
+                            onPressed: () =>
+                                _takePrescriptionPhoto(ImageSource.camera),
                             icon: const Icon(Icons.camera_alt),
                             label: const Text('Take Photo'),
                             style: ElevatedButton.styleFrom(
@@ -381,7 +418,8 @@ class _PrescriptionCheckoutScreenState extends State<PrescriptionCheckoutScreen>
                         const SizedBox(width: 12),
                         Expanded(
                           child: ElevatedButton.icon(
-                            onPressed: () => _takePrescriptionPhoto(ImageSource.gallery),
+                            onPressed: () =>
+                                _takePrescriptionPhoto(ImageSource.gallery),
                             icon: const Icon(Icons.photo_library),
                             label: const Text('From Gallery'),
                             style: ElevatedButton.styleFrom(
@@ -424,12 +462,11 @@ class _PrescriptionCheckoutScreenState extends State<PrescriptionCheckoutScreen>
                     ),
                     const SizedBox(height: 12),
                     TextButton.icon(
-                      onPressed: () => _takePrescriptionPhoto(ImageSource.camera),
+                      onPressed: () =>
+                          _takePrescriptionPhoto(ImageSource.camera),
                       icon: const Icon(Icons.refresh),
                       label: const Text('Retake Photo'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: Colors.teal,
-                      ),
+                      style: TextButton.styleFrom(foregroundColor: Colors.teal),
                     ),
                   ],
                 ],
@@ -448,7 +485,9 @@ class _PrescriptionCheckoutScreenState extends State<PrescriptionCheckoutScreen>
               const SizedBox(width: 16),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: _prescriptionImage != null ? () => _goToStep(3) : null,
+                  onPressed: _prescriptionImage != null
+                      ? () => _goToStep(3)
+                      : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.teal,
                     foregroundColor: Colors.white,
@@ -481,16 +520,16 @@ class _PrescriptionCheckoutScreenState extends State<PrescriptionCheckoutScreen>
                 children: [
                   const Text(
                     'Order Confirmation',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
                   _buildConfirmationItem('Name', _nameController.text),
                   _buildConfirmationItem('Address', _addressController.text),
                   _buildConfirmationItem('Phone', _phoneController.text),
-                  _buildConfirmationItem('Payment Method', _selectedPaymentMethod.toUpperCase()),
+                  _buildConfirmationItem(
+                    'Payment Method',
+                    _selectedPaymentMethod.toUpperCase(),
+                  ),
                   const SizedBox(height: 16),
                   Row(
                     children: [
@@ -533,12 +572,17 @@ class _PrescriptionCheckoutScreenState extends State<PrescriptionCheckoutScreen>
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                           ),
                         )
                       : Text(
                           'Complete Payment • ₹${widget.totalAmount.toStringAsFixed(2)}',
-                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                 ),
               ),
@@ -568,9 +612,7 @@ class _PrescriptionCheckoutScreenState extends State<PrescriptionCheckoutScreen>
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.w500),
             ),
           ),
         ],
@@ -588,43 +630,39 @@ class _PrescriptionCheckoutScreenState extends State<PrescriptionCheckoutScreen>
           children: [
             const Text(
               'Order Summary',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            ...widget.cartItems.map((item) => Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      '${item.name} × ${item.quantity}',
-                      style: const TextStyle(fontSize: 14),
+            ...widget.cartItems.map(
+              (item) => Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${item.name} × ${item.quantity}',
+                        style: const TextStyle(fontSize: 14),
+                      ),
                     ),
-                  ),
-                  Text(
-                    '₹${(item.price * item.quantity).toStringAsFixed(2)}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
+                    Text(
+                      '₹${(item.price * item.quantity).toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            )),
+            ),
             const Divider(),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 const Text(
                   'Total Amount:',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 Text(
                   '₹${widget.totalAmount.toStringAsFixed(2)}',
@@ -697,79 +735,278 @@ class _PrescriptionCheckoutScreenState extends State<PrescriptionCheckoutScreen>
   }
 
   Future<void> _processOrder() async {
+    if (_prescriptionImage == null) {
+      _showErrorToast('Please upload a prescription image.');
+      return;
+    }
+
     setState(() {
       _isProcessingOrder = true;
     });
 
     try {
-      // Convert image to base64
       final bytes = await _prescriptionImage!.readAsBytes();
       final base64Image = base64Encode(bytes);
 
-      // Create order with prescription
-      final orderData = {
-        'items': widget.cartItems.map((item) => {
-          'product_id': item.productId,
-          'quantity': item.quantity,
-          'price': item.price,
-        }).toList(),
-        'delivery_address': {
-          'name': _nameController.text.trim(),
-          'address': _addressController.text.trim(),
-          'phone': _phoneController.text.trim(),
-        },
-        'payment_method': _selectedPaymentMethod.toUpperCase(),
-        'total_amount': widget.totalAmount,
-        'order_type': 'prescription',
-        'prescription_image': base64Image,
+      final deliveryAddress = {
+        'name': _nameController.text.trim(),
+        'address': _addressController.text.trim(),
+        'phone': _phoneController.text.trim(),
       };
 
-      final result = await _apiService.createPendingOrder(orderData);
+      final cartData = {
+        'items': widget.cartItems
+            .map(
+              (item) => {
+                'product_id': item.productId,
+                'quantity': item.quantity,
+                'price': item.price,
+              },
+            )
+            .toList(),
+        'total': widget.totalAmount,
+      };
 
-      if (result.isSuccess && result.data != null) {
-        final orderId = result.data!['order_id'];
-        final orderNumber = result.data!['order_number'];
+      if (_selectedPaymentMethod == 'cod') {
+        // COD Flow: Create pending order first
+        final orderData = {
+          'items': cartData['items'],
+          'delivery_address': deliveryAddress,
+          'payment_method': 'COD',
+          'total_amount': widget.totalAmount,
+          'order_type': 'prescription',
+          'prescription_image': base64Image,
+        };
 
-        // Show success message
-        Fluttertoast.showToast(
-          msg: 'Order created successfully! Order #$orderNumber',
-          toastLength: Toast.LENGTH_LONG,
-          gravity: ToastGravity.BOTTOM,
-          backgroundColor: Colors.green,
+        final result = await _apiService.createPendingOrder(orderData);
+
+        if (result.isSuccess && result.data != null) {
+          final orderId = result.data!['order_id'];
+          final orderNumber = result.data!['order_number'];
+          final prescriptionId = result.data!['prescription_id'];
+
+          Fluttertoast.showToast(
+            msg: 'Order created successfully! Order #$orderNumber',
+            toastLength: Toast.LENGTH_LONG,
+            gravity: ToastGravity.BOTTOM,
+            backgroundColor: Colors.green,
+          );
+
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PrescriptionVerificationScreen(
+                  orderId: orderId,
+                  orderNumber: orderNumber,
+                  prescriptionId: prescriptionId,
+                  totalAmount: widget.totalAmount,
+                ),
+              ),
+            );
+          }
+        } else {
+          _showErrorToast(result.error ?? 'Failed to create COD order');
+        }
+      } else if (_selectedPaymentMethod == 'online') {
+        // Online Payment Flow: First create a pending order to get a backend order ID
+        // This order will be confirmed/updated after successful payment
+        final pendingOrderData = {
+          'items': cartData['items'],
+          'delivery_address': deliveryAddress,
+          'payment_method': 'ONLINE_PENDING', // Indicate it's pending payment
+          'total_amount': widget.totalAmount,
+          'order_type': 'prescription',
+          'prescription_image': base64Image,
+        };
+
+        final pendingOrderResult = await _apiService.createPendingOrder(
+          pendingOrderData,
         );
 
-        // Navigate to prescription verification screen
-        if (mounted) {
-          Navigator.pushReplacement(
+        if (pendingOrderResult.isSuccess && pendingOrderResult.data != null) {
+          _backendOrderIdForPayment = pendingOrderResult.data!['order_id']
+              .toString();
+          ApiLogger.log(
+            'Pending order created for online payment: $_backendOrderIdForPayment',
+          );
+
+          // Now initiate Razorpay payment using this backend order ID
+          final createPaymentOrderResponse = await _paymentService
+              .createPaymentOrder(
+                amount: widget.totalAmount,
+                currency: 'INR',
+                orderId: _backendOrderIdForPayment!,
+                metadata: {
+                  'customer_name': _nameController.text.trim(),
+                  'customer_email':
+                      'vjsanthakumar@gmail.com', // Replace with actual user email
+                  'customer_phone': _phoneController.text.trim(),
+                  'prescription_id':
+                      pendingOrderResult.data!['prescription_id'],
+                },
+              );
+
+          if (!createPaymentOrderResponse.isSuccess ||
+              createPaymentOrderResponse.data == null) {
+            ApiLogger.logError(
+              'Failed to create Razorpay order: ${createPaymentOrderResponse.error ?? "Unknown error"}',
+            );
+            _showErrorToast(
+              'Failed to initiate online payment: ${createPaymentOrderResponse.error ?? "Unknown error"}',
+            );
+            setState(() {
+              _isProcessingOrder = false;
+            });
+            return;
+          }
+
+          final razorpayOrderId =
+              createPaymentOrderResponse.data!['razorpay_order_id'];
+
+          // Get user email from auth provider
+          final authProvider = Provider.of<AuthProvider>(
             context,
-            MaterialPageRoute(
-              builder: (context) => PrescriptionVerificationScreen(
-                orderId: orderId,
-                orderNumber: orderNumber,
-                prescriptionId: result.data!['prescription_id'],
-                totalAmount: widget.totalAmount,
-              ),
-            ),
+            listen: false,
+          );
+          final userEmail = "vjsanthakumat@gmail.com";
+
+          if (userEmail.isEmpty) {
+            _showErrorToast('User email is required for payment');
+            setState(() => _isProcessingOrder = false);
+            return;
+          }
+
+          try {
+            _paymentService.startPayment(
+              orderId: razorpayOrderId,
+              amount: widget.totalAmount,
+              name: _nameController.text.trim(),
+              description: 'Prescription Order #$_backendOrderIdForPayment',
+              email: userEmail,
+              contact: _phoneController.text.trim(),
+            );
+            // Payment result will be handled by _handlePaymentResult via the stream
+          } catch (e) {
+            ApiLogger.logError('Failed to start payment: $e');
+            _showErrorToast('Failed to start payment. Please try again.');
+            setState(() => _isProcessingOrder = false);
+          }
+        } else {
+          _showErrorToast(
+            pendingOrderResult.error ??
+                'Failed to create pending order for online payment',
           );
         }
-      } else {
-        _showErrorToast(result.error ?? 'Failed to create order');
       }
     } catch (e) {
-      _showErrorToast('Error creating order: $e');
+      _showErrorToast('Error processing order: $e');
     } finally {
-      setState(() {
-        _isProcessingOrder = false;
-      });
+      // _isProcessingOrder is set to false in _handlePaymentResult for online payments
+      // For COD, it's set here.
+      if (_selectedPaymentMethod == 'cod') {
+        setState(() {
+          _isProcessingOrder = false;
+        });
+      }
     }
   }
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _addressController.dispose();
-    _phoneController.dispose();
-    _pageController.dispose();
-    super.dispose();
+  Map<String, dynamic> _getCartData() {
+    return {
+      'items': widget.cartItems
+          .map(
+            (item) => {
+              'product_id': item.productId,
+              'quantity': item.quantity,
+              'price': item.price,
+            },
+          )
+          .toList(),
+      'total_amount': widget.totalAmount,
+    };
+  }
+
+  Future<Map<String, dynamic>> _getPrescriptionDetails() async {
+    if (_prescriptionImage == null) {
+      throw Exception('Prescription image is required');
+    }
+
+    final bytes = await _prescriptionImage!.readAsBytes();
+    final base64Image = base64Encode(bytes);
+
+    return {'prescription_image': base64Image, 'notes': 'Prescription order'};
+  }
+
+  void _handlePaymentResult(PaymentResult result) async {
+    try {
+      if (result.success && result.paymentId != null) {
+        ApiLogger.log('Payment successful: ${result.paymentId}');
+
+        // 1. Verify payment with backend first
+        final verificationResult = await _paymentService.verifyPayment(
+          paymentId: result.paymentId!,
+          orderId: result.orderId!,
+          signature: result.signature!,
+        );
+
+        if (!verificationResult.isSuccess) {
+          throw Exception(verificationResult.error);
+        }
+
+        // 2. Create the order only after payment is verified
+        final paidOrderResult = await _orderService.createPaidOrder(
+          paymentId: result.paymentId!,
+          razorpayOrderId: result.orderId!,
+          razorpaySignature: result.signature!,
+          totalAmount: widget.totalAmount,
+          cartData: _getCartData(),
+          deliveryAddress: _addressController.text,
+          paymentMethod: 'razorpay',
+          prescriptionDetails: await _getPrescriptionDetails(),
+        );
+
+        if (paidOrderResult['success'] == true &&
+            paidOrderResult['order'] != null) {
+          // 3. Navigate to order confirmation on success
+          if (mounted) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => OrderConfirmationScreen(
+                  orderId: paidOrderResult['order_id'] as int,
+                  orderNumber: paidOrderResult['order']['order_number']
+                      .toString(),
+                  totalAmount: widget.totalAmount,
+                ),
+              ),
+            );
+          }
+        } else {
+          throw Exception(
+            paidOrderResult['message'] ?? 'Failed to create order',
+          );
+        }
+      } else {
+        String errorMessage = 'Payment process failed';
+        if (result.errorCode == 2) {
+          errorMessage = 'Payment was cancelled';
+        } else if (result.errorMessage?.contains('network') ?? false) {
+          errorMessage = 'Network error during payment. Please try again.';
+        } else if (result.errorMessage != null) {
+          errorMessage = result.errorMessage!;
+        }
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      ApiLogger.logError('Error in payment process: $e');
+      if (mounted) {
+        _showErrorToast(e.toString());
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isProcessingOrder = false);
+      }
+    }
   }
 }

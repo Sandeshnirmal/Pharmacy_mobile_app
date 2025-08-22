@@ -1,9 +1,7 @@
 // Intelligent Medicine Search Screen
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../../services/api_service.dart';
 import '../../models/product_model.dart';
-import '../../models/api_response.dart';
 import '../../utils/api_logger.dart';
 // import '../../providers/cart_provider.dart';
 
@@ -17,8 +15,10 @@ class MedicineSearchScreen extends StatefulWidget {
 class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
   final ApiService _apiService = ApiService();
   final TextEditingController _searchController = TextEditingController();
-  final List<TextEditingController> _medicineControllers = [TextEditingController()];
-  
+  final List<TextEditingController> _medicineControllers = [
+    TextEditingController(),
+  ];
+
   List<MedicineSearchResult> _searchResults = [];
   bool _isLoading = false;
   String? _error;
@@ -68,7 +68,7 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
 
     try {
       final response = await _apiService.intelligentMedicineSearch(medicines);
-      
+
       if (response.isSuccess && response.data != null) {
         final results = response.data!['results'] as List;
         setState(() {
@@ -134,13 +134,10 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
           const SizedBox(height: 8),
           const Text(
             'Enter medicine names with strength and form (e.g., "Paracetamol 500mg tablet")',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey),
           ),
           const SizedBox(height: 16),
-          
+
           // Medicine input fields
           ...List.generate(_medicineControllers.length, (index) {
             return Padding(
@@ -151,14 +148,21 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
                     child: TextField(
                       controller: _medicineControllers[index],
                       decoration: InputDecoration(
-                        hintText: 'Medicine ${index + 1} (e.g., Paracetamol 500mg tablet)',
-                        prefixIcon: const Icon(Icons.medication, color: Colors.teal),
+                        hintText:
+                            'Medicine ${index + 1} (e.g., Paracetamol 500mg tablet)',
+                        prefixIcon: const Icon(
+                          Icons.medication,
+                          color: Colors.teal,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Colors.teal, width: 2),
+                          borderSide: const BorderSide(
+                            color: Colors.teal,
+                            width: 2,
+                          ),
                         ),
                       ),
                       textCapitalization: TextCapitalization.words,
@@ -173,7 +177,7 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
               ),
             );
           }),
-          
+
           // Add medicine button
           Row(
             children: [
@@ -202,7 +206,10 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.teal,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -234,18 +241,11 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.grey[400],
-            ),
+            Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
               _error!,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -267,18 +267,11 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.search,
-              size: 64,
-              color: Colors.grey,
-            ),
+            Icon(Icons.search, size: 64, color: Colors.grey),
             SizedBox(height: 16),
             Text(
               'Enter medicine names above to search',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey),
             ),
           ],
         ),
@@ -306,11 +299,7 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.search,
-                  color: Colors.teal,
-                  size: 20,
-                ),
+                Icon(Icons.search, color: Colors.teal, size: 20),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -325,7 +314,7 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            
+
             if (result.matches.isEmpty)
               const Text(
                 'No matches found for this medicine',
@@ -369,24 +358,15 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
                     if (match.genericName != null)
                       Text(
                         'Generic: ${match.genericName}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                       ),
                     Text(
                       '${match.strength} • ${match.form}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                     ),
                     Text(
                       'By ${match.manufacturer}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[500],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                     ),
                   ],
                 ),
@@ -395,7 +375,10 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: _getConfidenceColor(match.confidence),
                       borderRadius: BorderRadius.circular(12),
@@ -431,7 +414,7 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
               ),
             ],
           ),
-          
+
           if (match.compositions.isNotEmpty) ...[
             const SizedBox(height: 8),
             const Text(
@@ -448,7 +431,10 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
               runSpacing: 4,
               children: match.compositions.map((comp) {
                 return Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.teal.shade50,
                     borderRadius: BorderRadius.circular(12),
@@ -456,22 +442,22 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
                   ),
                   child: Text(
                     '${comp.name} ${comp.strength}${comp.unit}',
-                    style: const TextStyle(
-                      fontSize: 10,
-                      color: Colors.teal,
-                    ),
+                    style: const TextStyle(fontSize: 10, color: Colors.teal),
                   ),
                 );
               }).toList(),
             ),
           ],
-          
+
           const SizedBox(height: 12),
           Row(
             children: [
               if (match.isPrescriptionRequired)
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.orange.shade100,
                     borderRadius: BorderRadius.circular(12),
@@ -502,7 +488,10 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.teal,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -545,7 +534,7 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
     );
 
     // context.read<CartProvider>().addToCart(product, 1);
-    
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('${match.name} added to cart'),

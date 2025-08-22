@@ -3,12 +3,11 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'LoginScreen.dart';
 import 'RegisterScreen.dart';
 import 'ProfileDetailsScreen.dart';
-import './screens/profile/my_orders_screen.dart';
+import 'screens/profile/my_orders_screen.dart';
 import 'services/auth_service.dart';
-import './screens/profile/prescription_history_screen.dart';
-import './screens/profile/address_screen.dart';
-import './screens/profile/settings_screen.dart';
-
+import 'screens/profile/prescription_history_screen.dart';
+import 'screens/profile/address_screen.dart';
+import 'screens/profile/settings_screen.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -47,7 +46,7 @@ class _AccountScreenState extends State<AccountScreen> {
               {
                 'first_name': 'John',
                 'last_name': 'Doe',
-                'email': 'john.doe@example.com',
+                'email': 'vjsanthakumar@gmail.com',
                 'phone': '+91 9876543210',
               };
         });
@@ -324,7 +323,9 @@ class _AccountScreenState extends State<AccountScreen> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const MyOrdersScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const MyOrdersScreen(),
+                      ),
                     );
                   },
                 ),
@@ -336,7 +337,9 @@ class _AccountScreenState extends State<AccountScreen> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const AddressScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const AddressScreen(),
+                      ),
                     );
                   },
                 ),
@@ -348,7 +351,9 @@ class _AccountScreenState extends State<AccountScreen> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const PrescriptionHistoryScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const PrescriptionHistoryScreen(),
+                      ),
                     );
                   },
                 ),
@@ -360,7 +365,9 @@ class _AccountScreenState extends State<AccountScreen> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const SettingsScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const SettingsScreen(),
+                      ),
                     );
                   },
                 ),

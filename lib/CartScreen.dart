@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'CheckoutScreen.dart';
 import 'LoginScreen.dart';
+import 'models/cart_item.dart';
 import 'models/cart_model.dart';
 import 'services/cart_service.dart';
 import 'services/auth_service.dart';
@@ -18,7 +19,7 @@ class _CartScreenState extends State<CartScreen> {
   final CartService _cartService = CartService();
   final AuthService _authService = AuthService();
   final TextEditingController _couponCodeController = TextEditingController();
-  
+
   Cart _cart = Cart();
   bool _isLoading = true;
   bool _isApplyingCoupon = false;
@@ -29,8 +30,6 @@ class _CartScreenState extends State<CartScreen> {
     _loadCart();
   }
 
-
-
   @override
   void dispose() {
     _couponCodeController.dispose();
@@ -38,18 +37,24 @@ class _CartScreenState extends State<CartScreen> {
   }
 
   Future<void> _loadCart() async {
+    if (!mounted) return;
+
     setState(() {
       _isLoading = true;
     });
 
     try {
       final cart = await _cartService.getCart();
+      if (!mounted) return;
+
       setState(() {
         _cart = cart;
         _couponCodeController.text = cart.couponCode ?? '';
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
+
       setState(() {
         _isLoading = false;
       });
@@ -59,8 +64,13 @@ class _CartScreenState extends State<CartScreen> {
 
   Future<void> _incrementQuantity(int productId) async {
     try {
-      final item = _cart.items.firstWhere((item) => item.productId == productId);
-      final updatedCart = await _cartService.updateQuantity(productId, item.quantity + 1);
+      final item = _cart.items.firstWhere(
+        (item) => item.productId == productId,
+      );
+      final updatedCart = await _cartService.updateQuantity(
+        productId,
+        item.quantity + 1,
+      );
       setState(() {
         _cart = updatedCart;
       });
@@ -71,9 +81,14 @@ class _CartScreenState extends State<CartScreen> {
 
   Future<void> _decrementQuantity(int productId) async {
     try {
-      final item = _cart.items.firstWhere((item) => item.productId == productId);
+      final item = _cart.items.firstWhere(
+        (item) => item.productId == productId,
+      );
       if (item.quantity > 1) {
-        final updatedCart = await _cartService.updateQuantity(productId, item.quantity - 1);
+        final updatedCart = await _cartService.updateQuantity(
+          productId,
+          item.quantity - 1,
+        );
         setState(() {
           _cart = updatedCart;
         });
@@ -166,7 +181,9 @@ class _CartScreenState extends State<CartScreen> {
     }
 
     // Check if cart has prescription items - use payment-first flow
-    final prescriptionItems = _cart.items.where((item) => item.requiresPrescription).toList();
+    final prescriptionItems = _cart.items
+        .where((item) => item.requiresPrescription)
+        .toList();
     if (prescriptionItems.isNotEmpty) {
       // Navigate to prescription checkout (payment-first flow)
       if (mounted) {
@@ -187,9 +204,7 @@ class _CartScreenState extends State<CartScreen> {
     if (mounted) {
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (context) => CheckoutScreen(cart: _cart),
-        ),
+        MaterialPageRoute(builder: (context) => CheckoutScreen(cart: _cart)),
       );
     }
   }
@@ -232,8 +247,6 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-
-
   void _showSuccessToast(String message) {
     Fluttertoast.showToast(
       msg: message,
@@ -259,7 +272,9 @@ class _CartScreenState extends State<CartScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Clear Cart'),
-        content: const Text('Are you sure you want to remove all items from your cart?'),
+        content: const Text(
+          'Are you sure you want to remove all items from your cart?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -286,10 +301,7 @@ class _CartScreenState extends State<CartScreen> {
       appBar: AppBar(
         title: const Text(
           'Cart',
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-          ),
+          style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
         ),
         backgroundColor: Colors.white,
         elevation: 0,
@@ -305,8 +317,8 @@ class _CartScreenState extends State<CartScreen> {
       body: _isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.teal))
           : _cart.isEmpty
-              ? _buildEmptyCart()
-              : _buildCartContent(),
+          ? _buildEmptyCart()
+          : _buildCartContent(),
     );
   }
 
@@ -315,11 +327,7 @@ class _CartScreenState extends State<CartScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.shopping_cart_outlined,
-            size: 80,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.shopping_cart_outlined, size: 80, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
             'Your cart is empty',
@@ -332,10 +340,7 @@ class _CartScreenState extends State<CartScreen> {
           const SizedBox(height: 8),
           Text(
             'Add some medicines to get started',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[500],
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey[500]),
           ),
           const SizedBox(height: 24),
           ElevatedButton(
@@ -399,9 +404,7 @@ class _CartScreenState extends State<CartScreen> {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8.0),
       elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.0),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Row(
@@ -445,10 +448,7 @@ class _CartScreenState extends State<CartScreen> {
                   const SizedBox(height: 4),
                   Text(
                     '${item.manufacturer} ${item.strength ?? ''}',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -475,7 +475,10 @@ class _CartScreenState extends State<CartScreen> {
                       if (item.requiresPrescription) ...[
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.red.shade100,
                             borderRadius: BorderRadius.circular(4),
@@ -507,7 +510,10 @@ class _CartScreenState extends State<CartScreen> {
                       iconSize: 24,
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         border: Border.all(color: Colors.grey[300]!),
                         borderRadius: BorderRadius.circular(8.0),
@@ -555,11 +561,7 @@ class _CartScreenState extends State<CartScreen> {
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.medical_services,
-            color: Colors.orange.shade700,
-            size: 24,
-          ),
+          Icon(Icons.medical_services, color: Colors.orange.shade700, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -576,10 +578,7 @@ class _CartScreenState extends State<CartScreen> {
                 const SizedBox(height: 4),
                 Text(
                   'Some items in your cart require a valid prescription. You will be asked to upload your prescription during checkout for order verification.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.orange.shade600,
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.orange.shade600),
                 ),
               ],
             ),
@@ -620,7 +619,11 @@ class _CartScreenState extends State<CartScreen> {
               ),
               child: Row(
                 children: [
-                  Icon(Icons.check_circle, color: Colors.green.shade600, size: 20),
+                  Icon(
+                    Icons.check_circle,
+                    color: Colors.green.shade600,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -655,7 +658,10 @@ class _CartScreenState extends State<CartScreen> {
                         borderRadius: BorderRadius.circular(8.0),
                         borderSide: const BorderSide(color: Colors.teal),
                       ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 14,
+                      ),
                     ),
                   ),
                 ),
@@ -665,7 +671,10 @@ class _CartScreenState extends State<CartScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.teal,
                     foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 14,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8.0),
                     ),
@@ -676,7 +685,9 @@ class _CartScreenState extends State<CartScreen> {
                           height: 16,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                           ),
                         )
                       : const Text('Apply'),
@@ -710,18 +721,29 @@ class _CartScreenState extends State<CartScreen> {
           _buildPriceRow('Subtotal', '₹${_cart.subtotal.toStringAsFixed(2)}'),
           const SizedBox(height: 8),
           if (_cart.productSavings > 0)
-            _buildPriceRow('Product Savings', '-₹${_cart.productSavings.toStringAsFixed(2)}',
-                color: Colors.green),
+            _buildPriceRow(
+              'Product Savings',
+              '-₹${_cart.productSavings.toStringAsFixed(2)}',
+              color: Colors.green,
+            ),
           if (_cart.couponDiscount > 0) ...[
             const SizedBox(height: 8),
-            _buildPriceRow('Coupon Discount', '-₹${_cart.couponDiscount.toStringAsFixed(2)}',
-                color: Colors.green),
+            _buildPriceRow(
+              'Coupon Discount',
+              '-₹${_cart.couponDiscount.toStringAsFixed(2)}',
+              color: Colors.green,
+            ),
           ],
           const SizedBox(height: 8),
           _buildPriceRow('Tax (GST)', '₹${_cart.taxAmount.toStringAsFixed(2)}'),
           const SizedBox(height: 8),
-          _buildPriceRow('Shipping', _cart.finalShipping == 0 ? 'FREE' : '₹${_cart.finalShipping.toStringAsFixed(2)}',
-              color: _cart.finalShipping == 0 ? Colors.green : null),
+          _buildPriceRow(
+            'Shipping',
+            _cart.finalShipping == 0
+                ? 'FREE'
+                : '₹${_cart.finalShipping.toStringAsFixed(2)}',
+            color: _cart.finalShipping == 0 ? Colors.green : null,
+          ),
           if (_cart.subtotal < 500 && _cart.finalShipping > 0) ...[
             const SizedBox(height: 4),
             Text(
@@ -734,7 +756,11 @@ class _CartScreenState extends State<CartScreen> {
             ),
           ],
           const Divider(height: 24, thickness: 1),
-          _buildPriceRow('Total', '₹${_cart.total.toStringAsFixed(2)}', isTotal: true),
+          _buildPriceRow(
+            'Total',
+            '₹${_cart.total.toStringAsFixed(2)}',
+            isTotal: true,
+          ),
           if (_cart.totalSavings > 0) ...[
             const SizedBox(height: 8),
             Text(
@@ -751,7 +777,12 @@ class _CartScreenState extends State<CartScreen> {
     );
   }
 
-  Widget _buildPriceRow(String label, String value, {bool isTotal = false, Color? color}) {
+  Widget _buildPriceRow(
+    String label,
+    String value, {
+    bool isTotal = false,
+    Color? color,
+  }) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -805,16 +836,11 @@ class _CartScreenState extends State<CartScreen> {
             ),
             child: Text(
               'Proceed to Checkout • ₹${_cart.total.toStringAsFixed(2)}',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
         ),
       ),
     );
   }
-
-
 }

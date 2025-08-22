@@ -7,11 +7,13 @@ class OrderService {
   static String get baseUrl => ApiConfig.apiBaseUrl;
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
-  // Create order
-  Future<Map<String, dynamic>> createOrder(Map<String, dynamic> orderData) async {
+  // Create order (legacy or for pending orders)
+  Future<Map<String, dynamic>> createOrder(
+    Map<String, dynamic> orderData,
+  ) async {
     try {
       final token = await _storage.read(key: 'auth_token');
-      
+
       final response = await http.post(
         Uri.parse('$baseUrl/prescription/enhanced-prescriptions/'),
         headers: {
@@ -38,10 +40,61 @@ class OrderService {
       }
     } catch (e) {
       print('Order creation error: $e');
-      return {
-        'success': false,
-        'message': 'Network error: $e',
-      };
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // Create a paid order after successful payment
+  Future<Map<String, dynamic>> createPaidOrder({
+    required String paymentId,
+    required String razorpayOrderId,
+    required String razorpaySignature,
+    required double totalAmount,
+    required Map<String, dynamic> cartData,
+    required String deliveryAddress,
+    String paymentMethod = 'Razorpay',
+    Map<String, dynamic>?
+    prescriptionDetails, // Optional for prescription orders
+  }) async {
+    try {
+      final token = await _storage.read(key: 'auth_token');
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/order/enhanced/create-paid-order/'),
+        headers: {
+          'Content-Type': 'application/json',
+          if (token != null) 'Authorization': 'Bearer $token',
+        },
+        body: json.encode({
+          'payment_id': paymentId,
+          'razorpay_order_id': razorpayOrderId,
+          'razorpay_signature': razorpaySignature,
+          'total_amount': totalAmount,
+          'cart_data': cartData,
+          'delivery_address': deliveryAddress,
+          'payment_method': paymentMethod,
+          'prescription_details': prescriptionDetails,
+        }),
+      );
+
+      final responseData = json.decode(response.body);
+
+      if (response.statusCode == 201) {
+        return {
+          'success': true,
+          'order_id': responseData['id'],
+          'order': responseData,
+          'message': 'Paid order placed successfully',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': responseData['error'] ?? 'Failed to create paid order',
+        };
+      }
+    } catch (e) {
+      print('Paid order creation error: $e');
+      return {'success': false, 'message': 'Network error: $e'};
     }
   }
 
@@ -49,7 +102,7 @@ class OrderService {
   Future<Map<String, dynamic>?> getOrderDetails(int orderId) async {
     try {
       final token = await _storage.read(key: 'auth_token');
-      
+
       final response = await http.get(
         Uri.parse('$baseUrl/order/orders/$orderId/'),
         headers: {
@@ -72,7 +125,7 @@ class OrderService {
   Future<List<Map<String, dynamic>>> getUserOrders() async {
     try {
       final token = await _storage.read(key: 'auth_token');
-      
+
       final response = await http.get(
         Uri.parse('$baseUrl/order/orders/'),
         headers: {
@@ -96,16 +149,14 @@ class OrderService {
   Future<bool> cancelOrder(int orderId, String reason) async {
     try {
       final token = await _storage.read(key: 'auth_token');
-      
+
       final response = await http.post(
         Uri.parse('$baseUrl/order/orders/$orderId/cancel/'),
         headers: {
           'Content-Type': 'application/json',
           if (token != null) 'Authorization': 'Bearer $token',
         },
-        body: json.encode({
-          'cancellation_reason': reason,
-        }),
+        body: json.encode({'cancellation_reason': reason}),
       );
 
       return response.statusCode == 200;
@@ -119,7 +170,7 @@ class OrderService {
   Future<Map<String, dynamic>?> trackOrder(int orderId) async {
     try {
       final token = await _storage.read(key: 'auth_token');
-      
+
       final response = await http.get(
         Uri.parse('$baseUrl/order/orders/$orderId/track/'),
         headers: {
@@ -139,7 +190,9 @@ class OrderService {
   }
 
   // Mock order creation for demo purposes
-  Future<Map<String, dynamic>> mockCreateOrder(Map<String, dynamic> orderData) async {
+  Future<Map<String, dynamic>> mockCreateOrder(
+    Map<String, dynamic> orderData,
+  ) async {
     // Simulate API delay
     await Future.delayed(const Duration(seconds: 2));
 
@@ -148,26 +201,33 @@ class OrderService {
 
     // Convert cart items to order item structure
     final cartItems = orderData['cart']['items'] as List<dynamic>;
-    final orderItems = cartItems.map((cartItem) => {
-      'id': DateTime.now().millisecondsSinceEpoch + cartItems.indexOf(cartItem),
-      'product': {
-        'id': cartItem['product_id'],
-        'name': cartItem['name'],
-        'manufacturer': cartItem['manufacturer'],
-        'strength': cartItem['strength'],
-        'form': cartItem['form'],
-        'price': cartItem['price'],
-        'mrp': cartItem['mrp'],
-        'imageUrl': cartItem['image_url'],
-        'requiresPrescription': cartItem['requires_prescription'],
-        'displayName': cartItem['strength'] != null && cartItem['form'] != null
-            ? '${cartItem['name']} ${cartItem['strength']} ${cartItem['form']}'
-            : cartItem['name'],
-      },
-      'quantity': cartItem['quantity'],
-      'price': cartItem['price'],
-      'totalPrice': cartItem['price'] * cartItem['quantity'],
-    }).toList();
+    final orderItems = cartItems
+        .map(
+          (cartItem) => {
+            'id':
+                DateTime.now().millisecondsSinceEpoch +
+                cartItems.indexOf(cartItem),
+            'product': {
+              'id': cartItem['product_id'],
+              'name': cartItem['name'],
+              'manufacturer': cartItem['manufacturer'],
+              'strength': cartItem['strength'],
+              'form': cartItem['form'],
+              'price': cartItem['price'],
+              'mrp': cartItem['mrp'],
+              'imageUrl': cartItem['image_url'],
+              'requiresPrescription': cartItem['requires_prescription'],
+              'displayName':
+                  cartItem['strength'] != null && cartItem['form'] != null
+                  ? '${cartItem['name']} ${cartItem['strength']} ${cartItem['form']}'
+                  : cartItem['name'],
+            },
+            'quantity': cartItem['quantity'],
+            'price': cartItem['price'],
+            'totalPrice': cartItem['price'] * cartItem['quantity'],
+          },
+        )
+        .toList();
 
     return {
       'success': true,
@@ -179,7 +239,9 @@ class OrderService {
         'total_amount': orderData['cart']['total'],
         'delivery_address': orderData['delivery_address'],
         'payment_method': orderData['payment_method'],
-        'estimated_delivery': DateTime.now().add(const Duration(days: 2)).toIso8601String(),
+        'estimated_delivery': DateTime.now()
+            .add(const Duration(days: 2))
+            .toIso8601String(),
         'items': orderItems,
         'created_at': DateTime.now().toIso8601String(),
       },
@@ -207,10 +269,7 @@ class OrderService {
         'payment_method': paymentMethod,
       };
     } catch (e) {
-      return {
-        'success': false,
-        'error': 'Payment processing failed: $e',
-      };
+      return {'success': false, 'error': 'Payment processing failed: $e'};
     }
   }
 
@@ -218,7 +277,7 @@ class OrderService {
   Future<List<Map<String, dynamic>>> getOrderStatusUpdates(int orderId) async {
     try {
       final token = await _storage.read(key: 'auth_token');
-      
+
       final response = await http.get(
         Uri.parse('$baseUrl/order/orders/$orderId/status-updates/'),
         headers: {
@@ -244,19 +303,25 @@ class OrderService {
       {
         'status': 'Order Confirmed',
         'description': 'Your order has been confirmed and is being prepared',
-        'timestamp': DateTime.now().subtract(const Duration(hours: 2)).toIso8601String(),
+        'timestamp': DateTime.now()
+            .subtract(const Duration(hours: 2))
+            .toIso8601String(),
         'icon': 'check_circle',
       },
       {
         'status': 'Prescription Verified',
         'description': 'Your prescription has been verified by our pharmacist',
-        'timestamp': DateTime.now().subtract(const Duration(hours: 1)).toIso8601String(),
+        'timestamp': DateTime.now()
+            .subtract(const Duration(hours: 1))
+            .toIso8601String(),
         'icon': 'verified',
       },
       {
         'status': 'Order Packed',
         'description': 'Your medicines have been packed and ready for dispatch',
-        'timestamp': DateTime.now().subtract(const Duration(minutes: 30)).toIso8601String(),
+        'timestamp': DateTime.now()
+            .subtract(const Duration(minutes: 30))
+            .toIso8601String(),
         'icon': 'inventory',
       },
       {
@@ -274,7 +339,7 @@ class OrderService {
     required String location,
   }) {
     final now = DateTime.now();
-    
+
     switch (deliveryType.toLowerCase()) {
       case 'express':
         return now.add(const Duration(hours: 2));

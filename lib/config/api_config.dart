@@ -8,7 +8,7 @@ library;
 class ApiConfig {
   // Base URL Configuration
   // Update this IP address when your backend server IP changes
-  static const String _baseIP = '192.168.234.6'; // Android emulator localhost
+  static const String _baseIP = '192.168.62.6'; // Android emulator localhost
   static const String _basePort = '8000';
 
   // Main API Base URLs
@@ -89,8 +89,8 @@ class ApiConfig {
       '$orderEndpoint/enhanced/awaiting-prescription/';
 
   // Payment URLs
-  static const String createPaymentUrl = '$baseUrl/payment/create/';
-  static const String verifyPaymentUrl = '$baseUrl/payment/verify/';
+  static const String createPaymentUrl = '$apiBaseUrl/payment/create/';
+  static const String verifyPaymentUrl = '$apiBaseUrl/payment/verify/';
 
   // Courier URLs (Professional courier integration)
   static const String courierPartnersUrl = '$apiBaseUrl/courier/partners/';
@@ -102,9 +102,9 @@ class ApiConfig {
 
   // Razorpay Configuration (Update these with your actual keys)
   static const String razorpayKeyId =
-      'rzp_test_YOUR_KEY_ID'; // Replace with your key
+      'rzp_test_u32HLv2OyCBfAN'; // Replace with your key
   static const String razorpayKeySecret =
-      'YOUR_KEY_SECRET'; // Replace with your secret
+      'Owlg61rwtT7V3RQKoYGKhsUC'; // Replace with your secret
 
   // API Configuration
   static const int timeoutDuration = 30000; // milliseconds

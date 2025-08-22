@@ -1,5 +1,4 @@
 // Prescription Verification Screen - Payment First Flow
-import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -22,13 +21,15 @@ class PrescriptionVerificationScreen extends StatefulWidget {
   });
 
   @override
-  State<PrescriptionVerificationScreen> createState() => _PrescriptionVerificationScreenState();
+  State<PrescriptionVerificationScreen> createState() =>
+      _PrescriptionVerificationScreenState();
 }
 
-class _PrescriptionVerificationScreenState extends State<PrescriptionVerificationScreen> {
+class _PrescriptionVerificationScreenState
+    extends State<PrescriptionVerificationScreen> {
   final ApiService _apiService = ApiService();
   final ImagePicker _picker = ImagePicker();
-  
+
   String _orderStatus = 'pending_payment'; // Start with pending payment
   String? _verificationNotes;
   bool _isLoading = true;
@@ -56,7 +57,7 @@ class _PrescriptionVerificationScreenState extends State<PrescriptionVerificatio
 
       // Get order status
       final response = await _apiService.getOrderDetails(widget.orderId);
-      
+
       if (response.isSuccess && response.data != null) {
         final order = response.data!;
         setState(() {
@@ -91,7 +92,9 @@ class _PrescriptionVerificationScreenState extends State<PrescriptionVerificatio
   void _startStatusPolling() {
     // Poll every 5 seconds for status updates
     Future.delayed(const Duration(seconds: 5), () {
-      if (mounted && _orderStatus != 'confirmed' && _orderStatus != 'cancelled') {
+      if (mounted &&
+          _orderStatus != 'confirmed' &&
+          _orderStatus != 'cancelled') {
         _loadOrderStatus();
         _startStatusPolling();
       }
@@ -122,7 +125,9 @@ class _PrescriptionVerificationScreenState extends State<PrescriptionVerificatio
         'process_with_ai': true,
       };
 
-      final response = await _apiService.uploadPrescriptionForPaidOrder(uploadData);
+      final response = await _apiService.uploadPrescriptionForPaidOrder(
+        uploadData,
+      );
 
       if (response.isSuccess && response.data != null) {
         setState(() {
@@ -156,8 +161,10 @@ class _PrescriptionVerificationScreenState extends State<PrescriptionVerificatio
 
   Future<void> _confirmOrder() async {
     try {
-      final response = await _apiService.confirmPrescriptionOrder(widget.orderId);
-      
+      final response = await _apiService.confirmPrescriptionOrder(
+        widget.orderId,
+      );
+
       if (response.isSuccess) {
         // Navigate to order confirmation
         Navigator.pushReplacement(
@@ -190,8 +197,8 @@ class _PrescriptionVerificationScreenState extends State<PrescriptionVerificatio
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _error != null
-              ? _buildErrorState()
-              : _buildContent(),
+          ? _buildErrorState()
+          : _buildContent(),
     );
   }
 
@@ -245,7 +252,8 @@ class _PrescriptionVerificationScreenState extends State<PrescriptionVerificatio
         statusIcon = Icons.payment;
         statusColor = Colors.orange;
         statusText = 'Payment Confirmed';
-        statusDescription = 'Your payment has been confirmed. Please upload your prescription.';
+        statusDescription =
+            'Your payment has been confirmed. Please upload your prescription.';
         break;
       case 'pending_verification':
         statusIcon = Icons.hourglass_empty;
@@ -257,13 +265,15 @@ class _PrescriptionVerificationScreenState extends State<PrescriptionVerificatio
         statusIcon = Icons.check_circle;
         statusColor = Colors.green;
         statusText = 'Prescription Verified';
-        statusDescription = 'Your prescription has been verified and order is being processed.';
+        statusDescription =
+            'Your prescription has been verified and order is being processed.';
         break;
       case 'confirmed':
         statusIcon = Icons.shopping_bag;
         statusColor = Colors.green;
         statusText = 'Order Confirmed';
-        statusDescription = 'Your order has been confirmed and will be shipped soon.';
+        statusDescription =
+            'Your order has been confirmed and will be shipped soon.';
         break;
       default:
         statusIcon = Icons.info;
@@ -310,10 +320,7 @@ class _PrescriptionVerificationScreenState extends State<PrescriptionVerificatio
           children: [
             const Text(
               'Order Summary',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             Row(
@@ -357,10 +364,7 @@ class _PrescriptionVerificationScreenState extends State<PrescriptionVerificatio
           children: [
             const Text(
               'Upload Prescription',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             const Text(
@@ -400,10 +404,7 @@ class _PrescriptionVerificationScreenState extends State<PrescriptionVerificatio
           children: [
             const Text(
               'Prescription Status',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             if (_prescriptionImageUrl != null)
@@ -431,8 +432,8 @@ class _PrescriptionVerificationScreenState extends State<PrescriptionVerificatio
               _orderStatus == 'pending_verification'
                   ? 'Your prescription is being reviewed by our pharmacist. This usually takes 15-30 minutes.'
                   : _orderStatus == 'verified'
-                      ? 'Your prescription has been verified! Your order will be confirmed automatically.'
-                      : 'Prescription uploaded successfully.',
+                  ? 'Your prescription has been verified! Your order will be confirmed automatically.'
+                  : 'Prescription uploaded successfully.',
               style: const TextStyle(fontSize: 14),
             ),
             if (_verificationNotes != null) ...[
