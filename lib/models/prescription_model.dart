@@ -1,6 +1,8 @@
 // Prescription Models for Flutter Pharmacy App
 
 // Helper function to safely parse double from various types
+import 'package:pharmacy/models/prescription_detail_model.dart';
+
 double _parseDouble(dynamic value) {
   if (value == null) return 0.0;
   if (value is double) return value;
@@ -13,23 +15,35 @@ double _parseDouble(dynamic value) {
 
 class PrescriptionUploadResponse {
   final bool success;
-  final int prescriptionId;
+  final String prescriptionId; // Changed to String
   final String message;
   final String status;
+  final double? ocrConfidence; // Added ocrConfidence
+  final int? medicinesFound; // Added medicinesFound
+  final Map<String, dynamic>? processingSummary; // Added processingSummary
+  final bool? canProceedToOrder; // Added canProceedToOrder
 
   PrescriptionUploadResponse({
     required this.success,
     required this.prescriptionId,
     required this.message,
     required this.status,
+    this.ocrConfidence,
+    this.medicinesFound,
+    this.processingSummary,
+    this.canProceedToOrder,
   });
 
   factory PrescriptionUploadResponse.fromJson(Map<String, dynamic> json) {
     return PrescriptionUploadResponse(
       success: json['success'] ?? false,
-      prescriptionId: json['prescription_id'] ?? 0,
+      prescriptionId: json['prescription_id'] ?? '', // Handle as String
       message: json['message'] ?? '',
       status: json['status'] ?? '',
+      ocrConfidence: _parseDouble(json['ocr_confidence']),
+      medicinesFound: json['medicines_found'],
+      processingSummary: json['processing_summary'],
+      canProceedToOrder: json['can_proceed_to_order'],
     );
   }
 }
@@ -38,11 +52,13 @@ class PrescriptionStatusResponse {
   final String status;
   final bool processed;
   final bool isReady;
+  final String? prescriptionId; // Added prescriptionId for consistency
 
   PrescriptionStatusResponse({
     required this.status,
     required this.processed,
     required this.isReady,
+    this.prescriptionId,
   });
 
   factory PrescriptionStatusResponse.fromJson(Map<String, dynamic> json) {
@@ -50,12 +66,13 @@ class PrescriptionStatusResponse {
       status: json['status'] ?? '',
       processed: json['processed'] ?? json['ai_processed'] ?? false,
       isReady: json['is_ready'] ?? false,
+      prescriptionId: json['prescription_id'],
     );
   }
 }
 
 class PrescriptionSuggestionsResponse {
-  final int prescriptionId;
+  final String prescriptionId; // Changed to String
   final String status;
   final PrescriptionSummary summary;
   final List<MedicineModel> medicines;
@@ -73,7 +90,7 @@ class PrescriptionSuggestionsResponse {
 
   factory PrescriptionSuggestionsResponse.fromJson(Map<String, dynamic> json) {
     return PrescriptionSuggestionsResponse(
-      prescriptionId: json['prescription_id'] ?? 0,
+      prescriptionId: json['prescription_id'] ?? '', // Handle as String
       status: json['status'] ?? '',
       summary: PrescriptionSummary.fromJson(json['summary'] ?? {}),
       medicines: (json['medicines'] as List? ?? [])
@@ -165,9 +182,7 @@ class MedicineModel {
     return 'Poor';
   }
 
-  MedicineModel copyWith({
-    int? selectedQuantity,
-  }) {
+  MedicineModel copyWith({int? selectedQuantity}) {
     return MedicineModel(
       id: id,
       medicineName: medicineName,
@@ -266,4 +281,53 @@ class PricingModel {
 
   bool get hasFreeShipping => shipping == 0;
   bool get hasDiscount => discount > 0;
+}
+
+class PrescriptionModel {
+  final String id;
+  final String imageUrl;
+  final String verificationStatus;
+  final DateTime uploadDate;
+  final bool aiProcessed;
+  final double? aiConfidenceScore;
+  final List<PrescriptionDetailModel>?
+  details; // Assuming PrescriptionDetailModel is defined elsewhere
+
+  PrescriptionModel({
+    required this.id,
+    required this.imageUrl,
+    required this.verificationStatus,
+    required this.uploadDate,
+    required this.aiProcessed,
+    this.aiConfidenceScore,
+    this.details,
+  });
+
+  factory PrescriptionModel.fromJson(Map<String, dynamic> json) {
+    return PrescriptionModel(
+      id: json['id'] as String,
+      imageUrl: json['image_url'] as String,
+      verificationStatus: json['verification_status'] as String,
+      uploadDate: DateTime.parse(json['upload_date'] as String),
+      aiProcessed: json['ai_processed'] as bool,
+      aiConfidenceScore: _parseDouble(json['ai_confidence_score']),
+      details: (json['details'] as List?)
+          ?.map(
+            (e) => PrescriptionDetailModel.fromJson(e as Map<String, dynamic>),
+          )
+          .toList(),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'image_url': imageUrl,
+      'verification_status': verificationStatus,
+      'upload_date': uploadDate.toIso8601String(),
+      'ai_processed': aiProcessed,
+      'ai_confidence_score': aiConfidenceScore,
+      'details': details?.map((e) => e.toJson()).toList(),
+    };
+  }
 }

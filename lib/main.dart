@@ -10,6 +10,8 @@ import 'ScannerScreen.dart';
 import 'ProductDetailsScreen.dart';
 import 'CategoryPage.dart';
 import 'SearchResultsScreen.dart';
+import 'OrderPrescriptionUploadScreen.dart'; // Import for Prescription Upload
+import 'screens/prescription_tracking_screen.dart'; // Import for Prescription Tracking
 import 'services/api_service.dart';
 import 'services/cart_service.dart';
 import 'models/product_model.dart';
@@ -17,6 +19,7 @@ import 'providers/theme_provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/order_provider.dart';
 import 'providers/prescription_provider.dart';
+import 'providers/cart_provider.dart';
 
 void main() {
   runApp(const MyApp());
@@ -29,20 +32,27 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => OrderProvider()),
         ChangeNotifierProvider(create: (_) => PrescriptionProvider()),
       ],
-      child: Consumer<ThemeProvider>(
-        builder: (context, themeProvider, child) {
-          return MaterialApp(
-            title: 'Pharmacy App',
-            theme: themeProvider.lightTheme,
-            darkTheme: themeProvider.darkTheme,
-            themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
-            home: const SplashScreen(),
-            debugShowCheckedModeBanner: false,
+      child: Builder(
+        builder: (context) {
+          return Consumer<ThemeProvider>(
+            builder: (context, themeProvider, child) {
+              return MaterialApp(
+                title: 'Pharmacy App',
+                theme: themeProvider.lightTheme,
+                darkTheme: themeProvider.darkTheme,
+                themeMode: themeProvider.isDarkMode
+                    ? ThemeMode.dark
+                    : ThemeMode.light,
+                home: const SplashScreen(),
+                debugShowCheckedModeBanner: false,
+              );
+            },
           );
         },
       ),
@@ -77,7 +87,8 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white, // A background color for your splash screen
+      backgroundColor:
+          Colors.white, // A background color for your splash screen
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -94,7 +105,6 @@ class _SplashScreenState extends State<SplashScreen> {
               ),
             ),
 
-
             const SizedBox(height: 50),
             const CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(Colors.teal),
@@ -105,7 +115,6 @@ class _SplashScreenState extends State<SplashScreen> {
     );
   }
 }
-
 
 class PharmacyHomePage extends StatefulWidget {
   const PharmacyHomePage({super.key});
@@ -182,12 +191,14 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
 
           // Get cold & cough medicines (filter by category or name)
           _coldCoughProducts = allProducts
-              .where((product) =>
-                  product.category?.toLowerCase().contains('cold') == true ||
-                  product.category?.toLowerCase().contains('cough') == true ||
-                  product.name.toLowerCase().contains('cough') ||
-                  product.name.toLowerCase().contains('cold') ||
-                  product.name.toLowerCase().contains('fever'))
+              .where(
+                (product) =>
+                    product.category?.toLowerCase().contains('cold') == true ||
+                    product.category?.toLowerCase().contains('cough') == true ||
+                    product.name.toLowerCase().contains('cough') ||
+                    product.name.toLowerCase().contains('cold') ||
+                    product.name.toLowerCase().contains('fever'),
+              )
               .take(6)
               .toList();
 
@@ -215,10 +226,8 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => SearchResultsScreen(
-          searchQuery: query,
-          isFromPrescription: false,
-        ),
+        builder: (context) =>
+            SearchResultsScreen(searchQuery: query, isFromPrescription: false),
       ),
     );
   }
@@ -226,8 +235,13 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
   // Filter products by category
   void _filterByCategory(String category) {
     final categoryProducts = _allProducts
-        .where((product) =>
-            product.category?.toLowerCase().contains(category.toLowerCase()) == true)
+        .where(
+          (product) =>
+              product.category?.toLowerCase().contains(
+                category.toLowerCase(),
+              ) ==
+              true,
+        )
         .toList();
 
     showDialog(
@@ -245,10 +259,20 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                     final product = categoryProducts[index];
                     return ListTile(
                       title: Text(product.name),
-                      subtitle: Text('${product.manufacturer} - ₹${product.price}'),
+                      subtitle: Text(
+                        '${product.manufacturer} - ₹${product.price}',
+                      ),
                       trailing: product.requiresPrescription
-                          ? const Icon(Icons.medical_services, color: Colors.red, size: 16)
-                          : const Icon(Icons.shopping_cart, color: Colors.green, size: 16),
+                          ? const Icon(
+                              Icons.medical_services,
+                              color: Colors.red,
+                              size: 16,
+                            )
+                          : const Icon(
+                              Icons.shopping_cart,
+                              color: Colors.green,
+                              size: 16,
+                            ),
                       onTap: () {
                         Navigator.pop(context);
                         Navigator.push(
@@ -360,21 +384,19 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
       'dosage': product.strength ?? 'N/A',
       'activeIngredient': product.genericName ?? 'N/A',
       'uses': product.description ?? 'Medicine for health treatment',
-      'description': product.description ?? 'Quality medicine from trusted manufacturer',
+      'description':
+          product.description ?? 'Quality medicine from trusted manufacturer',
       'howToUse': 'Follow doctor\'s prescription or package instructions',
       'sideEffects': 'Consult doctor if any adverse effects occur',
-      'imageUrl': product.imageUrl ?? 'https://placehold.co/150x150/F0E6D2/000000?text=${Uri.encodeComponent(product.name)}',
+      'imageUrl':
+          product.imageUrl ??
+          'https://placehold.co/150x150/F0E6D2/000000?text=${Uri.encodeComponent(product.name)}',
       'price': product.price.toStringAsFixed(2),
       'mrp': product.mrp.toStringAsFixed(2),
       'inStock': product.stockQuantity > 0,
       'requiresPrescription': product.requiresPrescription,
     };
   }
-
-
-
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -391,7 +413,11 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
               'assets/images/infxmart_logo.png',
               height: 40,
               width: 40,
-              errorBuilder: (context, error, stackTrace) => const Icon(Icons.local_pharmacy, size: 40, color: Colors.teal),
+              errorBuilder: (context, error, stackTrace) => const Icon(
+                Icons.local_pharmacy,
+                size: 40,
+                color: Colors.teal,
+              ),
             ),
             const SizedBox(width: 8),
             const Text(
@@ -408,7 +434,10 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
           Stack(
             children: [
               IconButton(
-                icon: const Icon(Icons.shopping_cart_outlined, color: Colors.teal),
+                icon: const Icon(
+                  Icons.shopping_cart_outlined,
+                  color: Colors.teal,
+                ),
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -451,180 +480,194 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 16),
-            // Search Bar Section
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0), // Removed top padding here as it's handled by logo section
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.grey[100], // Lighter grey for search bar background
-                  borderRadius: BorderRadius.circular(25.0),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withValues(alpha: 0.1),
-                      spreadRadius: 1,
-                      blurRadius: 5,
-                      offset: const Offset(0, 3), // subtle shadow
-                    ),
-                  ],
-                ),
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Search medicines or scan prescription...',
-                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                    suffixIcon: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.camera_alt_outlined, color: Colors.teal),
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(builder: (context) => const ScannerScreen()),
-                            );
-                          },
-                          tooltip: 'Scan Prescription',
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.close, color: Colors.grey),
-                          onPressed: () {
-                            _searchController.clear();
-                          },
-                        ),
-                      ],
-                    ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 20.0),
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 16),
+              // Search Bar Section
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16.0,
+                ), // Removed top padding here as it's handled by logo section
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors
+                        .grey[100], // Lighter grey for search bar background
+                    borderRadius: BorderRadius.circular(25.0),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withValues(alpha: 0.1),
+                        spreadRadius: 1,
+                        blurRadius: 5,
+                        offset: const Offset(0, 3), // subtle shadow
+                      ),
+                    ],
                   ),
-                  onSubmitted: (value) {
-                    if (value.isNotEmpty) {
-                      _performSearch(value);
-                    }
-                  },
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: 'Search medicines or scan prescription...',
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      suffixIcon: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(
+                              Icons.camera_alt_outlined,
+                              color: Colors.teal,
+                            ),
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ScannerScreen(),
+                                ),
+                              );
+                            },
+                            tooltip: 'Scan Prescription',
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close, color: Colors.grey),
+                            onPressed: () {
+                              _searchController.clear();
+                            },
+                          ),
+                        ],
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 14.0,
+                        horizontal: 20.0,
+                      ),
+                    ),
+                    onSubmitted: (value) {
+                      if (value.isNotEmpty) {
+                        _performSearch(value);
+                      }
+                    },
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            // Banner Section
-            if (_bannerImages.isNotEmpty) ...[
-              Container(
-                height: 180,
-                margin: const EdgeInsets.symmetric(horizontal: 16),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12.0),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.grey.withValues(alpha: 0.3),
-                      spreadRadius: 1,
-                      blurRadius: 5,
-                      offset: const Offset(0, 3),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12.0),
-                  child: Image.network(
-                    _bannerImages.first,
-                    fit: BoxFit.cover,
-                    width: double.infinity,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Colors.teal.shade50,
-                        child: Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.local_pharmacy,
-                                size: 40,
-                                color: Colors.teal.shade600,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'Health & Wellness',
-                                style: TextStyle(
-                                  color: Colors.teal.shade700,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Your trusted pharmacy partner',
-                                style: TextStyle(
+              // Banner Section
+              if (_bannerImages.isNotEmpty) ...[
+                Container(
+                  height: 180,
+                  margin: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12.0),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withValues(alpha: 0.3),
+                        spreadRadius: 1,
+                        blurRadius: 5,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12.0),
+                    child: Image.network(
+                      _bannerImages.first,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          color: Colors.teal.shade50,
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.local_pharmacy,
+                                  size: 40,
                                   color: Colors.teal.shade600,
-                                  fontSize: 14,
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Health & Wellness',
+                                  style: TextStyle(
+                                    color: Colors.teal.shade700,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Your trusted pharmacy partner',
+                                  style: TextStyle(
+                                    color: Colors.teal.shade600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
+
+              // Categories Section
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: SizedBox(
+                  height: 40, // Height for horizontal category list
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _categories.length,
+                    itemBuilder: (context, index) {
+                      return CategoryChip(
+                        label: _categories[index],
+                        onTap: () => _filterByCategory(_categories[index]),
                       );
                     },
                   ),
                 ),
               ),
               const SizedBox(height: 20),
-            ],
 
-
-
-            // Categories Section
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: SizedBox(
-                height: 40, // Height for horizontal category list
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _categories.length,
-                  itemBuilder: (context, index) {
-                    return CategoryChip(
-                      label: _categories[index],
-                      onTap: () => _filterByCategory(_categories[index]),
-                    );
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Promotional Banner
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Container(
-                height: 180,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.teal.shade100, // Placeholder color for the banner
-                  borderRadius: BorderRadius.circular(15.0),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.teal.withValues(alpha: 0.2), // Subtle teal shadow
-                      spreadRadius: 2,
-                      blurRadius: 8,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                  // Removed AssetImage to avoid errors if not present, relying on network/errorBuilder
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(15.0),
-                  child: Image.network(
-                    'https://placehold.co/400x180/ADD8E6/000000?text=Pharmacy+Banner',
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) => Container(
-                      color: Colors.teal.shade100,
-                      child: const Center(
-                        child: Text(
-                          'Promotional Banner',
-                          style: TextStyle(
-                            color: Colors.teal,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+              // Promotional Banner
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Container(
+                  height: 180,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors
+                        .teal
+                        .shade100, // Placeholder color for the banner
+                    borderRadius: BorderRadius.circular(15.0),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.teal.withValues(
+                          alpha: 0.2,
+                        ), // Subtle teal shadow
+                        spreadRadius: 2,
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                    // Removed AssetImage to avoid errors if not present, relying on network/errorBuilder
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(15.0),
+                    child: Image.network(
+                      'https://placehold.co/400x180/ADD8E6/000000?text=Pharmacy+Banner',
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: Colors.teal.shade100,
+                        child: const Center(
+                          child: Text(
+                            'Promotional Banner',
+                            style: TextStyle(
+                              color: Colors.teal,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
@@ -632,271 +675,298 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 15),
+              const SizedBox(height: 15),
 
-            // Offer Text
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text(
-                '15% off',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ),
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text(
-                'On all health products',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
-              ),
-            ),
-            const SizedBox(height: 25),
-
-            // Featured Medicines Section
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text(
-                'Featured Medicines',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-            ),
-            const SizedBox(height: 15),
-            SizedBox(
-              height: 220, // Height for horizontal product list
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator(color: Colors.teal))
-                  : _error.isNotEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(_error, style: const TextStyle(color: Colors.red)),
-                              ElevatedButton(
-                                onPressed: _loadProducts,
-                                child: const Text('Retry'),
-                              ),
-                            ],
-                          ),
-                        )
-                      : ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          itemCount: _featuredProducts.length,
-                          itemBuilder: (context, index) {
-                            final product = _productToMap(_featuredProducts[index]);
-                            return ProductCard(
-                              imageAsset: product['imageUrl'],
-                              productName: product['name'],
-                              brandName: product['brand'],
-                              price: product['price'],
-                              mrp: product['mrp'],
-                              requiresPrescription: product['requiresPrescription'],
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => ProductDetailsScreen(product: product),
-                                  ),
-                                );
-                              },
-                              onAddToCart: () => _addToCart(_featuredProducts[index]),
-                            );
-                          },
-                        ),
-            ),
-            const SizedBox(height: 20),
-
-            // Trending Products Section
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Trending Now',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
+              // Offer Text
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                child: Text(
+                  '15% off',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
                   ),
-                  TextButton(
-                    onPressed: () => _loadTrendingProducts(),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Refresh',
-                          style: TextStyle(color: Colors.teal.shade600),
-                        ),
-                        const SizedBox(width: 4),
-                        Icon(
-                          Icons.refresh,
-                          size: 16,
-                          color: Colors.teal.shade600,
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-            const SizedBox(height: 15),
-            SizedBox(
-              height: 220,
-              child: _isLoadingTrending
-                  ? const Center(child: CircularProgressIndicator(color: Colors.teal))
-                  : _trendingProducts.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.trending_up,
-                                size: 40,
-                                color: Colors.grey.shade400,
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                'No trending products yet',
-                                style: TextStyle(
-                                  color: Colors.grey.shade600,
-                                  fontSize: 14,
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                child: Text(
+                  'On all health products',
+                  style: TextStyle(fontSize: 16, color: Colors.grey),
+                ),
+              ),
+              const SizedBox(height: 25),
+
+              // Featured Medicines Section
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                child: Text(
+                  'Featured Medicines',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 15),
+              SizedBox(
+                height: 220, // Height for horizontal product list
+                child: _isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(color: Colors.teal),
+                      )
+                    : _error.isNotEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              _error,
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                            ElevatedButton(
+                              onPressed: _loadProducts,
+                              child: const Text('Retry'),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        itemCount: _featuredProducts.length,
+                        itemBuilder: (context, index) {
+                          final product = _productToMap(
+                            _featuredProducts[index],
+                          );
+                          return ProductCard(
+                            imageAsset: product['imageUrl'],
+                            productName: product['name'],
+                            brandName: product['brand'],
+                            price: product['price'],
+                            mrp: product['mrp'],
+                            requiresPrescription:
+                                product['requiresPrescription'],
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      ProductDetailsScreen(product: product),
                                 ),
-                              ),
-                            ],
+                              );
+                            },
+                            onAddToCart: () =>
+                                _addToCart(_featuredProducts[index]),
+                          );
+                        },
+                      ),
+              ),
+              const SizedBox(height: 20),
+
+              // Trending Products Section
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Trending Now',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => _loadTrendingProducts(),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Refresh',
+                            style: TextStyle(color: Colors.teal.shade600),
                           ),
-                        )
-                      : ListView.builder(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          itemCount: _trendingProducts.length,
-                          itemBuilder: (context, index) {
-                            final product = _productToMap(_trendingProducts[index]);
-                            return ProductCard(
-                              imageAsset: product['imageUrl'],
-                              productName: product['name'],
-                              brandName: product['brand'],
-                              price: product['price'],
-                              mrp: product['mrp'],
-                              requiresPrescription: product['requiresPrescription'],
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => ProductDetailsScreen(product: product),
-                                  ),
-                                );
-                              },
-                              onAddToCart: () => _addToCart(_trendingProducts[index]),
-                            );
-                          },
+                          const SizedBox(width: 4),
+                          Icon(
+                            Icons.refresh,
+                            size: 16,
+                            color: Colors.teal.shade600,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 15),
+              SizedBox(
+                height: 220,
+                child: _isLoadingTrending
+                    ? const Center(
+                        child: CircularProgressIndicator(color: Colors.teal),
+                      )
+                    : _trendingProducts.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.trending_up,
+                              size: 40,
+                              color: Colors.grey.shade400,
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'No trending products yet',
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
                         ),
-            ),
-            const SizedBox(height: 20),
+                      )
+                    : ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        itemCount: _trendingProducts.length,
+                        itemBuilder: (context, index) {
+                          final product = _productToMap(
+                            _trendingProducts[index],
+                          );
+                          return ProductCard(
+                            imageAsset: product['imageUrl'],
+                            productName: product['name'],
+                            brandName: product['brand'],
+                            price: product['price'],
+                            mrp: product['mrp'],
+                            requiresPrescription:
+                                product['requiresPrescription'],
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      ProductDetailsScreen(product: product),
+                                ),
+                              );
+                            },
+                            onAddToCart: () =>
+                                _addToCart(_trendingProducts[index]),
+                          );
+                        },
+                      ),
+              ),
+              const SizedBox(height: 20),
 
-            // Everyday Medicines Section
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text(
-                'Everyday Medicines',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+              // Everyday Medicines Section
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                child: Text(
+                  'Everyday Medicines',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 15),
-            SizedBox(
-              height: 220, // Height for horizontal product list
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator(color: Colors.teal))
-                  : ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      itemCount: _everydayProducts.length,
-                      itemBuilder: (context, index) {
-                        final product = _productToMap(_everydayProducts[index]);
-                        return ProductCard(
-                          imageAsset: product['imageUrl'],
-                          productName: product['name'],
-                          brandName: product['brand'],
-                          price: product['price'],
-                          mrp: product['mrp'],
-                          requiresPrescription: product['requiresPrescription'],
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ProductDetailsScreen(product: product),
-                              ),
-                            );
-                          },
-                          onAddToCart: () => _addToCart(_everydayProducts[index]),
-                        );
-                      },
-                    ),
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 15),
+              SizedBox(
+                height: 220, // Height for horizontal product list
+                child: _isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(color: Colors.teal),
+                      )
+                    : ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        itemCount: _everydayProducts.length,
+                        itemBuilder: (context, index) {
+                          final product = _productToMap(
+                            _everydayProducts[index],
+                          );
+                          return ProductCard(
+                            imageAsset: product['imageUrl'],
+                            productName: product['name'],
+                            brandName: product['brand'],
+                            price: product['price'],
+                            mrp: product['mrp'],
+                            requiresPrescription:
+                                product['requiresPrescription'],
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      ProductDetailsScreen(product: product),
+                                ),
+                              );
+                            },
+                            onAddToCart: () =>
+                                _addToCart(_everydayProducts[index]),
+                          );
+                        },
+                      ),
+              ),
+              const SizedBox(height: 20),
 
-            // Cold and Cough Medicine Section
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
-              child: Text(
-                'Cold and Cough Medicine',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
+              // Cold and Cough Medicine Section
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                child: Text(
+                  'Cold and Cough Medicine',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 15),
-            SizedBox(
-              height: 220, // Height for horizontal product list
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator(color: Colors.teal))
-                  : ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      itemCount: _coldCoughProducts.length,
-                      itemBuilder: (context, index) {
-                        final product = _productToMap(_coldCoughProducts[index]);
-                        return ProductCard(
-                          imageAsset: product['imageUrl'],
-                          productName: product['name'],
-                          brandName: product['brand'],
-                          price: product['price'],
-                          mrp: product['mrp'],
-                          requiresPrescription: product['requiresPrescription'],
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ProductDetailsScreen(product: product),
-                              ),
-                            );
-                          },
-                          onAddToCart: () => _addToCart(_coldCoughProducts[index]),
-                        );
-                      },
-                    ),
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
+              const SizedBox(height: 15),
+              SizedBox(
+                height: 220, // Height for horizontal product list
+                child: _isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(color: Colors.teal),
+                      )
+                    : ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        itemCount: _coldCoughProducts.length,
+                        itemBuilder: (context, index) {
+                          final product = _productToMap(
+                            _coldCoughProducts[index],
+                          );
+                          return ProductCard(
+                            imageAsset: product['imageUrl'],
+                            productName: product['name'],
+                            brandName: product['brand'],
+                            price: product['price'],
+                            mrp: product['mrp'],
+                            requiresPrescription:
+                                product['requiresPrescription'],
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      ProductDetailsScreen(product: product),
+                                ),
+                              );
+                            },
+                            onAddToCart: () =>
+                                _addToCart(_coldCoughProducts[index]),
+                          );
+                        },
+                      ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
       // Modified Bottom Navigation Bar
@@ -915,7 +985,8 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                 // Already on home screen
               },
               iconSize: 30.0, // Increased icon size
-              color: Colors.teal, // Highlight Home icon as it's the current screen
+              color:
+                  Colors.teal, // Highlight Home icon as it's the current screen
             ),
             IconButton(
               icon: const Icon(Icons.category_outlined),
@@ -923,6 +994,47 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => const CategoryPage()),
+                );
+              },
+              iconSize: 30.0, // Increased icon size
+              color: Colors.grey[700],
+            ),
+            IconButton(
+              icon: const Icon(
+                Icons.upload_file,
+              ), // Icon for Prescription Upload
+              onPressed: () {
+                final cartProvider = Provider.of<CartProvider>(
+                  context,
+                  listen: false,
+                );
+                final prescriptionItems = cartProvider.cart.items
+                    .where((item) => item.requiresPrescription)
+                    .toList();
+
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => OrderPrescriptionUploadScreen(
+                      cart: cartProvider.cart,
+                      prescriptionItems: prescriptionItems,
+                    ),
+                  ),
+                );
+              },
+              iconSize: 30.0, // Increased icon size
+              color: Colors.grey[700],
+            ),
+            IconButton(
+              icon: const Icon(
+                Icons.track_changes,
+              ), // Icon for Prescription Tracking/Review
+              onPressed: () {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const PrescriptionTrackingScreen(),
+                  ),
                 );
               },
               iconSize: 30.0, // Increased icon size
@@ -946,7 +1058,9 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
               onPressed: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => const AccountScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const AccountScreen(),
+                  ),
                 );
               },
               iconSize: 30.0, // Increased icon size
@@ -990,14 +1104,21 @@ class CategoryChip extends StatelessWidget {
         child: Chip(
           label: Text(
             label,
-            style: TextStyle(color: Colors.teal.shade800, fontWeight: FontWeight.w600), // Teal text for chips
+            style: TextStyle(
+              color: Colors.teal.shade800,
+              fontWeight: FontWeight.w600,
+            ), // Teal text for chips
           ),
-          backgroundColor: Colors.teal.shade50, // Light teal background for chips
+          backgroundColor:
+              Colors.teal.shade50, // Light teal background for chips
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10.0),
             side: BorderSide(color: Colors.teal.shade100), // Subtle border
           ),
-          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0), // Slightly more padding
+          padding: const EdgeInsets.symmetric(
+            horizontal: 12.0,
+            vertical: 8.0,
+          ), // Slightly more padding
         ),
       ),
     );
@@ -1029,7 +1150,8 @@ class ProductCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector( // Wrap with GestureDetector to detect taps
+    return GestureDetector(
+      // Wrap with GestureDetector to detect taps
       onTap: onTap, // Assign the onTap callback
       child: Container(
         width: 160,
@@ -1050,7 +1172,9 @@ class ProductCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(15.0)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(15.0),
+              ),
               child: Image.network(
                 imageAsset,
                 height: 120,
@@ -1064,99 +1188,109 @@ class ProductCard extends StatelessWidget {
                 ),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.all(10.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    productName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    brandName,
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 13,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  // Price Row
-                  if (price != null) ...[
-                    Row(
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(10.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '₹$price',
+                          productName,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                            color: Colors.teal,
+                            fontSize: 15,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        if (mrp != null && mrp != price) ...[
-                          const SizedBox(width: 8),
-                          Text(
-                            '₹$mrp',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey[500],
-                              decoration: TextDecoration.lineThrough,
+                        const SizedBox(height: 4),
+                        Text(
+                          brandName,
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 13,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 8),
+                        if (price != null) ...[
+                          Row(
+                            children: [
+                              Text(
+                                '₹$price',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                  color: Colors.teal,
+                                ),
+                              ),
+                              if (mrp != null && mrp != price) ...[
+                                const SizedBox(width: 8),
+                                Text(
+                                  '₹$mrp',
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[500],
+                                    decoration: TextDecoration.lineThrough,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                        if (requiresPrescription == true) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.red.shade100,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'Prescription Required',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.red.shade700,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                         ],
                       ],
                     ),
-                    const SizedBox(height: 8),
-                  ],
-                  // Prescription indicator
-                  if (requiresPrescription == true) ...[
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade100,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        'Prescription Required',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.red.shade700,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                  // Add to Cart Button
-                  if (onAddToCart != null)
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: onAddToCart,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.teal,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                    const Spacer(),
+                    if (onAddToCart != null)
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: onAddToCart,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            elevation: 1,
                           ),
-                          elevation: 1,
-                        ),
-                        child: const Text(
-                          'Add to Cart',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                          child: const Text(
+                            'Add to Cart',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
           ],

@@ -7,22 +7,23 @@ import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../models/api_response.dart';
 import '../models/prescription_model.dart';
+import '../models/prescription_detail_model.dart'; // Import the new model
 import 'api_service.dart';
 
 class PrescriptionService {
   final ApiService _apiService = ApiService();
-  
+
   // Singleton pattern
   static final PrescriptionService _instance = PrescriptionService._internal();
   factory PrescriptionService() => _instance;
   PrescriptionService._internal();
 
   // Processing queue to track prescription status
-  final Map<int, PrescriptionProcessingInfo> _processingQueue = {};
+  final Map<String, PrescriptionProcessingInfo> _processingQueue = {};
 
   // Upload prescription for paid order verification (payment-first flow)
   Future<ApiResponse<Map<String, dynamic>>> uploadPrescriptionForPaidOrder({
-    required int orderId,
+    required String orderId, // Changed to String
     required File imageFile,
   }) async {
     try {
@@ -31,14 +32,11 @@ class PrescriptionService {
       final base64Image = base64.encode(bytes);
 
       final response = await http.post(
-        Uri.parse('${ApiConfig.apiBaseUrl}/prescriptions/upload-for-paid-order/'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: json.encode({
-          'order_id': orderId,
-          'image': base64Image,
-        }),
+        Uri.parse(
+          '${ApiConfig.apiBaseUrl}/prescriptions/upload-for-paid-order/',
+        ),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'order_id': orderId, 'image': base64Image}),
       );
 
       final responseData = json.decode(response.body);
@@ -59,14 +57,32 @@ class PrescriptionService {
     }
   }
 
+  // Get a single prescription detail by ID
+  Future<ApiResponse<PrescriptionDetailModel>> getPrescriptionDetail(
+    String prescriptionId,
+  ) async {
+    try {
+      final result = await _apiService.getPrescriptionDetail(prescriptionId);
+      if (result.isSuccess) {
+        return ApiResponse.success(result.data!);
+      } else {
+        return ApiResponse.error(result.error!, result.statusCode);
+      }
+    } catch (e) {
+      return ApiResponse.error('Failed to fetch prescription detail: $e', 0);
+    }
+  }
+
   // Get prescription verification status
-  Future<ApiResponse<Map<String, dynamic>>> getPrescriptionVerificationStatus(String prescriptionId) async {
+  Future<ApiResponse<Map<String, dynamic>>> getPrescriptionVerificationStatus(
+    String prescriptionId,
+  ) async {
     try {
       final response = await http.get(
-        Uri.parse('${ApiConfig.apiBaseUrl}/prescriptions/verification-status/$prescriptionId/'),
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        Uri.parse(
+          '${ApiConfig.apiBaseUrl}/prescriptions/verification-status/$prescriptionId/',
+        ),
+        headers: {'Content-Type': 'application/json'},
       );
 
       final responseData = json.decode(response.body);
@@ -88,13 +104,15 @@ class PrescriptionService {
   }
 
   // Simple prescription upload without AI processing (for order verification)
-  Future<ApiResponse<bool>> uploadPrescriptionSimple(File imageFile) async {
+  Future<ApiResponse<PrescriptionUploadResponse>> uploadPrescriptionSimple(
+    File imageFile,
+  ) async {
     try {
       // Simple upload for order verification - no AI processing needed
-      final result = await _apiService.uploadPrescriptionForOrder(imageFile);
+      final result = await _apiService.uploadPrescription(imageFile);
 
       if (result.isSuccess) {
-        return ApiResponse.success(true);
+        return ApiResponse.success(result.data!);
       } else {
         return ApiResponse.error(result.error!, result.statusCode);
       }
@@ -107,9 +125,11 @@ class PrescriptionService {
   }
 
   // Upload prescription image and start AI processing (for medicine discovery)
-  Future<ApiResponse<PrescriptionUploadResponse>> uploadPrescription(File imageFile) async {
+  Future<ApiResponse<PrescriptionUploadResponse>> uploadPrescription(
+    File imageFile,
+  ) async {
     try {
-    // print('Uploading prescription: ${imageFile.path}'); // Debug print removed
+      // print('Uploading prescription: ${imageFile.path}'); // Debug print removed
 
       final result = await _apiService.uploadPrescription(imageFile);
 
@@ -137,20 +157,23 @@ class PrescriptionService {
   }
 
   // Check AI processing status
-  Future<ApiResponse<PrescriptionStatusResponse>> checkProcessingStatus(int prescriptionId) async {
+  Future<ApiResponse<PrescriptionStatusResponse>> checkProcessingStatus(
+    String prescriptionId, // Changed to String
+  ) async {
     try {
       final result = await _apiService.getPrescriptionStatus(prescriptionId);
-      
+
       if (result.isSuccess) {
         final response = result.data!;
-        
+
         // Update processing queue
         if (_processingQueue.containsKey(prescriptionId)) {
-          _processingQueue[prescriptionId] = _processingQueue[prescriptionId]!.copyWith(
-            status: response.status,
-            aiProcessed: response.processed,
-            confidence: 0.0, // No longer using confidence scores
-          );
+          _processingQueue[prescriptionId] = _processingQueue[prescriptionId]!
+              .copyWith(
+                status: response.status,
+                aiProcessed: response.processed,
+                confidence: 0.0, // No longer using confidence scores
+              );
         }
 
         return ApiResponse.success(response);
@@ -166,19 +189,19 @@ class PrescriptionService {
   }
 
   // Get AI medicine suggestions
-  Future<ApiResponse<PrescriptionSuggestionsResponse>> getMedicineSuggestions(int prescriptionId) async {
+  Future<ApiResponse<PrescriptionSuggestionsResponse>> getMedicineSuggestions(
+    String prescriptionId, // Changed to String
+  ) async {
     try {
       final result = await _apiService.getMedicineSuggestions(prescriptionId);
-      
+
       if (result.isSuccess) {
         final suggestions = result.data!;
-        
+
         // Update processing queue
         if (_processingQueue.containsKey(prescriptionId)) {
-          _processingQueue[prescriptionId] = _processingQueue[prescriptionId]!.copyWith(
-            status: 'completed',
-            suggestions: suggestions,
-          );
+          _processingQueue[prescriptionId] = _processingQueue[prescriptionId]!
+              .copyWith(status: 'completed', suggestions: suggestions);
         }
 
         return ApiResponse.success(suggestions);
@@ -195,16 +218,16 @@ class PrescriptionService {
 
   // Wait for AI processing to complete
   Future<ApiResponse<PrescriptionSuggestionsResponse>> waitForProcessing(
-    int prescriptionId, {
+    String prescriptionId, {
     Duration maxWaitTime = const Duration(seconds: 30),
     Duration checkInterval = const Duration(seconds: 2),
   }) async {
     final startTime = DateTime.now();
-    
+
     while (DateTime.now().difference(startTime) < maxWaitTime) {
       try {
         final statusResult = await checkProcessingStatus(prescriptionId);
-        
+
         if (statusResult.isSuccess && statusResult.data!.isReady) {
           // Processing complete, get suggestions
           return await getMedicineSuggestions(prescriptionId);
@@ -222,7 +245,7 @@ class PrescriptionService {
 
   // Create order from prescription suggestions
   Future<ApiResponse<Map<String, dynamic>>> createOrderFromPrescription({
-    required int prescriptionId,
+    required String prescriptionId, // Changed to String
     required List<MedicineModel> selectedMedicines,
     required int addressId,
     required String paymentMethod,
@@ -231,19 +254,26 @@ class PrescriptionService {
     try {
       final orderData = {
         'prescription_id': prescriptionId,
-        'medicines': selectedMedicines.map((medicine) => {
-          'detail_id': medicine.id,
-          'quantity': medicine.selectedQuantity,
-        }).toList(),
+        'medicines': selectedMedicines
+            .map(
+              (medicine) => {
+                'detail_id': medicine.id,
+                'quantity': medicine.selectedQuantity,
+              },
+            )
+            .toList(),
         'address_id': addressId,
         'payment_method': paymentMethod,
         'special_instructions': specialInstructions ?? '',
       };
 
       final result = await _apiService.createPrescriptionOrder(orderData);
-      
+
       if (result.isSuccess) {
-        return ApiResponse.success({'order_id': result.data?.orderId, 'message': 'Order created successfully'});
+        return ApiResponse.success({
+          'order_id': result.data?.orderId,
+          'message': 'Order created successfully',
+        });
       } else {
         return ApiResponse.error(result.error!, result.statusCode);
       }
@@ -258,19 +288,21 @@ class PrescriptionService {
   // Calculate total price for selected medicines
   double calculateTotalPrice(List<MedicineModel> selectedMedicines) {
     double subtotal = selectedMedicines.fold(0.0, (total, medicine) {
-      return total + (medicine.productInfo?.price ?? 0.0) * medicine.selectedQuantity;
+      return total +
+          (medicine.productInfo?.price ?? 0.0) * medicine.selectedQuantity;
     });
 
     double shipping = subtotal >= 500 ? 0.0 : 50.0;
     double discount = subtotal >= 1000 ? subtotal * 0.1 : 0.0;
-    
+
     return subtotal + shipping - discount;
   }
 
   // Calculate pricing breakdown
   PricingModel calculatePricing(List<MedicineModel> selectedMedicines) {
     double subtotal = selectedMedicines.fold(0.0, (total, medicine) {
-      return total + (medicine.productInfo?.price ?? 0.0) * medicine.selectedQuantity;
+      return total +
+          (medicine.productInfo?.price ?? 0.0) * medicine.selectedQuantity;
     });
 
     double shipping = subtotal >= 500 ? 0.0 : 50.0;
@@ -285,8 +317,23 @@ class PrescriptionService {
     );
   }
 
+  // Get all user prescriptions
+  Future<ApiResponse<List<PrescriptionDetailModel>>>
+  getUserPrescriptions() async {
+    try {
+      final result = await _apiService.getUserPrescriptions();
+      if (result.isSuccess) {
+        return ApiResponse.success(result.data!);
+      } else {
+        return ApiResponse.error(result.error!, result.statusCode);
+      }
+    } catch (e) {
+      return ApiResponse.error('Failed to fetch user prescriptions: $e', 0);
+    }
+  }
+
   // Get processing status from queue
-  PrescriptionProcessingInfo? getProcessingStatus(int prescriptionId) {
+  PrescriptionProcessingInfo? getProcessingStatus(String prescriptionId) {
     return _processingQueue[prescriptionId];
   }
 
@@ -316,8 +363,10 @@ class PrescriptionService {
 
     // Check file extension
     final validExtensions = ['.jpg', '.jpeg', '.png'];
-    final extension = imageFile.path.toLowerCase().substring(imageFile.path.lastIndexOf('.'));
-    
+    final extension = imageFile.path.toLowerCase().substring(
+      imageFile.path.lastIndexOf('.'),
+    );
+
     if (!validExtensions.contains(extension)) {
       return ValidationResult(
         isValid: false,
@@ -352,7 +401,7 @@ class PrescriptionService {
 
 // Helper classes
 class PrescriptionProcessingInfo {
-  final int prescriptionId;
+  final String prescriptionId; // Changed to String
   final String status;
   final DateTime uploadTime;
   final double? confidence;
@@ -389,8 +438,5 @@ class ValidationResult {
   final bool isValid;
   final String? error;
 
-  ValidationResult({
-    required this.isValid,
-    this.error,
-  });
+  ValidationResult({required this.isValid, this.error});
 }

@@ -83,18 +83,23 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   Future<void> _loadPrescriptionBasedProducts() async {
     try {
       // Use the new prescription products API
-      final prescriptionProductsResponse = await _apiService.getPrescriptionProducts(widget.prescriptionId!);
+      final prescriptionProductsResponse = await _apiService
+          .getPrescriptionProducts(widget.prescriptionId!);
 
-      if (prescriptionProductsResponse.isSuccess && prescriptionProductsResponse.data != null) {
+      if (prescriptionProductsResponse.isSuccess &&
+          prescriptionProductsResponse.data != null) {
         final prescriptionProducts = prescriptionProductsResponse.data!;
 
         setState(() {
           _allProducts = prescriptionProducts;
-          _searchResults = prescriptionProducts; // Show all prescription products initially
+          _searchResults =
+              prescriptionProducts; // Show all prescription products initially
         });
       } else {
         // Fallback to medicine suggestions API
-        final suggestionsResponse = await _apiService.getMedicineSuggestions(widget.prescriptionId!);
+        final suggestionsResponse = await _apiService.getMedicineSuggestions(
+          widget.prescriptionId!.toString(),
+        );
 
         if (suggestionsResponse.isSuccess && suggestionsResponse.data != null) {
           final suggestions = suggestionsResponse.data!;
@@ -104,19 +109,23 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
           for (var medicine in suggestions.medicines) {
             if (medicine.isAvailable && medicine.productInfo != null) {
               final productInfo = medicine.productInfo!;
-              prescriptionProducts.add(ProductModel(
-                id: productInfo.productId,
-                name: productInfo.name,
-                manufacturer: productInfo.manufacturer,
-                price: productInfo.price,
-                mrp: productInfo.mrp,
-                imageUrl: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400',
-                description: 'Prescription medicine: ${medicine.medicineName}',
-                genericName: medicine.medicineName,
-                requiresPrescription: true,
-                stockQuantity: productInfo.stockQuantity,
-                isActive: productInfo.inStock,
-              ));
+              prescriptionProducts.add(
+                ProductModel(
+                  id: productInfo.productId,
+                  name: productInfo.name,
+                  manufacturer: productInfo.manufacturer,
+                  price: productInfo.price,
+                  mrp: productInfo.mrp,
+                  imageUrl:
+                      'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400',
+                  description:
+                      'Prescription medicine: ${medicine.medicineName}',
+                  genericName: medicine.medicineName,
+                  requiresPrescription: true,
+                  stockQuantity: productInfo.stockQuantity,
+                  isActive: productInfo.inStock,
+                ),
+              );
             }
           }
 
@@ -157,37 +166,78 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
         } else {
           // Use the new prescription search API for better results
           try {
-            final response = await _apiService.searchPrescriptionMedicines(query);
+            final response = await _apiService.searchPrescriptionMedicines(
+              query,
+            );
             if (response.isSuccess && response.data != null) {
               results = response.data!;
             } else {
               // Fallback to local search
-              results = _allProducts.where((product) =>
-                product.name.toLowerCase().contains(query.toLowerCase()) ||
-                product.manufacturer.toLowerCase().contains(query.toLowerCase()) ||
-                (product.genericName?.toLowerCase().contains(query.toLowerCase()) ?? false) ||
-                (product.description?.toLowerCase().contains(query.toLowerCase()) ?? false)
-              ).toList();
+              results = _allProducts
+                  .where(
+                    (product) =>
+                        product.name.toLowerCase().contains(
+                          query.toLowerCase(),
+                        ) ||
+                        product.manufacturer.toLowerCase().contains(
+                          query.toLowerCase(),
+                        ) ||
+                        (product.genericName?.toLowerCase().contains(
+                              query.toLowerCase(),
+                            ) ??
+                            false) ||
+                        (product.description?.toLowerCase().contains(
+                              query.toLowerCase(),
+                            ) ??
+                            false),
+                  )
+                  .toList();
             }
           } catch (e) {
             // Fallback to local search on error
-            results = _allProducts.where((product) =>
-              product.name.toLowerCase().contains(query.toLowerCase()) ||
-              product.manufacturer.toLowerCase().contains(query.toLowerCase()) ||
-              (product.genericName?.toLowerCase().contains(query.toLowerCase()) ?? false) ||
-              (product.description?.toLowerCase().contains(query.toLowerCase()) ?? false)
-            ).toList();
+            results = _allProducts
+                .where(
+                  (product) =>
+                      product.name.toLowerCase().contains(
+                        query.toLowerCase(),
+                      ) ||
+                      product.manufacturer.toLowerCase().contains(
+                        query.toLowerCase(),
+                      ) ||
+                      (product.genericName?.toLowerCase().contains(
+                            query.toLowerCase(),
+                          ) ??
+                          false) ||
+                      (product.description?.toLowerCase().contains(
+                            query.toLowerCase(),
+                          ) ??
+                          false),
+                )
+                .toList();
           }
         }
       } else if (widget.extractedMedicines != null) {
         // Fallback: Search based on extracted medicine names
         for (String medicine in widget.extractedMedicines!) {
-          final medicineResults = _allProducts.where((product) =>
-            product.name.toLowerCase().contains(medicine.toLowerCase()) ||
-            product.manufacturer.toLowerCase().contains(medicine.toLowerCase()) ||
-            (product.genericName?.toLowerCase().contains(medicine.toLowerCase()) ?? false) ||
-            (product.description?.toLowerCase().contains(medicine.toLowerCase()) ?? false)
-          ).toList();
+          final medicineResults = _allProducts
+              .where(
+                (product) =>
+                    product.name.toLowerCase().contains(
+                      medicine.toLowerCase(),
+                    ) ||
+                    product.manufacturer.toLowerCase().contains(
+                      medicine.toLowerCase(),
+                    ) ||
+                    (product.genericName?.toLowerCase().contains(
+                          medicine.toLowerCase(),
+                        ) ??
+                        false) ||
+                    (product.description?.toLowerCase().contains(
+                          medicine.toLowerCase(),
+                        ) ??
+                        false),
+              )
+              .toList();
           results.addAll(medicineResults);
         }
 
@@ -196,12 +246,23 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
       }
     } else {
       // Regular search
-      results = _allProducts.where((product) =>
-        product.name.toLowerCase().contains(query.toLowerCase()) ||
-        product.manufacturer.toLowerCase().contains(query.toLowerCase()) ||
-        (product.genericName?.toLowerCase().contains(query.toLowerCase()) ?? false) ||
-        (product.description?.toLowerCase().contains(query.toLowerCase()) ?? false)
-      ).toList();
+      results = _allProducts
+          .where(
+            (product) =>
+                product.name.toLowerCase().contains(query.toLowerCase()) ||
+                product.manufacturer.toLowerCase().contains(
+                  query.toLowerCase(),
+                ) ||
+                (product.genericName?.toLowerCase().contains(
+                      query.toLowerCase(),
+                    ) ??
+                    false) ||
+                (product.description?.toLowerCase().contains(
+                      query.toLowerCase(),
+                    ) ??
+                    false),
+          )
+          .toList();
     }
 
     setState(() {
@@ -248,7 +309,9 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        title: Text(widget.isFromPrescription ? 'Prescription Results' : 'Search Results'),
+        title: Text(
+          widget.isFromPrescription ? 'Prescription Results' : 'Search Results',
+        ),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
         elevation: 0,
@@ -290,7 +353,10 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                   borderRadius: BorderRadius.circular(25),
                   borderSide: const BorderSide(color: Colors.teal, width: 2),
                 ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 20,
+                ),
               ),
               onSubmitted: _performSearch,
               onChanged: (value) {
@@ -352,8 +418,8 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                     ),
                   )
                 : _searchResults.isEmpty
-                    ? _buildEmptyState()
-                    : _buildResultsList(),
+                ? _buildEmptyState()
+                : _buildResultsList(),
           ),
         ],
       ),
@@ -366,21 +432,20 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            widget.isFromPrescription ? Icons.medical_services_outlined : Icons.search_off,
+            widget.isFromPrescription
+                ? Icons.medical_services_outlined
+                : Icons.search_off,
             size: 64,
             color: Colors.grey.shade400,
           ),
           const SizedBox(height: 16),
           Text(
-            widget.isFromPrescription 
+            widget.isFromPrescription
                 ? 'No medicines found for your prescription'
-                : _currentQuery.isEmpty 
-                    ? 'Enter a search term to find medicines'
-                    : 'No results found for "$_currentQuery"',
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.grey.shade600,
-            ),
+                : _currentQuery.isEmpty
+                ? 'Enter a search term to find medicines'
+                : 'No results found for "$_currentQuery"',
+            style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
@@ -388,10 +453,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
             widget.isFromPrescription
                 ? 'Try uploading a clearer prescription image'
                 : 'Try different keywords or check spelling',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey.shade500,
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
             textAlign: TextAlign.center,
           ),
         ],
@@ -433,20 +495,21 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
 
   Widget _buildProductCard(ProductModel product) {
     final bool isOnSale = product.mrp > product.price;
-    final double discountPercent = isOnSale ? ((product.mrp - product.price) / product.mrp * 100) : 0;
+    final double discountPercent = isOnSale
+        ? ((product.mrp - product.price) / product.mrp * 100)
+        : 0;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 3,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
       child: InkWell(
         onTap: () {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => ProductDetailsScreen(product: _productToMap(product)),
+              builder: (context) =>
+                  ProductDetailsScreen(product: _productToMap(product)),
             ),
           );
         },
@@ -457,10 +520,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Colors.white,
-                Colors.grey.withValues(alpha: 0.05),
-              ],
+              colors: [Colors.white, Colors.grey.withValues(alpha: 0.05)],
             ),
           ),
           child: Padding(
@@ -494,7 +554,10 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                             return Container(
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
-                                  colors: [Colors.teal.withValues(alpha: 0.1), Colors.teal.withValues(alpha: 0.3)],
+                                  colors: [
+                                    Colors.teal.withValues(alpha: 0.1),
+                                    Colors.teal.withValues(alpha: 0.3),
+                                  ],
                                 ),
                               ),
                               child: Icon(
@@ -512,7 +575,10 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                         top: -2,
                         right: -2,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.red,
                             borderRadius: BorderRadius.circular(8),
@@ -550,10 +616,15 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                       const SizedBox(height: 6),
 
                       // Generic name if available
-                      if (product.genericName != null && product.genericName!.isNotEmpty)
+                      if (product.genericName != null &&
+                          product.genericName!.isNotEmpty)
                         Row(
                           children: [
-                            Icon(Icons.science, size: 14, color: Colors.grey[600]),
+                            Icon(
+                              Icons.science,
+                              size: 14,
+                              color: Colors.grey[600],
+                            ),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
@@ -573,7 +644,11 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                       // Manufacturer
                       Row(
                         children: [
-                          Icon(Icons.business, size: 14, color: Colors.grey[600]),
+                          Icon(
+                            Icons.business,
+                            size: 14,
+                            color: Colors.grey[600],
+                          ),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
@@ -618,16 +693,26 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                           // Prescription badge
                           if (product.requiresPrescription)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.orange.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.orange, width: 1),
+                                border: Border.all(
+                                  color: Colors.orange,
+                                  width: 1,
+                                ),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.receipt, size: 12, color: Colors.orange),
+                                  Icon(
+                                    Icons.receipt,
+                                    size: 12,
+                                    color: Colors.orange,
+                                  ),
                                   const SizedBox(width: 4),
                                   const Text(
                                     'Rx',
@@ -650,12 +735,19 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                         children: [
                           // Stock status
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
-                              color: product.isActive ? Colors.green.withValues(alpha: 0.1) : Colors.red.withValues(alpha: 0.1),
+                              color: product.isActive
+                                  ? Colors.green.withValues(alpha: 0.1)
+                                  : Colors.red.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: product.isActive ? Colors.green : Colors.red,
+                                color: product.isActive
+                                    ? Colors.green
+                                    : Colors.red,
                                 width: 1,
                               ),
                             ),
@@ -663,16 +755,24 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Icon(
-                                  product.isActive ? Icons.check_circle : Icons.cancel,
+                                  product.isActive
+                                      ? Icons.check_circle
+                                      : Icons.cancel,
                                   size: 12,
-                                  color: product.isActive ? Colors.green : Colors.red,
+                                  color: product.isActive
+                                      ? Colors.green
+                                      : Colors.red,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  product.isActive ? 'In Stock' : 'Out of Stock',
+                                  product.isActive
+                                      ? 'In Stock'
+                                      : 'Out of Stock',
                                   style: TextStyle(
                                     fontSize: 11,
-                                    color: product.isActive ? Colors.green : Colors.red,
+                                    color: product.isActive
+                                        ? Colors.green
+                                        : Colors.red,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -685,16 +785,26 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                           // Prescription-based badge
                           if (widget.isFromPrescription)
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: Colors.blue.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: Colors.blue, width: 1),
+                                border: Border.all(
+                                  color: Colors.blue,
+                                  width: 1,
+                                ),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.assignment, size: 12, color: Colors.blue),
+                                  Icon(
+                                    Icons.assignment,
+                                    size: 12,
+                                    color: Colors.blue,
+                                  ),
                                   const SizedBox(width: 4),
                                   const Text(
                                     'Prescribed',
@@ -716,19 +826,25 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                 // Enhanced Add to Cart Button
                 Container(
                   decoration: BoxDecoration(
-                    color: product.isActive ? Colors.teal : Colors.grey.withValues(alpha: 0.3),
+                    color: product.isActive
+                        ? Colors.teal
+                        : Colors.grey.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(12),
-                    boxShadow: product.isActive ? [
-                      BoxShadow(
-                        color: Colors.teal.withValues(alpha: 0.3),
-                        spreadRadius: 1,
-                        blurRadius: 4,
-                        offset: const Offset(0, 2),
-                      ),
-                    ] : null,
+                    boxShadow: product.isActive
+                        ? [
+                            BoxShadow(
+                              color: Colors.teal.withValues(alpha: 0.3),
+                              spreadRadius: 1,
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
                   ),
                   child: IconButton(
-                    onPressed: product.isActive ? () => _addToCart(product) : null,
+                    onPressed: product.isActive
+                        ? () => _addToCart(product)
+                        : null,
                     icon: const Icon(Icons.add_shopping_cart),
                     color: Colors.white,
                     iconSize: 22,

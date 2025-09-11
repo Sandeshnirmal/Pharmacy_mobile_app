@@ -8,25 +8,24 @@ import 'CartScreen.dart';
 import 'SearchResultsScreen.dart';
 
 class PrescriptionProcessingScreen extends StatefulWidget {
-  final int prescriptionId;
+  final String prescriptionId; // Changed to String
 
-  const PrescriptionProcessingScreen({
-    super.key,
-    required this.prescriptionId,
-  });
+  const PrescriptionProcessingScreen({super.key, required this.prescriptionId});
 
   @override
-  State<PrescriptionProcessingScreen> createState() => _PrescriptionProcessingScreenState();
+  State<PrescriptionProcessingScreen> createState() =>
+      _PrescriptionProcessingScreenState();
 }
 
-class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScreen>
+class _PrescriptionProcessingScreenState
+    extends State<PrescriptionProcessingScreen>
     with TickerProviderStateMixin {
   final PrescriptionService _prescriptionService = PrescriptionService();
   final CartService _cartService = CartService();
-  
+
   late AnimationController _animationController;
   late Animation<double> _animation;
-  
+
   bool _isProcessing = true;
   bool _processingComplete = false;
   Map<String, dynamic>? _processingResult;
@@ -42,7 +41,7 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
     );
     _animation = Tween<double>(begin: 0, end: 1).animate(_animationController);
     _animationController.repeat();
-    
+
     _startProcessing();
   }
 
@@ -75,16 +74,21 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
             'status': suggestions.status,
             'total_medicines': suggestions.summary.totalMedicines,
             'available_medicines': suggestions.summary.availableMedicines,
-            'extracted_medicines': suggestions.medicines.map((medicine) => {
-              'id': medicine.id,
-              'name': medicine.medicineName,
-              'dosage': medicine.dosage ?? 'Not specified',
-              'quantity': medicine.quantity ?? 'Not specified',
-              'instructions': medicine.instructions ?? 'No special instructions',
-              'confidence_score': medicine.confidenceScore,
-              'is_available': medicine.isAvailable,
-              'product_info': medicine.productInfo?.toJson(),
-            }).toList(),
+            'extracted_medicines': suggestions.medicines
+                .map(
+                  (medicine) => {
+                    'id': medicine.id,
+                    'name': medicine.medicineName,
+                    'dosage': medicine.dosage ?? 'Not specified',
+                    'quantity': medicine.quantity ?? 'Not specified',
+                    'instructions':
+                        medicine.instructions ?? 'No special instructions',
+                    'confidence_score': medicine.confidenceScore,
+                    'is_available': medicine.isAvailable,
+                    'product_info': medicine.productInfo?.toJson(),
+                  },
+                )
+                .toList(),
             'can_order': suggestions.canOrder,
           };
         });
@@ -111,7 +115,6 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
 
       _animationController.stop();
       _loadRecommendedProducts();
-
     } catch (e) {
       // Even on error, show mock results for better UX
       setState(() {
@@ -142,7 +145,9 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
     }
   }
 
-  Future<void> _loadRecommendedProductsFromAPI(List<MedicineModel> medicines) async {
+  Future<void> _loadRecommendedProductsFromAPI(
+    List<MedicineModel> medicines,
+  ) async {
     // Load real recommended products from OCR results
     List<Map<String, dynamic>> products = [];
 
@@ -155,9 +160,11 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
           'brand': product.manufacturer,
           'price': product.price.toString(),
           'mrp': product.mrp.toString(),
-          'imageUrl': 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400', // Default image
+          'imageUrl':
+              'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400', // Default image
           'inStock': product.inStock,
-          'requiresPrescription': true, // Prescription medicines require prescription
+          'requiresPrescription':
+              true, // Prescription medicines require prescription
           'confidence': medicine.confidenceScore,
           'dosage': medicine.dosage,
           'instructions': medicine.instructions,
@@ -210,7 +217,7 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
           stockQuantity: 100,
           isActive: true,
         );
-        
+
         await _cartService.addToCart(productModel);
       }
 
@@ -248,8 +255,8 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
       body: _isProcessing
           ? _buildProcessingView()
           : _processingComplete
-              ? _buildResultsView()
-              : _buildErrorView(),
+          ? _buildResultsView()
+          : _buildErrorView(),
     );
   }
 
@@ -268,10 +275,7 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
                   height: 80,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.teal,
-                      width: 4,
-                    ),
+                    border: Border.all(color: Colors.teal, width: 4),
                   ),
                   child: const Icon(
                     Icons.local_pharmacy,
@@ -294,10 +298,7 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
           const SizedBox(height: 8),
           Text(
             'AI is analyzing your prescription...',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
           ),
           const SizedBox(height: 32),
           const LinearProgressIndicator(
@@ -325,7 +326,11 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
             ),
             child: Row(
               children: [
-                Icon(Icons.check_circle, color: Colors.green.shade600, size: 32),
+                Icon(
+                  Icons.check_circle,
+                  color: Colors.green.shade600,
+                  size: 32,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -341,10 +346,7 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
                       ),
                       Text(
                         'OCR Confidence: ${(_processingResult!['confidence'] * 100).toInt()}% | ${_processingResult!['total_medicines'] ?? 0} medicines found',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                       ),
                     ],
                   ),
@@ -352,9 +354,9 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
               ],
             ),
           ),
-          
+
           const SizedBox(height: 24),
-          
+
           // Extracted Information
           const Text(
             'Extracted Information',
@@ -365,12 +367,12 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
             ),
           ),
           const SizedBox(height: 12),
-          
+
           if (_processingResult!['doctor_name'] != null) ...[
             _buildInfoRow('Doctor', _processingResult!['doctor_name']),
             const SizedBox(height: 8),
           ],
-          
+
           if (_processingResult!['patient_name'] != null) ...[
             _buildInfoRow('Patient', _processingResult!['patient_name']),
             const SizedBox(height: 16),
@@ -390,7 +392,7 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
             ..._buildExtractedMedicinesList(),
             const SizedBox(height: 24),
           ],
-          
+
           // Recommended Products
           const Text(
             'Recommended Products',
@@ -401,15 +403,17 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
             ),
           ),
           const SizedBox(height: 12),
-          
+
           ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: _recommendedProducts.length,
             itemBuilder: (context, index) {
               final product = _recommendedProducts[index];
-              final isSelected = _selectedProducts.any((p) => p['id'] == product['id']);
-              
+              final isSelected = _selectedProducts.any(
+                (p) => p['id'] == product['id'],
+              );
+
               return Card(
                 margin: const EdgeInsets.only(bottom: 12),
                 child: ListTile(
@@ -457,7 +461,7 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
               );
             },
           ),
-          
+
           const SizedBox(height: 24),
 
           // View All Results Button
@@ -465,9 +469,10 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
             width: double.infinity,
             child: OutlinedButton(
               onPressed: () {
-                final extractedMedicines = _processingResult!['extracted_medicines']
-                    .map<String>((medicine) => medicine['name'] as String)
-                    .toList();
+                final extractedMedicines =
+                    _processingResult!['extracted_medicines']
+                        .map<String>((medicine) => medicine['name'] as String)
+                        .toList();
 
                 Navigator.push(
                   context,
@@ -476,7 +481,7 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
                       searchQuery: 'Prescription medicines',
                       extractedMedicines: extractedMedicines,
                       isFromPrescription: true,
-                      prescriptionId: widget.prescriptionId,
+                      prescriptionId: int.tryParse(widget.prescriptionId),
                     ),
                   ),
                 );
@@ -491,10 +496,7 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
               ),
               child: const Text(
                 'View All Medicine Results',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
             ),
           ),
@@ -533,11 +535,7 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 80,
-            color: Colors.red.shade400,
-          ),
+          Icon(Icons.error_outline, size: 80, color: Colors.red.shade400),
           const SizedBox(height: 16),
           const Text(
             'Processing Failed',
@@ -550,10 +548,7 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
           const SizedBox(height: 8),
           Text(
             'Unable to process your prescription. Please try again.',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
@@ -581,19 +576,15 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
           ),
         ),
         Expanded(
-          child: Text(
-            value,
-            style: TextStyle(
-              color: Colors.grey[700],
-            ),
-          ),
+          child: Text(value, style: TextStyle(color: Colors.grey[700])),
         ),
       ],
     );
   }
 
   List<Widget> _buildExtractedMedicinesList() {
-    final medicines = _processingResult!['extracted_medicines'] as List<dynamic>;
+    final medicines =
+        _processingResult!['extracted_medicines'] as List<dynamic>;
     return medicines.map<Widget>((medicine) {
       final confidence = medicine['confidence_score'] ?? 0.0;
       final isAvailable = medicine['is_available'] ?? false;
@@ -632,13 +623,16 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: confidence >= 0.8
                         ? Colors.green.shade100
                         : confidence >= 0.6
-                            ? Colors.orange.shade100
-                            : Colors.red.shade100,
+                        ? Colors.orange.shade100
+                        : Colors.red.shade100,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -649,22 +643,28 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
                       color: confidence >= 0.8
                           ? Colors.green.shade700
                           : confidence >= 0.6
-                              ? Colors.orange.shade700
-                              : Colors.red.shade700,
+                          ? Colors.orange.shade700
+                          : Colors.red.shade700,
                     ),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
-            if (medicine['dosage'] != null && medicine['dosage'] != 'Not specified') ...[
-              Text('Dosage: ${medicine['dosage']}',
-                   style: TextStyle(color: Colors.grey[600])),
+            if (medicine['dosage'] != null &&
+                medicine['dosage'] != 'Not specified') ...[
+              Text(
+                'Dosage: ${medicine['dosage']}',
+                style: TextStyle(color: Colors.grey[600]),
+              ),
               const SizedBox(height: 4),
             ],
-            if (medicine['instructions'] != null && medicine['instructions'] != 'No special instructions') ...[
-              Text('Instructions: ${medicine['instructions']}',
-                   style: TextStyle(color: Colors.grey[600])),
+            if (medicine['instructions'] != null &&
+                medicine['instructions'] != 'No special instructions') ...[
+              Text(
+                'Instructions: ${medicine['instructions']}',
+                style: TextStyle(color: Colors.grey[600]),
+              ),
               const SizedBox(height: 4),
             ],
             Row(
@@ -679,7 +679,9 @@ class _PrescriptionProcessingScreenState extends State<PrescriptionProcessingScr
                   isAvailable ? 'Available in stock' : 'Needs review',
                   style: TextStyle(
                     fontSize: 12,
-                    color: isAvailable ? Colors.green.shade700 : Colors.orange.shade700,
+                    color: isAvailable
+                        ? Colors.green.shade700
+                        : Colors.orange.shade700,
                     fontWeight: FontWeight.w500,
                   ),
                 ),

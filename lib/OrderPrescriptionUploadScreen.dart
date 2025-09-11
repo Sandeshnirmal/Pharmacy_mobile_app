@@ -8,6 +8,7 @@ import 'services/auth_service.dart';
 import 'CheckoutScreen.dart';
 import 'models/cart_model.dart';
 import 'models/cart_item.dart';
+import 'screens/prescription_tracking_screen.dart'; // Import PrescriptionTrackingScreen
 
 class OrderPrescriptionUploadScreen extends StatefulWidget {
   final Cart cart;
@@ -34,10 +35,10 @@ class _OrderPrescriptionUploadScreenState
   bool _isUploading = false;
   bool _isUploaded = false;
   bool _isCancelled = false;
+  String? _uploadedPrescriptionId; // To store the prescription ID
 
   @override
   void dispose() {
-    // Clean up any temporary files
     _cleanupTempFiles();
     super.dispose();
   }
@@ -127,14 +128,27 @@ class _OrderPrescriptionUploadScreenState
       if (!mounted) return;
 
       if (result.isSuccess) {
+        final prescriptionId = result.data!.prescriptionId;
         setState(() {
           _isUploaded = true;
           _isUploading = false;
+          _uploadedPrescriptionId = prescriptionId;
         });
         _showToast(
-          'Prescription submitted for admin verification!',
+          'Prescription submitted for admin verification! ID: $prescriptionId',
           Colors.green,
         );
+        // Redirect to PrescriptionTrackingScreen after successful upload
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PrescriptionTrackingScreen(
+                prescriptionId: _uploadedPrescriptionId,
+              ),
+            ),
+          );
+        }
       } else {
         String errorMsg = result.error ?? 'Failed to upload prescription';
         if (result.statusCode == 401) {
@@ -167,15 +181,6 @@ class _OrderPrescriptionUploadScreenState
       });
       _showToast('Upload cancelled', Colors.orange);
     }
-  }
-
-  void _proceedToCheckout() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => CheckoutScreen(cart: widget.cart),
-      ),
-    );
   }
 
   void _showToast(String msg, Color color) {
@@ -364,7 +369,7 @@ class _OrderPrescriptionUploadScreenState
 
           if (_selectedImage != null) _buildImagePreview(),
 
-          if (!_isUploaded) _buildUploadButtons() else _buildSuccessUI(),
+          if (!_isUploaded) _buildUploadButtons(),
         ],
       ),
     );
@@ -468,66 +473,6 @@ class _OrderPrescriptionUploadScreenState
             ),
           ),
         ],
-      ],
-    );
-  }
-
-  Widget _buildSuccessUI() {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.green.shade50,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.green.shade200),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.check_circle, color: Colors.green.shade600),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Prescription Uploaded for Verification',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.green.shade700,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Your prescription has been uploaded and will be verified by our admin. You can proceed to checkout.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.green.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 24),
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _proceedToCheckout,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.teal,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-            ),
-            child: const Text(
-              'Proceed to Checkout',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ),
       ],
     );
   }

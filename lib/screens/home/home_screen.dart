@@ -1,5 +1,6 @@
 // Enhanced Home Screen with Real API Data
 import 'package:flutter/material.dart';
+import 'package:pharmacy/screens/prescription_tracking_screen.dart';
 import 'package:provider/provider.dart';
 import '../../PrescriptionCameraScreen.dart';
 import '../../providers/auth_provider.dart';
@@ -8,6 +9,7 @@ import '../../providers/order_provider.dart';
 import '../products/products_screen.dart';
 import '../products/product_detail_screen.dart';
 import '../orders/orders_screen.dart';
+import 'prescription_tracking_screen.dart'; // Import the new screen
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -36,14 +38,14 @@ class _HomeScreenState extends State<HomeScreen> {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Pharmacy App',
-                  style: TextStyle(fontSize: 18),
-                ),
+                const Text('Pharmacy App', style: TextStyle(fontSize: 18)),
                 if (user != null)
                   Text(
                     'Hello, ${user.firstName}!',
-                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.normal),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.normal,
+                    ),
                   ),
               ],
             );
@@ -90,7 +92,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.teal.withValues(alpha: 0.3),
+                          color: Colors.teal.withOpacity(0.3),
                           blurRadius: 10,
                           offset: const Offset(0, 5),
                         ),
@@ -103,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
+                              color: Colors.white.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(50),
                             ),
                             child: const Icon(
@@ -114,7 +116,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           const SizedBox(height: 20),
                           Text(
-                            user != null ? 'Welcome back, ${user.firstName}!' : 'Welcome to Pharmacy App',
+                            user != null
+                                ? 'Welcome back, ${user.firstName}!'
+                                : 'Welcome to Pharmacy App',
                             style: const TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
@@ -131,307 +135,377 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             textAlign: TextAlign.center,
                           ),
-                        if (orders.isNotEmpty) ...[
-                          const SizedBox(height: 16),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          if (orders.isNotEmpty) ...[
+                            const SizedBox(height: 16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                _buildStatItem(
+                                  'Orders',
+                                  '${orders.length}',
+                                  Icons.shopping_bag,
+                                ),
+                                _buildStatItem(
+                                  'Delivered',
+                                  '${orderProvider.getOrdersByStatus('delivered').length}',
+                                  Icons.check_circle,
+                                ),
+                                _buildStatItem(
+                                  'Pending',
+                                  '${orderProvider.getOrdersByStatus('pending').length}',
+                                  Icons.pending,
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 24),
+
+              // Prescription Scan CTA
+              _buildPrescriptionScanCTA(),
+
+              const SizedBox(height: 24),
+
+              // Medicine Search Section
+              _buildMedicineSearchSection(),
+
+              const SizedBox(height: 24),
+
+              // Featured Products
+              _buildFeaturedProducts(),
+
+              const SizedBox(height: 24),
+
+              // Recent Orders
+              _buildRecentOrders(),
+
+              const SizedBox(height: 24),
+
+              // Quick actions
+              const Text(
+                'Quick Actions',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.teal,
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // AI Prescription Upload
+              Card(
+                elevation: 4,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const PrescriptionCameraScreen(),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.teal.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            size: 32,
+                            color: Colors.teal,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              _buildStatItem('Orders', '${orders.length}', Icons.shopping_bag),
-                              _buildStatItem('Delivered', '${orderProvider.getOrdersByStatus('delivered').length}', Icons.check_circle),
-                              _buildStatItem('Pending', '${orderProvider.getOrdersByStatus('pending').length}', Icons.pending),
+                              Text(
+                                'Upload Prescription',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Take a photo or select from gallery for AI processing',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
+                                ),
+                              ),
                             ],
                           ),
-                        ],
+                        ),
+                        const Icon(Icons.arrow_forward_ios, color: Colors.grey),
                       ],
                     ),
                   ),
-                );
-              },
-            ),
-            
-            const SizedBox(height: 24),
-
-            // Prescription Scan CTA
-            _buildPrescriptionScanCTA(),
-
-            const SizedBox(height: 24),
-
-            // Medicine Search Section
-            _buildMedicineSearchSection(),
-
-            const SizedBox(height: 24),
-
-            // Featured Products
-            _buildFeaturedProducts(),
-
-            const SizedBox(height: 24),
-
-            // Recent Orders
-            _buildRecentOrders(),
-
-            const SizedBox(height: 24),
-
-            // Quick actions
-            const Text(
-              'Quick Actions',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.teal,
+                ),
               ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // AI Prescription Upload
-            Card(
-              elevation: 4,
-              child: InkWell(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const PrescriptionCameraScreen(),
+
+              const SizedBox(height: 12),
+
+              // Browse Medicines
+              Card(
+                elevation: 4,
+                child: InkWell(
+                  onTap: () {
+                    // Navigate to products screen
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Browse Medicines feature coming soon!'),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.medical_services,
+                            size: 32,
+                            color: Colors.blue,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Browse Medicines',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Search and browse available medicines',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.arrow_forward_ios, color: Colors.grey),
+                      ],
                     ),
-                  );
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.teal.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.camera_alt,
-                          size: 32,
-                          color: Colors.teal,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Upload Prescription',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              'Take a photo or select from gallery for AI processing',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(
-                        Icons.arrow_forward_ios,
-                        color: Colors.grey,
-                      ),
-                    ],
                   ),
                 ),
               ),
-            ),
-            
-            const SizedBox(height: 12),
-            
-            // Browse Medicines
-            Card(
-              elevation: 4,
-              child: InkWell(
-                onTap: () {
-                  // Navigate to products screen
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Browse Medicines feature coming soon!'),
+
+              const SizedBox(height: 12),
+
+              // Order History
+              Card(
+                elevation: 4,
+                child: InkWell(
+                  onTap: () {
+                    // Navigate to orders screen
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Order History feature coming soon!'),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.shopping_bag,
+                            size: 32,
+                            color: Colors.orange,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Order History',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'View your past orders and track deliveries',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.arrow_forward_ios, color: Colors.grey),
+                      ],
                     ),
-                  );
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.medical_services,
-                          size: 32,
-                          color: Colors.blue,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Browse Medicines',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              'Search and browse available medicines',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(
-                        Icons.arrow_forward_ios,
-                        color: Colors.grey,
-                      ),
-                    ],
                   ),
                 ),
               ),
-            ),
-            
-            const SizedBox(height: 12),
-            
-            // Order History
-            Card(
-              elevation: 4,
-              child: InkWell(
-                onTap: () {
-                  // Navigate to orders screen
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Order History feature coming soon!'),
+
+              const SizedBox(height: 12),
+
+              // Track Prescriptions
+              Card(
+                elevation: 4,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            const PrescriptionTrackingScreen(),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20.0),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.purple.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.track_changes,
+                            size: 32,
+                            color: Colors.purple,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Track Prescriptions',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'View status of your uploaded prescriptions',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.arrow_forward_ios, color: Colors.grey),
+                      ],
                     ),
-                  );
-                },
-                borderRadius: BorderRadius.circular(12),
-                child: Padding(
-                  padding: const EdgeInsets.all(20.0),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.shopping_bag,
-                          size: 32,
-                          color: Colors.orange,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Order History',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              'View your past orders and track deliveries',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(
-                        Icons.arrow_forward_ios,
-                        color: Colors.grey,
-                      ),
-                    ],
                   ),
                 ),
               ),
-            ),
-            
-            const SizedBox(height: 24),
-            
-            // Features info
-            const Text(
-              'How It Works',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.teal,
+
+              const SizedBox(height: 24),
+
+              // Features info
+              const Text(
+                'How It Works',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.teal,
+                ),
               ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            _buildHowItWorksStep(
-              1,
-              'Upload Prescription',
-              'Take a clear photo of your prescription or select from gallery',
-              Icons.camera_alt,
-            ),
-            
-            _buildHowItWorksStep(
-              2,
-              'AI Processing',
-              'Our AI extracts medicines and maps them to available products',
-              Icons.psychology,
-            ),
-            
-            _buildHowItWorksStep(
-              3,
-              'Review & Order',
-              'Review AI suggestions, select medicines, and place your order',
-              Icons.shopping_cart,
-            ),
-            
-            _buildHowItWorksStep(
-              4,
-              'Fast Delivery',
-              'Get your medicines delivered to your doorstep quickly',
-              Icons.local_shipping,
-            ),
 
-            const SizedBox(height: 24),
+              const SizedBox(height: 16),
 
-            // Featured Products
-            _buildFeaturedProducts(),
+              _buildHowItWorksStep(
+                1,
+                'Upload Prescription',
+                'Take a clear photo of your prescription or select from gallery',
+                Icons.camera_alt,
+              ),
 
-            const SizedBox(height: 24),
+              _buildHowItWorksStep(
+                2,
+                'AI Processing',
+                'Our AI extracts medicines and maps them to available products',
+                Icons.psychology,
+              ),
 
-            // Recent Orders
-            _buildRecentOrders(),
-          ],
+              _buildHowItWorksStep(
+                3,
+                'Review & Order',
+                'Review AI suggestions, select medicines, and place your order',
+                Icons.shopping_cart,
+              ),
+
+              _buildHowItWorksStep(
+                4,
+                'Fast Delivery',
+                'Get your medicines delivered to your doorstep quickly',
+                Icons.local_shipping,
+              ),
+
+              const SizedBox(height: 24),
+
+              // Featured Products
+              _buildFeaturedProducts(),
+
+              const SizedBox(height: 24),
+
+              // Recent Orders
+              _buildRecentOrders(),
+            ],
+          ),
         ),
       ),
-      )
     );
   }
 
-  Widget _buildHowItWorksStep(int step, String title, String description, IconData icon) {
+  Widget _buildHowItWorksStep(
+    int step,
+    String title,
+    String description,
+    IconData icon,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -475,10 +549,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 4),
                 Text(
                   description,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey,
-                  ),
+                  style: const TextStyle(fontSize: 14, color: Colors.grey),
                 ),
               ],
             ),
@@ -501,13 +572,7 @@ class _HomeScreenState extends State<HomeScreen> {
             color: Colors.teal,
           ),
         ),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Colors.grey,
-          ),
-        ),
+        Text(label, style: const TextStyle(fontSize: 12, color: Colors.grey)),
       ],
     );
   }
@@ -548,7 +613,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const ProductsScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const ProductsScreen(),
+                      ),
                     );
                   },
                   child: const Text('View All'),
@@ -573,7 +640,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => ProductDetailScreen(product: product),
+                              builder: (context) =>
+                                  ProductDetailScreen(product: product),
                             ),
                           );
                         },
@@ -586,16 +654,20 @@ class _HomeScreenState extends State<HomeScreen> {
                                 width: double.infinity,
                                 decoration: BoxDecoration(
                                   color: Colors.grey[100],
-                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(4),
+                                  ),
                                 ),
                                 child: product.imageUrl != null
                                     ? Image.network(
                                         product.imageUrl!,
                                         fit: BoxFit.cover,
-                                        errorBuilder: (context, error, stackTrace) => const Icon(
-                                          Icons.medical_services,
-                                          color: Colors.grey,
-                                        ),
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                const Icon(
+                                                  Icons.medical_services,
+                                                  color: Colors.grey,
+                                                ),
                                       )
                                     : const Icon(
                                         Icons.medical_services,
@@ -682,7 +754,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   onPressed: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => const OrdersScreen()),
+                      MaterialPageRoute(
+                        builder: (context) => const OrdersScreen(),
+                      ),
                     );
                   },
                   child: const Text('View All'),
@@ -690,41 +764,45 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            ...recentOrders.map((order) => Card(
-              margin: const EdgeInsets.only(bottom: 8),
-              child: ListTile(
-                leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(order.status).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.shopping_bag,
-                    color: _getStatusColor(order.status),
-                  ),
-                ),
-                title: Text('Order #${order.orderNumber}'),
-                subtitle: Text('${order.totalItems} items • ₹${order.totalAmount.toStringAsFixed(2)}'),
-                trailing: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: _getStatusColor(order.status),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    order.statusDisplayName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
+            ...recentOrders.map(
+              (order) => Card(
+                margin: const EdgeInsets.only(bottom: 8),
+                child: ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(order.status).withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.shopping_bag,
+                      color: _getStatusColor(order.status),
                     ),
                   ),
+                  title: Text('Order #${order.orderNumber}'),
+                  subtitle: Text(
+                    '${order.totalItems} items • ₹${order.totalAmount.toStringAsFixed(2)}',
+                  ),
+                  trailing: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _getStatusColor(order.status),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      order.statusDisplayName,
+                      style: const TextStyle(color: Colors.white, fontSize: 10),
+                    ),
+                  ),
+                  onTap: () {
+                    // Navigate to order details
+                  },
                 ),
-                onTap: () {
-                  // Navigate to order details
-                },
               ),
-            )),
+            ),
           ],
         );
       },
@@ -742,7 +820,7 @@ class _HomeScreenState extends State<HomeScreen> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.teal.withValues(alpha: 0.3),
+            color: Colors.teal.withOpacity(0.3),
             blurRadius: 15,
             offset: const Offset(0, 8),
           ),
@@ -762,7 +840,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
+                    color: Colors.white.withOpacity(0.2),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: const Icon(
@@ -787,10 +865,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 8),
                       const Text(
                         'AI-powered medicine recognition',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.white70,
-                        ),
+                        style: TextStyle(fontSize: 14, color: Colors.white70),
                       ),
                     ],
                   ),
@@ -818,11 +893,7 @@ class _HomeScreenState extends State<HomeScreen> {
           children: [
             Row(
               children: [
-                Icon(
-                  Icons.search,
-                  color: Colors.teal,
-                  size: 24,
-                ),
+                Icon(Icons.search, color: Colors.teal, size: 24),
                 const SizedBox(width: 12),
                 const Text(
                   'Smart Medicine Search',
@@ -837,10 +908,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 16),
             const Text(
               'Find medicines by name, composition, or brand. Our AI matches your search with available medicines.',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey),
             ),
             const SizedBox(height: 16),
             Row(

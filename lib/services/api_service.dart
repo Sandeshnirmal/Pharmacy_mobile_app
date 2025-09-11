@@ -8,6 +8,7 @@ import '../config/api_config.dart';
 import '../models/api_response.dart';
 import '../models/user_model.dart';
 import '../models/prescription_model.dart';
+import '../models/prescription_detail_model.dart'; // Import the new model
 import '../models/product_model.dart';
 import '../utils/api_logger.dart';
 import '../utils/network_helper.dart';
@@ -15,7 +16,7 @@ import '../utils/network_helper.dart';
 class ApiService {
   static String get baseUrl => ApiConfig.baseUrl;
   static int get timeoutDuration => ApiConfig.timeoutDuration;
-  
+
   // Singleton pattern
   static final ApiService _instance = ApiService._internal();
   factory ApiService() => _instance;
@@ -56,7 +57,8 @@ class ApiService {
     if (includeAuth) {
       final token = await getAccessToken();
       if (token != null) {
-        headers['Authorization'] = 'Token $token';  // Django TokenAuthentication uses 'Token' not 'Bearer'
+        headers['Authorization'] =
+            'Token $token'; // Django TokenAuthentication uses 'Token' not 'Bearer'
       }
     }
 
@@ -64,7 +66,10 @@ class ApiService {
   }
 
   // Handle HTTP response with better error handling
-  ApiResponse<T> _handleResponse<T>(http.Response response, T Function(Map<String, dynamic>) fromJson) {
+  ApiResponse<T> _handleResponse<T>(
+    http.Response response,
+    T Function(Map<String, dynamic>) fromJson,
+  ) {
     try {
       ApiLogger.logResponse(response.statusCode, response.body);
 
@@ -75,18 +80,22 @@ class ApiService {
         String errorMessage = 'Request failed';
         try {
           final errorData = json.decode(response.body);
-          errorMessage = errorData['error'] ??
-                        errorData['detail'] ??
-                        errorData['message'] ??
-                        errorData['non_field_errors']?.first ??
-                        'Request failed with status ${response.statusCode}';
+          errorMessage =
+              errorData['error'] ??
+              errorData['detail'] ??
+              errorData['message'] ??
+              errorData['non_field_errors']?.first ??
+              'Request failed with status ${response.statusCode}';
         } catch (e) {
           errorMessage = 'Request failed with status ${response.statusCode}';
         }
         return ApiResponse.error(errorMessage, response.statusCode);
       }
     } catch (e) {
-      return ApiResponse.error('Failed to parse response: $e', response.statusCode);
+      return ApiResponse.error(
+        'Failed to parse response: $e',
+        response.statusCode,
+      );
     }
   }
 
@@ -102,17 +111,22 @@ class ApiService {
       }
 
       // Test server connectivity
-      final response = await _client.get(
-        Uri.parse('${ApiConfig.baseUrl}/'),
-        headers: await _getHeaders(includeAuth: false),
-      ).timeout(Duration(milliseconds: 10000));
+      final response = await _client
+          .get(
+            Uri.parse('${ApiConfig.baseUrl}/'),
+            headers: await _getHeaders(includeAuth: false),
+          )
+          .timeout(Duration(milliseconds: 10000));
 
       ApiLogger.logResponse(response.statusCode, 'Connection test response');
 
       if (response.statusCode < 500) {
         return ApiResponse.success(true);
       } else {
-        return ApiResponse.error('Server error: ${response.statusCode}', response.statusCode);
+        return ApiResponse.error(
+          'Server error: ${response.statusCode}',
+          response.statusCode,
+        );
       }
     } catch (e) {
       ApiLogger.logError('Connection test failed: $e');
@@ -139,20 +153,20 @@ class ApiService {
     try {
       ApiLogger.logRequest('POST', ApiConfig.loginUrl);
 
-      final response = await _client.post(
-        Uri.parse(ApiConfig.loginUrl),
-        headers: await _getHeaders(includeAuth: false),
-        body: json.encode({
-          'email': email,
-          'password': password,
-        }),
-      ).timeout(Duration(milliseconds: timeoutDuration));
+      final response = await _client
+          .post(
+            Uri.parse(ApiConfig.loginUrl),
+            headers: await _getHeaders(includeAuth: false),
+            body: json.encode({'email': email, 'password': password}),
+          )
+          .timeout(Duration(milliseconds: timeoutDuration));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
 
         // Handle different response formats
-        String accessToken = data['access'] ?? data['token'] ?? data['access_token'] ?? '';
+        String accessToken =
+            data['access'] ?? data['token'] ?? data['access_token'] ?? '';
         String refreshToken = data['refresh'] ?? data['refresh_token'] ?? '';
 
         if (accessToken.isNotEmpty) {
@@ -175,10 +189,12 @@ class ApiService {
 
   Future<ApiResponse<UserModel>> getUserProfile() async {
     try {
-      final response = await _client.get(
-        Uri.parse('$baseUrl/user/profile/'),
-        headers: await _getHeaders(),
-      ).timeout(Duration(milliseconds: timeoutDuration));
+      final response = await _client
+          .get(
+            Uri.parse('$baseUrl/user/profile/'),
+            headers: await _getHeaders(),
+          )
+          .timeout(Duration(milliseconds: timeoutDuration));
 
       return _handleResponse(response, (data) => UserModel.fromJson(data));
     } catch (e) {
@@ -189,9 +205,13 @@ class ApiService {
   // Prescription APIs
 
   // Simple prescription upload for order verification (NO AI/OCR processing)
-  Future<ApiResponse<Map<String, dynamic>>> uploadPrescriptionForOrder(File imageFile) async {
+  Future<ApiResponse<Map<String, dynamic>>> uploadPrescriptionForOrder(
+    File imageFile,
+  ) async {
     try {
-      ApiLogger.log('Uploading prescription for order verification (NO AI/OCR)');
+      ApiLogger.log(
+        'Uploading prescription for order verification (NO AI/OCR)',
+      );
       ApiLogger.log('File path: ${imageFile.path}');
 
       // Validate file exists and is readable
@@ -202,7 +222,10 @@ class ApiService {
       // Check file size (max 10MB)
       final fileSize = await imageFile.length();
       if (fileSize > 10 * 1024 * 1024) {
-        return ApiResponse.error('File size too large. Maximum 10MB allowed.', 0);
+        return ApiResponse.error(
+          'File size too large. Maximum 10MB allowed.',
+          0,
+        );
       }
 
       // Validate file extension
@@ -211,7 +234,10 @@ class ApiService {
       final fileExtension = fileName.split('.').last;
 
       if (!allowedExtensions.contains(fileExtension)) {
-        return ApiResponse.error('Invalid file format. Only JPG, PNG, and WebP images are allowed.', 0);
+        return ApiResponse.error(
+          'Invalid file format. Only JPG, PNG, and WebP images are allowed.',
+          0,
+        );
       }
 
       final request = http.MultipartRequest(
@@ -240,7 +266,7 @@ class ApiService {
       // Add image file with proper field name and MIME type
       request.files.add(
         await http.MultipartFile.fromPath(
-          'prescription_image',
+          'image', // Changed field name to 'image'
           imageFile.path,
           filename: 'prescription.$fileExtension',
           contentType: MediaType.parse(mimeType),
@@ -266,9 +292,13 @@ class ApiService {
   }
 
   // Full prescription upload with processing (for medicine discovery)
-  Future<ApiResponse<PrescriptionUploadResponse>> uploadPrescription(File imageFile) async {
+  Future<ApiResponse<PrescriptionUploadResponse>> uploadPrescription(
+    File imageFile,
+  ) async {
     try {
-      ApiLogger.log('Uploading prescription to: ${ApiConfig.prescriptionUploadUrl}');
+      ApiLogger.log(
+        'Uploading prescription to: ${ApiConfig.prescriptionUploadUrl}',
+      );
       ApiLogger.log('File path: ${imageFile.path}');
       ApiLogger.log('File size: ${await imageFile.length()} bytes');
 
@@ -279,7 +309,7 @@ class ApiService {
 
       // Add headers (remove Content-Type for multipart)
       final headers = await _getHeaders();
-      headers.remove('Content-Type'); // Let http package set this for multipart
+      headers.remove('Content-Type');
       request.headers.addAll(headers);
 
       // Validate file exists and is readable
@@ -287,66 +317,129 @@ class ApiService {
         return ApiResponse.error('Image file not found', 0);
       }
 
-      // Add file with proper field name
-      request.files.add(await http.MultipartFile.fromPath(
-        'prescription_image', // Match backend field name
-        imageFile.path,
-        filename: 'prescription.jpg',
-      ));
+      // Determine proper MIME type and filename
+      final fileName = imageFile.path.split('/').last.toLowerCase();
+      final fileExtension = fileName.split('.').last;
+      String mimeType = 'image/jpeg'; // Default
+      switch (fileExtension) {
+        case 'png':
+          mimeType = 'image/png';
+          break;
+        case 'webp':
+          mimeType = 'image/webp';
+          break;
+        case 'heic': // Add HEIC support if needed by backend
+          mimeType = 'image/heic';
+          break;
+        default:
+          mimeType = 'image/jpeg';
+      }
 
-      final streamedResponse = await request.send().timeout(Duration(milliseconds: timeoutDuration * 3));
+      // Add image file with proper field name and MIME type
+      request.files.add(
+        await http.MultipartFile.fromPath(
+          'image', // Changed field name to 'image'
+          imageFile.path,
+          filename: 'prescription.$fileExtension',
+          contentType: MediaType.parse(mimeType),
+        ),
+      );
+
+      final streamedResponse = await request.send().timeout(
+        Duration(milliseconds: timeoutDuration * 3),
+      );
       final response = await http.Response.fromStream(streamedResponse);
 
       ApiLogger.logResponse(response.statusCode, response.body);
 
-      return _handleResponse(response, (data) => PrescriptionUploadResponse.fromJson(data));
+      return _handleResponse(
+        response,
+        (data) => PrescriptionUploadResponse.fromJson(data),
+      );
     } catch (e) {
       ApiLogger.logError('Upload error: $e');
       return ApiResponse.error('Upload failed: $e', 0);
     }
   }
 
-  Future<ApiResponse<PrescriptionStatusResponse>> getPrescriptionStatus(int prescriptionId) async {
+  // Get a single prescription detail by ID
+  Future<ApiResponse<PrescriptionDetailModel>> getPrescriptionDetail(
+    String prescriptionId,
+  ) async {
     try {
-      final url = '${ApiConfig.baseUrl}/prescription/mobile/status/$prescriptionId/';
+      final url =
+          '${ApiConfig.baseUrl}/prescription/mobile/detail/$prescriptionId/';
       ApiLogger.logRequest('GET', url);
 
-      final response = await _client.get(
-        Uri.parse(url),
-        headers: await _getHeaders(),
-      ).timeout(Duration(milliseconds: timeoutDuration));
+      final response = await _client
+          .get(Uri.parse(url), headers: await _getHeaders())
+          .timeout(Duration(milliseconds: timeoutDuration));
 
-      return _handleResponse(response, (data) => PrescriptionStatusResponse.fromJson(data));
+      return _handleResponse(
+        response,
+        (data) => PrescriptionDetailModel.fromJson(data),
+      );
+    } catch (e) {
+      ApiLogger.logError('Get prescription detail error: $e');
+      return ApiResponse.error('Network error: $e', 0);
+    }
+  }
+
+  Future<ApiResponse<PrescriptionStatusResponse>> getPrescriptionStatus(
+    String prescriptionId, // Changed to String
+  ) async {
+    try {
+      final url =
+          '${ApiConfig.baseUrl}/prescription/mobile/status/$prescriptionId/';
+      ApiLogger.logRequest('GET', url);
+
+      final response = await _client
+          .get(Uri.parse(url), headers: await _getHeaders())
+          .timeout(Duration(milliseconds: timeoutDuration));
+
+      return _handleResponse(
+        response,
+        (data) => PrescriptionStatusResponse.fromJson(data),
+      );
     } catch (e) {
       ApiLogger.logError('Prescription status error: $e');
       return ApiResponse.error('Network error: $e', 0);
     }
   }
 
-  Future<ApiResponse<PrescriptionSuggestionsResponse>> getMedicineSuggestions(int prescriptionId) async {
+  Future<ApiResponse<PrescriptionSuggestionsResponse>> getMedicineSuggestions(
+    String prescriptionId, // Changed to String
+  ) async {
     try {
-      final url = '${ApiConfig.baseUrl}/prescription/mobile/suggestions/$prescriptionId/';
+      final url =
+          '${ApiConfig.baseUrl}/prescription/mobile/suggestions/$prescriptionId/';
       ApiLogger.logRequest('GET', url);
 
-      final response = await _client.get(
-        Uri.parse(url),
-        headers: await _getHeaders(),
-      ).timeout(Duration(milliseconds: timeoutDuration));
+      final response = await _client
+          .get(Uri.parse(url), headers: await _getHeaders())
+          .timeout(Duration(milliseconds: timeoutDuration));
 
-      return _handleResponse(response, (data) => PrescriptionSuggestionsResponse.fromJson(data));
+      return _handleResponse(
+        response,
+        (data) => PrescriptionSuggestionsResponse.fromJson(data),
+      );
     } catch (e) {
       ApiLogger.logError('Medicine suggestions error: $e');
       return ApiResponse.error('Network error: $e', 0);
     }
   }
 
-  Future<ApiResponse<OrderResponse>> createPrescriptionOrder(Map<String, dynamic> orderData) async {
+  Future<ApiResponse<OrderResponse>> createPrescriptionOrder(
+    Map<String, dynamic> orderData,
+  ) async {
     try {
-      final response = await _client.post(
-        Uri.parse(ApiConfig.prescriptionCreateOrderUrl),
-        headers: await _getHeaders(),
-        body: json.encode(orderData),
-      ).timeout(Duration(milliseconds: timeoutDuration));
+      final response = await _client
+          .post(
+            Uri.parse(ApiConfig.prescriptionCreateOrderUrl),
+            headers: await _getHeaders(),
+            body: json.encode(orderData),
+          )
+          .timeout(Duration(milliseconds: timeoutDuration));
 
       return _handleResponse(response, (data) => OrderResponse.fromJson(data));
     } catch (e) {
@@ -355,30 +448,45 @@ class ApiService {
   }
 
   // Product APIs
-  Future<ApiResponse<List<ProductModel>>> getProducts({Map<String, String>? queryParams}) async {
+  Future<ApiResponse<List<ProductModel>>> getProducts({
+    Map<String, String>? queryParams,
+  }) async {
     try {
-      final uri = Uri.parse(ApiConfig.enhancedProductsUrl).replace(queryParameters: queryParams);
-      
-      final response = await _client.get(
-        uri,
-        headers: await _getHeaders(),
-      ).timeout(Duration(milliseconds: timeoutDuration));
+      final uri = Uri.parse(
+        ApiConfig.enhancedProductsUrl,
+      ).replace(queryParameters: queryParams);
+
+      final response = await _client
+          .get(uri, headers: await _getHeaders())
+          .timeout(Duration(milliseconds: timeoutDuration));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = json.decode(response.body);
         if (data is List) {
-          final list = data.map((item) => ProductModel.fromJson(item as Map<String, dynamic>)).toList();
+          final list = data
+              .map(
+                (item) => ProductModel.fromJson(item as Map<String, dynamic>),
+              )
+              .toList();
           return ApiResponse.success(list);
         } else if (data is Map && data.containsKey('results')) {
           final results = data['results'] as List;
-          final list = results.map((item) => ProductModel.fromJson(item as Map<String, dynamic>)).toList();
+          final list = results
+              .map(
+                (item) => ProductModel.fromJson(item as Map<String, dynamic>),
+              )
+              .toList();
           return ApiResponse.success(list);
         } else {
-          return ApiResponse.error('Invalid response format', response.statusCode);
+          return ApiResponse.error(
+            'Invalid response format',
+            response.statusCode,
+          );
         }
       } else {
         final errorData = json.decode(response.body);
-        final errorMessage = errorData['error'] ?? errorData['detail'] ?? 'Request failed';
+        final errorMessage =
+            errorData['error'] ?? errorData['detail'] ?? 'Request failed';
         return ApiResponse.error(errorMessage, response.statusCode);
       }
     } catch (e) {
@@ -392,7 +500,9 @@ class ApiService {
   }
 
   // Search prescription-based medicines
-  Future<ApiResponse<List<ProductModel>>> searchPrescriptionMedicines(String query) async {
+  Future<ApiResponse<List<ProductModel>>> searchPrescriptionMedicines(
+    String query,
+  ) async {
     try {
       final response = await _client.get(
         Uri.parse('${ApiConfig.prescriptionSearchUrl}?q=$query&limit=20'),
@@ -403,28 +513,41 @@ class ApiService {
         final data = json.decode(response.body);
         if (data['success'] == true) {
           final List<dynamic> productsJson = data['products'];
-          final products = productsJson.map((json) => ProductModel(
-            id: json['id'],
-            name: json['name'],
-            manufacturer: json['manufacturer'],
-            price: json['price'].toDouble(),
-            mrp: json['mrp'].toDouble(),
-            imageUrl: json['image_url'] ?? 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400',
-            description: json['description'] ?? 'Medicine',
-            genericName: json['generic_name'] ?? '',
-            requiresPrescription: json['is_prescription_required'] ?? false,
-            stockQuantity: json['stock_quantity'] ?? 0,
-            isActive: json['in_stock'] ?? false,
-            strength: json['strength'] ?? '',
-            form: json['form'] ?? '',
-          )).toList();
+          final products = productsJson
+              .map(
+                (json) => ProductModel(
+                  id: json['id'],
+                  name: json['name'],
+                  manufacturer: json['manufacturer'],
+                  price: json['price'].toDouble(),
+                  mrp: json['mrp'].toDouble(),
+                  imageUrl:
+                      json['image_url'] ??
+                      'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400',
+                  description: json['description'] ?? 'Medicine',
+                  genericName: json['generic_name'] ?? '',
+                  requiresPrescription:
+                      json['is_prescription_required'] ?? false,
+                  stockQuantity: json['stock_quantity'] ?? 0,
+                  isActive: json['in_stock'] ?? false,
+                  strength: json['strength'] ?? '',
+                  form: json['form'] ?? '',
+                ),
+              )
+              .toList();
 
           return ApiResponse.success(products);
         } else {
-          return ApiResponse.error(data['error'] ?? 'Search failed', response.statusCode);
+          return ApiResponse.error(
+            data['error'] ?? 'Search failed',
+            response.statusCode,
+          );
         }
       } else {
-        return ApiResponse.error('HTTP ${response.statusCode}', response.statusCode);
+        return ApiResponse.error(
+          'HTTP ${response.statusCode}',
+          response.statusCode,
+        );
       }
     } catch (e) {
       return ApiResponse.error('Network error: $e', 0);
@@ -432,7 +555,9 @@ class ApiService {
   }
 
   // Get prescription-based products for search
-  Future<ApiResponse<List<ProductModel>>> getPrescriptionProducts(int prescriptionId) async {
+  Future<ApiResponse<List<ProductModel>>> getPrescriptionProducts(
+    int prescriptionId,
+  ) async {
     try {
       final response = await _client.get(
         Uri.parse('$baseUrl/prescription/mobile/products/$prescriptionId/'),
@@ -443,26 +568,39 @@ class ApiService {
         final data = json.decode(response.body);
         if (data['success'] == true) {
           final List<dynamic> productsJson = data['products'];
-          final products = productsJson.map((json) => ProductModel(
-            id: json['id'],
-            name: json['name'],
-            manufacturer: json['manufacturer'],
-            price: json['price'].toDouble(),
-            mrp: json['mrp'].toDouble(),
-            imageUrl: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400',
-            description: json['extracted_medicine'] ?? 'Prescription medicine',
-            genericName: json['extracted_medicine'],
-            requiresPrescription: json['is_prescription_required'] ?? true,
-            stockQuantity: json['stock_quantity'] ?? 0,
-            isActive: json['in_stock'] ?? false,
-          )).toList();
+          final products = productsJson
+              .map(
+                (json) => ProductModel(
+                  id: json['id'],
+                  name: json['name'],
+                  manufacturer: json['manufacturer'],
+                  price: json['price'].toDouble(),
+                  mrp: json['mrp'].toDouble(),
+                  imageUrl:
+                      'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400',
+                  description:
+                      json['extracted_medicine'] ?? 'Prescription medicine',
+                  genericName: json['extracted_medicine'],
+                  requiresPrescription:
+                      json['is_prescription_required'] ?? true,
+                  stockQuantity: json['stock_quantity'] ?? 0,
+                  isActive: json['in_stock'] ?? false,
+                ),
+              )
+              .toList();
 
           return ApiResponse.success(products);
         } else {
-          return ApiResponse.error(data['error'] ?? 'Failed to get prescription products', response.statusCode);
+          return ApiResponse.error(
+            data['error'] ?? 'Failed to get prescription products',
+            response.statusCode,
+          );
         }
       } else {
-        return ApiResponse.error('HTTP ${response.statusCode}', response.statusCode);
+        return ApiResponse.error(
+          'HTTP ${response.statusCode}',
+          response.statusCode,
+        );
       }
     } catch (e) {
       return ApiResponse.error('Network error: $e', 0);
@@ -472,26 +610,33 @@ class ApiService {
   // Get orders
   Future<ApiResponse<List<OrderModel>>> getOrders() async {
     try {
-      final response = await _client.get(
-        Uri.parse(ApiConfig.ordersUrl),
-        headers: await _getHeaders(),
-      ).timeout(Duration(milliseconds: timeoutDuration));
+      final response = await _client
+          .get(Uri.parse(ApiConfig.ordersUrl), headers: await _getHeaders())
+          .timeout(Duration(milliseconds: timeoutDuration));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = json.decode(response.body);
         if (data is List) {
-          final list = data.map((item) => OrderModel.fromJson(item as Map<String, dynamic>)).toList();
+          final list = data
+              .map((item) => OrderModel.fromJson(item as Map<String, dynamic>))
+              .toList();
           return ApiResponse.success(list);
         } else if (data is Map && data.containsKey('results')) {
           final results = data['results'] as List;
-          final list = results.map((item) => OrderModel.fromJson(item as Map<String, dynamic>)).toList();
+          final list = results
+              .map((item) => OrderModel.fromJson(item as Map<String, dynamic>))
+              .toList();
           return ApiResponse.success(list);
         } else {
-          return ApiResponse.error('Invalid response format', response.statusCode);
+          return ApiResponse.error(
+            'Invalid response format',
+            response.statusCode,
+          );
         }
       } else {
         final errorData = json.decode(response.body);
-        final errorMessage = errorData['error'] ?? errorData['detail'] ?? 'Request failed';
+        final errorMessage =
+            errorData['error'] ?? errorData['detail'] ?? 'Request failed';
         return ApiResponse.error(errorMessage, response.statusCode);
       }
     } catch (e) {
@@ -502,10 +647,12 @@ class ApiService {
   // Get order details
   Future<ApiResponse<OrderModel>> getOrderDetails(int orderId) async {
     try {
-      final response = await _client.get(
-        Uri.parse('$baseUrl/order/orders/$orderId/'),
-        headers: await _getHeaders(),
-      ).timeout(Duration(milliseconds: timeoutDuration));
+      final response = await _client
+          .get(
+            Uri.parse('$baseUrl/order/orders/$orderId/'),
+            headers: await _getHeaders(),
+          )
+          .timeout(Duration(milliseconds: timeoutDuration));
 
       return _handleResponse(response, (data) => OrderModel.fromJson(data));
     } catch (e) {
@@ -514,12 +661,16 @@ class ApiService {
   }
 
   // Get order tracking information
-  Future<ApiResponse<Map<String, dynamic>>> getOrderTracking(int orderId) async {
+  Future<ApiResponse<Map<String, dynamic>>> getOrderTracking(
+    int orderId,
+  ) async {
     try {
-      final response = await _client.get(
-        Uri.parse('$baseUrl/order/tracking/$orderId/'),
-        headers: await _getHeaders(),
-      ).timeout(Duration(milliseconds: timeoutDuration));
+      final response = await _client
+          .get(
+            Uri.parse('$baseUrl/order/tracking/$orderId/'),
+            headers: await _getHeaders(),
+          )
+          .timeout(Duration(milliseconds: timeoutDuration));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -537,16 +688,17 @@ class ApiService {
   }
 
   // Intelligent Medicine Search
-  Future<ApiResponse<Map<String, dynamic>>> intelligentMedicineSearch(List<String> medicines) async {
+  Future<ApiResponse<Map<String, dynamic>>> intelligentMedicineSearch(
+    List<String> medicines,
+  ) async {
     try {
-      final response = await _client.post(
-        Uri.parse('$baseUrl/prescription/search/medicines/'),
-        headers: await _getHeaders(),
-        body: json.encode({
-          'medicines': medicines,
-          'limit': 5,
-        }),
-      ).timeout(Duration(milliseconds: timeoutDuration));
+      final response = await _client
+          .post(
+            Uri.parse('$baseUrl/prescription/search/medicines/'),
+            headers: await _getHeaders(),
+            body: json.encode({'medicines': medicines, 'limit': 5}),
+          )
+          .timeout(Duration(milliseconds: timeoutDuration));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -564,15 +716,17 @@ class ApiService {
   }
 
   // Search by Composition
-  Future<ApiResponse<Map<String, dynamic>>> searchByComposition(List<Map<String, String>> compositions) async {
+  Future<ApiResponse<Map<String, dynamic>>> searchByComposition(
+    List<Map<String, String>> compositions,
+  ) async {
     try {
-      final response = await _client.post(
-        Uri.parse('$baseUrl/prescription/search/composition/'),
-        headers: await _getHeaders(),
-        body: json.encode({
-          'compositions': compositions,
-        }),
-      ).timeout(Duration(milliseconds: timeoutDuration));
+      final response = await _client
+          .post(
+            Uri.parse('$baseUrl/prescription/search/composition/'),
+            headers: await _getHeaders(),
+            body: json.encode({'compositions': compositions}),
+          )
+          .timeout(Duration(milliseconds: timeoutDuration));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -590,16 +744,19 @@ class ApiService {
   }
 
   // Upload prescription with OCR processing
-  Future<ApiResponse<Map<String, dynamic>>> uploadPrescriptionWithOCR(String base64Image) async {
+  Future<ApiResponse<Map<String, dynamic>>> uploadPrescriptionWithOCR(
+    String base64Image,
+  ) async {
     try {
-      final response = await _client.post(
-        Uri.parse('$baseUrl/prescription/mobile/upload/'),
-        headers: await _getHeaders(),
-        body: json.encode({
-          'image': base64Image,
-          'process_with_ai': true,
-        }),
-      ).timeout(Duration(milliseconds: timeoutDuration * 3)); // Longer timeout for OCR
+      final response = await _client
+          .post(
+            Uri.parse('$baseUrl/prescription/mobile/upload/'),
+            headers: await _getHeaders(),
+            body: json.encode({'image': base64Image, 'process_with_ai': true}),
+          )
+          .timeout(
+            Duration(milliseconds: timeoutDuration * 3),
+          ); // Longer timeout for OCR
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = json.decode(response.body);
@@ -617,15 +774,19 @@ class ApiService {
   }
 
   // OCR Analysis of prescription image
-  Future<ApiResponse<Map<String, dynamic>>> analyzePrescriptionOCR(String base64Image) async {
+  Future<ApiResponse<Map<String, dynamic>>> analyzePrescriptionOCR(
+    String base64Image,
+  ) async {
     try {
-      final response = await _client.post(
-        Uri.parse('$baseUrl/prescription/ocr/analyze/'),
-        headers: await _getHeaders(),
-        body: json.encode({
-          'image': base64Image,
-        }),
-      ).timeout(Duration(milliseconds: timeoutDuration * 3)); // Longer timeout for OCR
+      final response = await _client
+          .post(
+            Uri.parse('$baseUrl/prescription/ocr/analyze/'),
+            headers: await _getHeaders(),
+            body: json.encode({'image': base64Image}),
+          )
+          .timeout(
+            Duration(milliseconds: timeoutDuration * 3),
+          ); // Longer timeout for OCR
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -643,13 +804,17 @@ class ApiService {
   }
 
   // Create pending order (before prescription verification)
-  Future<ApiResponse<Map<String, dynamic>>> createPendingOrder(Map<String, dynamic> orderData) async {
+  Future<ApiResponse<Map<String, dynamic>>> createPendingOrder(
+    Map<String, dynamic> orderData,
+  ) async {
     try {
-      final response = await _client.post(
-        Uri.parse('$baseUrl/api/order/pending/'),
-        headers: await _getHeaders(),
-        body: json.encode(orderData),
-      ).timeout(Duration(milliseconds: timeoutDuration));
+      final response = await _client
+          .post(
+            Uri.parse('$baseUrl/api/order/pending/'),
+            headers: await _getHeaders(),
+            body: json.encode(orderData),
+          )
+          .timeout(Duration(milliseconds: timeoutDuration));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = json.decode(response.body);
@@ -667,13 +832,17 @@ class ApiService {
   }
 
   // Upload prescription for paid order verification (after payment)
-  Future<ApiResponse<Map<String, dynamic>>> uploadPrescriptionForPaidOrder(Map<String, dynamic> prescriptionData) async {
+  Future<ApiResponse<Map<String, dynamic>>> uploadPrescriptionForPaidOrder(
+    Map<String, dynamic> prescriptionData,
+  ) async {
     try {
-      final response = await _client.post(
-        Uri.parse('$baseUrl/api/prescriptions/upload-for-paid-order/'),
-        headers: await _getHeaders(),
-        body: json.encode(prescriptionData),
-      ).timeout(Duration(milliseconds: timeoutDuration * 2));
+      final response = await _client
+          .post(
+            Uri.parse('$baseUrl/api/prescriptions/upload-for-paid-order/'),
+            headers: await _getHeaders(),
+            body: json.encode(prescriptionData),
+          )
+          .timeout(Duration(milliseconds: timeoutDuration * 2));
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = json.decode(response.body);
@@ -691,12 +860,18 @@ class ApiService {
   }
 
   // Get prescription verification status
-  Future<ApiResponse<Map<String, dynamic>>> getPrescriptionVerificationStatus(int prescriptionId) async {
+  Future<ApiResponse<Map<String, dynamic>>> getPrescriptionVerificationStatus(
+    int prescriptionId,
+  ) async {
     try {
-      final response = await _client.get(
-        Uri.parse('$baseUrl/api/prescriptions/verification-status/$prescriptionId/'),
-        headers: await _getHeaders(),
-      ).timeout(Duration(milliseconds: timeoutDuration));
+      final response = await _client
+          .get(
+            Uri.parse(
+              '$baseUrl/api/prescriptions/verification-status/$prescriptionId/',
+            ),
+            headers: await _getHeaders(),
+          )
+          .timeout(Duration(milliseconds: timeoutDuration));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -714,13 +889,17 @@ class ApiService {
   }
 
   // Confirm prescription order after verification
-  Future<ApiResponse<Map<String, dynamic>>> confirmPrescriptionOrder(int orderId) async {
+  Future<ApiResponse<Map<String, dynamic>>> confirmPrescriptionOrder(
+    int orderId,
+  ) async {
     try {
-      final response = await _client.post(
-        Uri.parse('$baseUrl/api/order/confirm-prescription/$orderId/'),
-        headers: await _getHeaders(),
-        body: json.encode({}),
-      ).timeout(Duration(milliseconds: timeoutDuration));
+      final response = await _client
+          .post(
+            Uri.parse('$baseUrl/api/order/confirm-prescription/$orderId/'),
+            headers: await _getHeaders(),
+            body: json.encode({}),
+          )
+          .timeout(Duration(milliseconds: timeoutDuration));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -738,20 +917,25 @@ class ApiService {
   }
 
   // Register user
-  Future<ApiResponse<Map<String, dynamic>>> register(Map<String, dynamic> userData) async {
+  Future<ApiResponse<Map<String, dynamic>>> register(
+    Map<String, dynamic> userData,
+  ) async {
     try {
-      final response = await _client.post(
-        Uri.parse('$baseUrl/user/register/'),
-        headers: await _getHeaders(includeAuth: false),
-        body: json.encode(userData),
-      ).timeout(Duration(milliseconds: timeoutDuration));
+      final response = await _client
+          .post(
+            Uri.parse('$baseUrl/user/register/'),
+            headers: await _getHeaders(includeAuth: false),
+            body: json.encode(userData),
+          )
+          .timeout(Duration(milliseconds: timeoutDuration));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = json.decode(response.body);
         return ApiResponse.success(data);
       } else {
         final errorData = json.decode(response.body);
-        final errorMessage = errorData['error'] ?? errorData['detail'] ?? 'Registration failed';
+        final errorMessage =
+            errorData['error'] ?? errorData['detail'] ?? 'Registration failed';
         return ApiResponse.error(errorMessage, response.statusCode);
       }
     } catch (e) {
@@ -760,13 +944,17 @@ class ApiService {
   }
 
   // Update user profile
-  Future<ApiResponse<UserModel>> updateUserProfile(Map<String, dynamic> profileData) async {
+  Future<ApiResponse<UserModel>> updateUserProfile(
+    Map<String, dynamic> profileData,
+  ) async {
     try {
-      final response = await _client.put(
-        Uri.parse('$baseUrl/user/profile/'),
-        headers: await _getHeaders(),
-        body: json.encode(profileData),
-      ).timeout(Duration(milliseconds: timeoutDuration));
+      final response = await _client
+          .put(
+            Uri.parse('$baseUrl/user/profile/'),
+            headers: await _getHeaders(),
+            body: json.encode(profileData),
+          )
+          .timeout(Duration(milliseconds: timeoutDuration));
 
       return _handleResponse(response, (data) => UserModel.fromJson(data));
     } catch (e) {
@@ -779,11 +967,13 @@ class ApiService {
     try {
       final refreshToken = await getRefreshToken();
       if (refreshToken != null) {
-        await _client.post(
-          Uri.parse('$baseUrl/api/token/logout/'),
-          headers: await _getHeaders(),
-          body: json.encode({'refresh': refreshToken}),
-        ).timeout(Duration(milliseconds: timeoutDuration));
+        await _client
+            .post(
+              Uri.parse('$baseUrl/api/token/logout/'),
+              headers: await _getHeaders(),
+              body: json.encode({'refresh': refreshToken}),
+            )
+            .timeout(Duration(milliseconds: timeoutDuration));
       }
 
       await clearTokens();
@@ -801,11 +991,13 @@ class ApiService {
       final refreshToken = await getRefreshToken();
       if (refreshToken == null) return false;
 
-      final response = await _client.post(
-        Uri.parse('$baseUrl/api/token/refresh/'),
-        headers: await _getHeaders(includeAuth: false),
-        body: json.encode({'refresh': refreshToken}),
-      ).timeout(Duration(milliseconds: timeoutDuration));
+      final response = await _client
+          .post(
+            Uri.parse('$baseUrl/api/token/refresh/'),
+            headers: await _getHeaders(includeAuth: false),
+            body: json.encode({'refresh': refreshToken}),
+          )
+          .timeout(Duration(milliseconds: timeoutDuration));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -821,19 +1013,22 @@ class ApiService {
     }
   }
 
-
-
   // Apply coupon
-  Future<ApiResponse<Map<String, dynamic>>> applyCoupon(String couponCode, double cartTotal) async {
+  Future<ApiResponse<Map<String, dynamic>>> applyCoupon(
+    String couponCode,
+    double cartTotal,
+  ) async {
     try {
-      final response = await _client.post(
-        Uri.parse(ApiConfig.applyCouponUrl),
-        headers: await _getHeaders(),
-        body: json.encode({
-          'coupon_code': couponCode,
-          'cart_total': cartTotal,
-        }),
-      ).timeout(Duration(milliseconds: timeoutDuration));
+      final response = await _client
+          .post(
+            Uri.parse(ApiConfig.applyCouponUrl),
+            headers: await _getHeaders(),
+            body: json.encode({
+              'coupon_code': couponCode,
+              'cart_total': cartTotal,
+            }),
+          )
+          .timeout(Duration(milliseconds: timeoutDuration));
 
       return _handleResponse(response, (data) => data);
     } catch (e) {
@@ -842,13 +1037,17 @@ class ApiService {
   }
 
   // Create order
-  Future<ApiResponse<Map<String, dynamic>>> createOrder(Map<String, dynamic> orderData) async {
+  Future<ApiResponse<Map<String, dynamic>>> createOrder(
+    Map<String, dynamic> orderData,
+  ) async {
     try {
-      final response = await _client.post(
-        Uri.parse(ApiConfig.createOrderUrl),
-        headers: await _getHeaders(),
-        body: json.encode(orderData),
-      ).timeout(Duration(milliseconds: timeoutDuration));
+      final response = await _client
+          .post(
+            Uri.parse(ApiConfig.createOrderUrl),
+            headers: await _getHeaders(),
+            body: json.encode(orderData),
+          )
+          .timeout(Duration(milliseconds: timeoutDuration));
 
       return _handleResponse(response, (data) => data);
     } catch (e) {
@@ -868,10 +1067,7 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'data': json.decode(response.body),
-        };
+        return {'success': true, 'data': json.decode(response.body)};
       } else {
         final errorData = json.decode(response.body);
         return {
@@ -880,15 +1076,15 @@ class ApiService {
         };
       }
     } catch (e) {
-      return {
-        'success': false,
-        'error': 'Network error: $e',
-      };
+      return {'success': false, 'error': 'Network error: $e'};
     }
   }
 
   // Change Password
-  Future<Map<String, dynamic>> changePassword(String currentPassword, String newPassword) async {
+  Future<Map<String, dynamic>> changePassword(
+    String currentPassword,
+    String newPassword,
+  ) async {
     try {
       final response = await _client.post(
         Uri.parse('$baseUrl/user/change-password/'),
@@ -900,10 +1096,7 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'data': json.decode(response.body),
-        };
+        return {'success': true, 'data': json.decode(response.body)};
       } else {
         final errorData = json.decode(response.body);
         return {
@@ -912,10 +1105,7 @@ class ApiService {
         };
       }
     } catch (e) {
-      return {
-        'success': false,
-        'error': 'Network error: $e',
-      };
+      return {'success': false, 'error': 'Network error: $e'};
     }
   }
 
@@ -928,10 +1118,7 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'data': json.decode(response.body),
-        };
+        return {'success': true, 'data': json.decode(response.body)};
       } else {
         final errorData = json.decode(response.body);
         return {
@@ -940,14 +1127,13 @@ class ApiService {
         };
       }
     } catch (e) {
-      return {
-        'success': false,
-        'error': 'Network error: $e',
-      };
+      return {'success': false, 'error': 'Network error: $e'};
     }
   }
 
-  Future<Map<String, dynamic>> addAddress(Map<String, dynamic> addressData) async {
+  Future<Map<String, dynamic>> addAddress(
+    Map<String, dynamic> addressData,
+  ) async {
     try {
       final response = await _client.post(
         Uri.parse('$baseUrl/user/addresses/'),
@@ -956,10 +1142,7 @@ class ApiService {
       );
 
       if (response.statusCode == 201) {
-        return {
-          'success': true,
-          'data': json.decode(response.body),
-        };
+        return {'success': true, 'data': json.decode(response.body)};
       } else {
         final errorData = json.decode(response.body);
         return {
@@ -968,14 +1151,14 @@ class ApiService {
         };
       }
     } catch (e) {
-      return {
-        'success': false,
-        'error': 'Network error: $e',
-      };
+      return {'success': false, 'error': 'Network error: $e'};
     }
   }
 
-  Future<Map<String, dynamic>> updateAddress(int id, Map<String, dynamic> addressData) async {
+  Future<Map<String, dynamic>> updateAddress(
+    int id,
+    Map<String, dynamic> addressData,
+  ) async {
     try {
       final response = await _client.put(
         Uri.parse('$baseUrl/user/addresses/$id/'),
@@ -984,10 +1167,7 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'data': json.decode(response.body),
-        };
+        return {'success': true, 'data': json.decode(response.body)};
       } else {
         final errorData = json.decode(response.body);
         return {
@@ -996,10 +1176,7 @@ class ApiService {
         };
       }
     } catch (e) {
-      return {
-        'success': false,
-        'error': 'Network error: $e',
-      };
+      return {'success': false, 'error': 'Network error: $e'};
     }
   }
 
@@ -1020,14 +1197,72 @@ class ApiService {
         };
       }
     } catch (e) {
-      return {
-        'success': false,
-        'error': 'Network error: $e',
-      };
+      return {'success': false, 'error': 'Network error: $e'};
     }
   }
 
   // Prescription Management
+  Future<ApiResponse<List<PrescriptionDetailModel>>>
+  getUserPrescriptions() async {
+    try {
+      final url = '${ApiConfig.prescriptionEndpoint}/mobile/list/';
+      ApiLogger.logRequest('GET', url);
+
+      final response = await _client
+          .get(Uri.parse(url), headers: await _getHeaders())
+          .timeout(Duration(milliseconds: timeoutDuration));
+
+      if (response.statusCode == 200) {
+        final dynamic decodedData = json.decode(response.body);
+        if (decodedData is List) {
+          final prescriptions = decodedData
+              .map(
+                (json) => PrescriptionDetailModel.fromJson(
+                  json as Map<String, dynamic>,
+                ),
+              )
+              .toList();
+          return ApiResponse.success(prescriptions);
+        } else if (decodedData is Map &&
+            decodedData.containsKey('prescriptions') &&
+            decodedData['prescriptions'] is List) {
+          // Handle cases where the response is a map containing a 'prescriptions' list
+          final List<dynamic> prescriptionsList = decodedData['prescriptions'];
+          final prescriptions = prescriptionsList
+              .map(
+                (json) => PrescriptionDetailModel.fromJson(
+                  json as Map<String, dynamic>,
+                ),
+              )
+              .toList();
+          return ApiResponse.success(prescriptions);
+        } else if (decodedData is Map && decodedData.isEmpty) {
+          // Handle empty map response as an empty list
+          return ApiResponse.success([]);
+        } else {
+          // If the response is not a list or a map with a 'prescriptions' list, treat as empty
+          ApiLogger.logError(
+            'Unexpected response format for getUserPrescriptions: $decodedData',
+          );
+          return ApiResponse.success([]);
+        }
+      } else {
+        String errorMessage = 'Failed to load prescriptions';
+        try {
+          final errorData = json.decode(response.body);
+          errorMessage =
+              errorData['error'] ?? errorData['detail'] ?? errorMessage;
+        } catch (e) {
+          // If error body is not JSON, use generic message
+        }
+        return ApiResponse.error(errorMessage, response.statusCode);
+      }
+    } catch (e) {
+      ApiLogger.logError('Get user prescriptions error: $e');
+      return ApiResponse.error('Network error: $e', 0);
+    }
+  }
+
   Future<Map<String, dynamic>> getPrescriptions() async {
     try {
       final response = await _client.get(
@@ -1036,10 +1271,7 @@ class ApiService {
       );
 
       if (response.statusCode == 200) {
-        return {
-          'success': true,
-          'data': json.decode(response.body),
-        };
+        return {'success': true, 'data': json.decode(response.body)};
       } else {
         final errorData = json.decode(response.body);
         return {
@@ -1048,10 +1280,7 @@ class ApiService {
         };
       }
     } catch (e) {
-      return {
-        'success': false,
-        'error': 'Network error: $e',
-      };
+      return {'success': false, 'error': 'Network error: $e'};
     }
   }
 

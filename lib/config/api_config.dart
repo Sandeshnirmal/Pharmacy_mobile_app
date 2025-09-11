@@ -8,7 +8,7 @@ library;
 class ApiConfig {
   // Base URL Configuration
   // Update this IP address when your backend server IP changes
-  static const String _baseIP = '192.168.62.6'; // Android emulator localhost
+  static const String _baseIP = '10.184.51.23'; // Android emulator localhost
   static const String _basePort = '8000';
 
   // Main API Base URLs

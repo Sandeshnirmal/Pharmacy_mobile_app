@@ -10,13 +10,14 @@ class PrescriptionCameraScreen extends StatefulWidget {
   const PrescriptionCameraScreen({super.key});
 
   @override
-  State<PrescriptionCameraScreen> createState() => _PrescriptionCameraScreenState();
+  State<PrescriptionCameraScreen> createState() =>
+      _PrescriptionCameraScreenState();
 }
 
 class _PrescriptionCameraScreenState extends State<PrescriptionCameraScreen> {
   final ImagePicker _picker = ImagePicker();
   final ApiService _apiService = ApiService();
-  
+
   File? _selectedImage;
   bool _isUploading = false;
   bool _isProcessing = false;
@@ -34,7 +35,7 @@ class _PrescriptionCameraScreenState extends State<PrescriptionCameraScreen> {
         setState(() {
           _selectedImage = File(photo.path);
         });
-        
+
         Fluttertoast.showToast(
           msg: "Photo captured successfully!",
           toastLength: Toast.LENGTH_SHORT,
@@ -63,7 +64,7 @@ class _PrescriptionCameraScreenState extends State<PrescriptionCameraScreen> {
         setState(() {
           _selectedImage = File(image.path);
         });
-        
+
         Fluttertoast.showToast(
           msg: "Image selected successfully!",
           toastLength: Toast.LENGTH_SHORT,
@@ -95,11 +96,13 @@ class _PrescriptionCameraScreenState extends State<PrescriptionCameraScreen> {
 
     try {
       // Upload prescription
-      final uploadResult = await _apiService.uploadPrescription(_selectedImage!);
-      
+      final uploadResult = await _apiService.uploadPrescription(
+        _selectedImage!,
+      );
+
       if (uploadResult.isSuccess) {
         final uploadResponse = uploadResult.data!;
-        
+
         setState(() {
           _isUploading = false;
           _isProcessing = true;
@@ -112,12 +115,12 @@ class _PrescriptionCameraScreenState extends State<PrescriptionCameraScreen> {
         );
 
         // Wait for AI processing
-        await _waitForProcessing(uploadResponse.prescriptionId);
+        await _waitForProcessing(uploadResponse.prescriptionId.toString());
       } else {
         setState(() {
           _isUploading = false;
         });
-        
+
         Fluttertoast.showToast(
           msg: "Upload failed: ${uploadResult.error}",
           toastLength: Toast.LENGTH_LONG,
@@ -128,7 +131,7 @@ class _PrescriptionCameraScreenState extends State<PrescriptionCameraScreen> {
       setState(() {
         _isUploading = false;
       });
-      
+
       Fluttertoast.showToast(
         msg: "Upload error: $e",
         toastLength: Toast.LENGTH_LONG,
@@ -143,7 +146,9 @@ class _PrescriptionCameraScreenState extends State<PrescriptionCameraScreen> {
 
     while (attempts < maxAttempts) {
       try {
-        final statusResult = await _apiService.getPrescriptionStatus(prescriptionId);
+        final statusResult = await _apiService.getPrescriptionStatus(
+          prescriptionId.toString(),
+        );
 
         if (statusResult.isSuccess) {
           final status = statusResult.data!;
@@ -151,7 +156,9 @@ class _PrescriptionCameraScreenState extends State<PrescriptionCameraScreen> {
           // Check if processing is complete
           if (status.isReady) {
             // Processing complete, get suggestions
-            final suggestionsResult = await _apiService.getMedicineSuggestions(prescriptionId);
+            final suggestionsResult = await _apiService.getMedicineSuggestions(
+              prescriptionId.toString(),
+            );
 
             setState(() {
               _isProcessing = false;
@@ -221,7 +228,7 @@ class _PrescriptionCameraScreenState extends State<PrescriptionCameraScreen> {
     setState(() {
       _isProcessing = false;
     });
-    
+
     Fluttertoast.showToast(
       msg: "AI processing timeout. Please try again.",
       toastLength: Toast.LENGTH_LONG,
@@ -273,7 +280,7 @@ class _PrescriptionCameraScreenState extends State<PrescriptionCameraScreen> {
                 ),
               ),
             ),
-            
+
             const SizedBox(height: 20),
 
             // Image Display or Upload Options
@@ -306,7 +313,9 @@ class _PrescriptionCameraScreenState extends State<PrescriptionCameraScreen> {
                         children: [
                           Expanded(
                             child: OutlinedButton.icon(
-                              onPressed: _isUploading || _isProcessing ? null : _retakePicture,
+                              onPressed: _isUploading || _isProcessing
+                                  ? null
+                                  : _retakePicture,
                               icon: const Icon(Icons.camera_alt),
                               label: const Text('Retake'),
                             ),
@@ -314,7 +323,9 @@ class _PrescriptionCameraScreenState extends State<PrescriptionCameraScreen> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: OutlinedButton.icon(
-                              onPressed: _isUploading || _isProcessing ? null : _pickFromGallery,
+                              onPressed: _isUploading || _isProcessing
+                                  ? null
+                                  : _pickFromGallery,
                               icon: const Icon(Icons.photo_library),
                               label: const Text('Gallery'),
                             ),
@@ -325,23 +336,27 @@ class _PrescriptionCameraScreenState extends State<PrescriptionCameraScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
-                          onPressed: _isUploading || _isProcessing ? null : _uploadPrescription,
-                          icon: _isUploading || _isProcessing 
+                          onPressed: _isUploading || _isProcessing
+                              ? null
+                              : _uploadPrescription,
+                          icon: _isUploading || _isProcessing
                               ? const SizedBox(
                                   width: 20,
                                   height: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
                                   ),
                                 )
                               : const Icon(Icons.cloud_upload),
                           label: Text(
-                            _isUploading 
-                                ? 'Uploading...' 
-                                : _isProcessing 
-                                    ? 'AI Processing...' 
-                                    : 'Upload & Process',
+                            _isUploading
+                                ? 'Uploading...'
+                                : _isProcessing
+                                ? 'AI Processing...'
+                                : 'Upload & Process',
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.teal,
@@ -371,7 +386,7 @@ class _PrescriptionCameraScreenState extends State<PrescriptionCameraScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.all(20),
                                   decoration: BoxDecoration(
-                                    color: Colors.teal.withValues(alpha: 0.1),
+                                    color: Colors.teal.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: const Icon(
@@ -398,7 +413,7 @@ class _PrescriptionCameraScreenState extends State<PrescriptionCameraScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.all(20),
                                   decoration: BoxDecoration(
-                                    color: Colors.teal.withValues(alpha: 0.1),
+                                    color: Colors.teal.withOpacity(0.1),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: const Icon(
