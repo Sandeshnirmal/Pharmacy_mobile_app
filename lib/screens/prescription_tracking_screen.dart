@@ -3,9 +3,11 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../models/prescription_detail_model.dart';
 import '../services/prescription_service.dart';
+import '../services/auth_service.dart'; // Import AuthService
 import '../providers/cart_provider.dart';
 import '../models/product_model.dart';
 import '../ProductDetailsScreen.dart'; // Assuming this screen exists for product details
+import '../LoginScreen.dart'; // Import LoginScreen
 import 'package:flutter/material.dart'; // Ensure Material is imported for Color shades
 
 class PrescriptionTrackingScreen extends StatefulWidget {
@@ -22,11 +24,26 @@ class _PrescriptionTrackingScreenState
     extends State<PrescriptionTrackingScreen> {
   late Future<List<PrescriptionDetailModel>> _prescriptionsFuture;
   final PrescriptionService _prescriptionService = PrescriptionService();
+  final AuthService _authService = AuthService(); // Initialize AuthService
+  bool _isAuthenticated = false; // Track authentication status
 
   @override
   void initState() {
     super.initState();
-    _fetchPrescriptions();
+    _checkAuthAndFetchPrescriptions();
+  }
+
+  Future<void> _checkAuthAndFetchPrescriptions() async {
+    _isAuthenticated = await _authService.isAuthenticated();
+    if (_isAuthenticated) {
+      _fetchPrescriptions();
+    } else {
+      setState(() {
+        _prescriptionsFuture = Future.value(
+          [],
+        ); // No prescriptions for unauthenticated users
+      });
+    }
   }
 
   Future<void> _fetchPrescriptions() async {
@@ -101,190 +118,291 @@ class _PrescriptionTrackingScreenState
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
       ),
-      body: FutureBuilder<List<PrescriptionDetailModel>>(
-        future: _prescriptionsFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.error_outline,
-                      color: Colors.red,
-                      size: 40,
+      body: _isAuthenticated
+          ? FutureBuilder<List<PrescriptionDetailModel>>(
+              future: _prescriptionsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                } else if (snapshot.hasError) {
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(
+                            Icons.error_outline,
+                            color: Colors.red,
+                            size: 40,
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            'Error: ${snapshot.error}',
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                          const SizedBox(height: 20),
+                          ElevatedButton(
+                            onPressed: _fetchPrescriptions,
+                            child: const Text('Retry'),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Error: ${snapshot.error}',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: _fetchPrescriptions,
-                      child: const Text('Retry'),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.receipt_long,
-                    color: Colors.grey.shade400,
-                    size: 60,
-                  ),
-                  const SizedBox(height: 10),
-                  Text(
-                    'No prescriptions uploaded yet.',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      // Navigate to upload prescription screen
-                      // Navigator.push(context, MaterialPageRoute(builder: (context) => OrderPrescriptionUploadScreen()));
-                      // Placeholder for now, actual navigation will be added later
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Navigate to Prescription Upload Screen',
+                  );
+                } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.receipt_long,
+                          color: Colors.grey.shade400,
+                          size: 60,
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'No prescriptions uploaded yet.',
+                          style: TextStyle(
+                            color: Colors.grey.shade600,
+                            fontSize: 16,
                           ),
                         ),
-                      );
-                    },
-                    icon: const Icon(Icons.upload_file),
-                    label: const Text('Upload New Prescription'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.teal,
-                      foregroundColor: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          } else {
-            final prescriptions = snapshot.data!;
-            return RefreshIndicator(
-              onRefresh: _fetchPrescriptions,
-              child: ListView.builder(
-                padding: const EdgeInsets.all(8.0),
-                itemCount: prescriptions.length,
-                itemBuilder: (context, index) {
-                  final prescription = prescriptions[index];
-                  return Card(
-                    margin: const EdgeInsets.symmetric(vertical: 8.0),
-                    elevation: 2,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: InkWell(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => PrescriptionDetailViewScreen(
-                              prescription: prescription,
-                            ),
-                          ),
-                        );
-                      },
-                      borderRadius: BorderRadius.circular(12),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(8),
-                              child: Image.network(
-                                prescription.imageUrl,
-                                width: 80,
-                                height: 80,
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    Container(
-                                      width: 80,
-                                      height: 80,
-                                      color: Colors.grey.shade200,
-                                      child: Icon(
-                                        Icons.broken_image,
-                                        color: Colors.grey.shade400,
-                                      ),
-                                    ),
+                        const SizedBox(height: 20),
+                        ElevatedButton.icon(
+                          onPressed: () {
+                            // Navigate to upload prescription screen
+                            // Placeholder for now, actual navigation will be added later
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Navigate to Prescription Upload Screen',
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
+                            );
+                          },
+                          icon: const Icon(Icons.upload_file),
+                          label: const Text('Upload New Prescription'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.teal,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                } else {
+                  final prescriptions = snapshot.data!;
+                  return RefreshIndicator(
+                    onRefresh: _fetchPrescriptions,
+                    child: ListView.builder(
+                      padding: const EdgeInsets.all(8.0),
+                      itemCount: prescriptions.length,
+                      itemBuilder: (context, index) {
+                        final prescription = prescriptions[index];
+                        return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 8.0),
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      PrescriptionDetailViewScreen(
+                                        prescription: prescription,
+                                      ),
+                                ),
+                              );
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
-                                    'Prescription ID: ${prescription.id}',
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 16,
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      prescription.imageUrl,
+                                      width: 80,
+                                      height: 80,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              Container(
+                                                width: 80,
+                                                height: 80,
+                                                color: Colors.grey.shade200,
+                                                child: Icon(
+                                                  Icons.broken_image,
+                                                  color: Colors.grey.shade400,
+                                                ),
+                                              ),
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        _getStatusIcon(prescription.status),
-                                        color: _getStatusColor(
-                                          prescription.status,
-                                        ),
-                                        size: 18,
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        'Status: ${prescription.status}',
-                                        style: TextStyle(
-                                          color: _getStatusColor(
-                                            prescription.status,
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Prescription ID: ${prescription.id}',
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
                                           ),
-                                          fontWeight: FontWeight.w500,
                                         ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Uploaded: ${_formatDate(prescription.uploadedAt)}',
-                                    style: TextStyle(
-                                      color: Colors.grey.shade600,
-                                      fontSize: 12,
+                                        const SizedBox(height: 4),
+                                        Row(
+                                          children: [
+                                            Icon(
+                                              _getStatusIcon(
+                                                prescription.status,
+                                              ),
+                                              color: _getStatusColor(
+                                                prescription.status,
+                                              ),
+                                              size: 18,
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'Status: ${prescription.status}',
+                                              style: TextStyle(
+                                                color: _getStatusColor(
+                                                  prescription.status,
+                                                ),
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Uploaded: ${_formatDate(prescription.uploadedAt)}',
+                                          style: TextStyle(
+                                            color: Colors.grey.shade600,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
                                     ),
+                                  ),
+                                  const Icon(
+                                    Icons.arrow_forward_ios,
+                                    size: 16,
+                                    color: Colors.grey,
                                   ),
                                 ],
                               ),
                             ),
-                            const Icon(
-                              Icons.arrow_forward_ios,
-                              size: 16,
-                              color: Colors.grey,
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                }
+              },
+            )
+          : Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.lock_outline,
+                      color: Colors.teal.shade400,
+                      size: 80,
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Login Required',
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black87,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Please log in to view your prescription history and tracking.',
+                      style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 30),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LoginScreen(),
                             ),
-                          ],
+                          ).then(
+                            (_) => _checkAuthAndFetchPrescriptions(),
+                          ); // Refresh on return
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.teal,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Login Now',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
-                  );
-                },
+                  ],
+                ),
               ),
-            );
-          }
-        },
-      ),
+            ),
     );
+  }
+}
+
+// Helper functions for status icons and colors (moved to top-level)
+Color _getStatusColor(String status) {
+  switch (status.toLowerCase()) {
+    case 'pending':
+      return Colors.orange;
+    case 'processing':
+      return Colors.blue;
+    case 'verified':
+      return Colors.green;
+    case 'rejected':
+      return Colors.red;
+    default:
+      return Colors.grey;
+  }
+}
+
+IconData _getStatusIcon(String status) {
+  switch (status.toLowerCase()) {
+    case 'pending':
+      return Icons.hourglass_empty;
+    case 'processing':
+      return Icons.cached;
+    case 'verified':
+      return Icons.check_circle_outline;
+    case 'rejected':
+      return Icons.cancel_outlined;
+    default:
+      return Icons.info_outline;
   }
 }
 
@@ -480,35 +598,5 @@ class PrescriptionDetailViewScreen extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  IconData _getStatusIcon(String status) {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return Icons.hourglass_empty;
-      case 'processing':
-        return Icons.cached;
-      case 'verified':
-        return Icons.check_circle_outline;
-      case 'rejected':
-        return Icons.cancel_outlined;
-      default:
-        return Icons.info_outline;
-    }
-  }
-
-  Color _getStatusColor(String status) {
-    switch (status.toLowerCase()) {
-      case 'pending':
-        return Colors.orange;
-      case 'processing':
-        return Colors.blue;
-      case 'verified':
-        return Colors.green;
-      case 'rejected':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
   }
 }
