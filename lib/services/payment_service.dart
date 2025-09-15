@@ -7,6 +7,7 @@ import '../models/api_response.dart';
 import '../models/payment_result.dart'; // Import the new PaymentResult model
 import '../utils/api_logger.dart';
 import 'package:http/http.dart' as http;
+import 'api_service.dart'; // Import ApiService
 
 class PaymentService {
   late Razorpay _razorpay;
@@ -43,10 +44,8 @@ class PaymentService {
 
       final response = await http.post(
         Uri.parse(ApiConfig.createPaymentUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: await ApiService()
+            .getHeaders(), // Use ApiService to get authenticated headers
         body: json.encode({
           'amount': (amount * 100).toInt(), // Convert to paise
           'currency': currency,
@@ -326,7 +325,9 @@ class PaymentService {
   ) async {
     try {
       final response = await http.get(
-        Uri.parse('${ApiConfig.baseUrl}/payment/status/$paymentId/'),
+        Uri.parse(
+          '${ApiConfig.baseUrl}/payment/status/$paymentId/',
+        ), // Already using baseUrl, no change needed here.
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',

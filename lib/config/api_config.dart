@@ -89,8 +89,8 @@ class ApiConfig {
       '$orderEndpoint/enhanced/awaiting-prescription/';
 
   // Payment URLs
-  static const String createPaymentUrl = '$apiBaseUrl/payment/create/';
-  static const String verifyPaymentUrl = '$apiBaseUrl/payment/verify/';
+  static const String createPaymentUrl = '$baseUrl/payment/create/';
+  static const String verifyPaymentUrl = '$baseUrl/payment/verify/';
 
   // Courier URLs (Professional courier integration)
   static const String courierPartnersUrl = '$apiBaseUrl/courier/partners/';

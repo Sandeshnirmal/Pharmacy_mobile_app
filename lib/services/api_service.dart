@@ -48,7 +48,7 @@ class ApiService {
   }
 
   // Get headers with authentication
-  Future<Map<String, String>> _getHeaders({bool includeAuth = true}) async {
+  Future<Map<String, String>> getHeaders({bool includeAuth = true}) async {
     final headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
@@ -114,7 +114,7 @@ class ApiService {
       final response = await _client
           .get(
             Uri.parse('${ApiConfig.baseUrl}/'),
-            headers: await _getHeaders(includeAuth: false),
+            headers: await getHeaders(includeAuth: false),
           )
           .timeout(Duration(milliseconds: 10000));
 
@@ -156,7 +156,7 @@ class ApiService {
       final response = await _client
           .post(
             Uri.parse(ApiConfig.loginUrl),
-            headers: await _getHeaders(includeAuth: false),
+            headers: await getHeaders(includeAuth: false),
             body: json.encode({'email': email, 'password': password}),
           )
           .timeout(Duration(milliseconds: timeoutDuration));
@@ -190,10 +190,7 @@ class ApiService {
   Future<ApiResponse<UserModel>> getUserProfile() async {
     try {
       final response = await _client
-          .get(
-            Uri.parse('$baseUrl/user/profile/'),
-            headers: await _getHeaders(),
-          )
+          .get(Uri.parse('$baseUrl/user/profile/'), headers: await getHeaders())
           .timeout(Duration(milliseconds: timeoutDuration));
 
       return _handleResponse(response, (data) => UserModel.fromJson(data));
@@ -246,7 +243,7 @@ class ApiService {
       );
 
       // Add headers (remove Content-Type for multipart)
-      final headers = await _getHeaders();
+      final headers = await getHeaders();
       headers.remove('Content-Type');
       request.headers.addAll(headers);
 
@@ -308,7 +305,7 @@ class ApiService {
       );
 
       // Add headers (remove Content-Type for multipart)
-      final headers = await _getHeaders();
+      final headers = await getHeaders();
       headers.remove('Content-Type');
       request.headers.addAll(headers);
 
@@ -372,7 +369,7 @@ class ApiService {
       ApiLogger.logRequest('GET', url);
 
       final response = await _client
-          .get(Uri.parse(url), headers: await _getHeaders())
+          .get(Uri.parse(url), headers: await getHeaders())
           .timeout(Duration(milliseconds: timeoutDuration));
 
       return _handleResponse(
@@ -394,7 +391,7 @@ class ApiService {
       ApiLogger.logRequest('GET', url);
 
       final response = await _client
-          .get(Uri.parse(url), headers: await _getHeaders())
+          .get(Uri.parse(url), headers: await getHeaders())
           .timeout(Duration(milliseconds: timeoutDuration));
 
       return _handleResponse(
@@ -416,7 +413,7 @@ class ApiService {
       ApiLogger.logRequest('GET', url);
 
       final response = await _client
-          .get(Uri.parse(url), headers: await _getHeaders())
+          .get(Uri.parse(url), headers: await getHeaders())
           .timeout(Duration(milliseconds: timeoutDuration));
 
       return _handleResponse(
@@ -436,7 +433,7 @@ class ApiService {
       final response = await _client
           .post(
             Uri.parse(ApiConfig.prescriptionCreateOrderUrl),
-            headers: await _getHeaders(),
+            headers: await getHeaders(),
             body: json.encode(orderData),
           )
           .timeout(Duration(milliseconds: timeoutDuration));
@@ -457,7 +454,7 @@ class ApiService {
       ).replace(queryParameters: queryParams);
 
       final response = await _client
-          .get(uri, headers: await _getHeaders())
+          .get(uri, headers: await getHeaders())
           .timeout(Duration(milliseconds: timeoutDuration));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -506,7 +503,7 @@ class ApiService {
     try {
       final response = await _client.get(
         Uri.parse('${ApiConfig.prescriptionSearchUrl}?q=$query&limit=20'),
-        headers: await _getHeaders(),
+        headers: await getHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -561,7 +558,7 @@ class ApiService {
     try {
       final response = await _client.get(
         Uri.parse('$baseUrl/prescription/mobile/products/$prescriptionId/'),
-        headers: await _getHeaders(),
+        headers: await getHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -611,7 +608,7 @@ class ApiService {
   Future<ApiResponse<List<OrderModel>>> getOrders() async {
     try {
       final response = await _client
-          .get(Uri.parse(ApiConfig.ordersUrl), headers: await _getHeaders())
+          .get(Uri.parse(ApiConfig.ordersUrl), headers: await getHeaders())
           .timeout(Duration(milliseconds: timeoutDuration));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -650,7 +647,7 @@ class ApiService {
       final response = await _client
           .get(
             Uri.parse('$baseUrl/order/orders/$orderId/'),
-            headers: await _getHeaders(),
+            headers: await getHeaders(),
           )
           .timeout(Duration(milliseconds: timeoutDuration));
 
@@ -668,7 +665,7 @@ class ApiService {
       final response = await _client
           .get(
             Uri.parse('$baseUrl/order/tracking/$orderId/'),
-            headers: await _getHeaders(),
+            headers: await getHeaders(),
           )
           .timeout(Duration(milliseconds: timeoutDuration));
 
@@ -695,7 +692,7 @@ class ApiService {
       final response = await _client
           .post(
             Uri.parse('$baseUrl/prescription/search/medicines/'),
-            headers: await _getHeaders(),
+            headers: await getHeaders(),
             body: json.encode({'medicines': medicines, 'limit': 5}),
           )
           .timeout(Duration(milliseconds: timeoutDuration));
@@ -723,7 +720,7 @@ class ApiService {
       final response = await _client
           .post(
             Uri.parse('$baseUrl/prescription/search/composition/'),
-            headers: await _getHeaders(),
+            headers: await getHeaders(),
             body: json.encode({'compositions': compositions}),
           )
           .timeout(Duration(milliseconds: timeoutDuration));
@@ -751,7 +748,7 @@ class ApiService {
       final response = await _client
           .post(
             Uri.parse('$baseUrl/prescription/mobile/upload/'),
-            headers: await _getHeaders(),
+            headers: await getHeaders(),
             body: json.encode({'image': base64Image, 'process_with_ai': true}),
           )
           .timeout(
@@ -781,7 +778,7 @@ class ApiService {
       final response = await _client
           .post(
             Uri.parse('$baseUrl/prescription/ocr/analyze/'),
-            headers: await _getHeaders(),
+            headers: await getHeaders(),
             body: json.encode({'image': base64Image}),
           )
           .timeout(
@@ -811,7 +808,7 @@ class ApiService {
       final response = await _client
           .post(
             Uri.parse('$baseUrl/api/order/pending/'),
-            headers: await _getHeaders(),
+            headers: await getHeaders(),
             body: json.encode(orderData),
           )
           .timeout(Duration(milliseconds: timeoutDuration));
@@ -839,7 +836,7 @@ class ApiService {
       final response = await _client
           .post(
             Uri.parse('$baseUrl/api/prescriptions/upload-for-paid-order/'),
-            headers: await _getHeaders(),
+            headers: await getHeaders(),
             body: json.encode(prescriptionData),
           )
           .timeout(Duration(milliseconds: timeoutDuration * 2));
@@ -869,7 +866,7 @@ class ApiService {
             Uri.parse(
               '$baseUrl/api/prescriptions/verification-status/$prescriptionId/',
             ),
-            headers: await _getHeaders(),
+            headers: await getHeaders(),
           )
           .timeout(Duration(milliseconds: timeoutDuration));
 
@@ -896,7 +893,7 @@ class ApiService {
       final response = await _client
           .post(
             Uri.parse('$baseUrl/api/order/confirm-prescription/$orderId/'),
-            headers: await _getHeaders(),
+            headers: await getHeaders(),
             body: json.encode({}),
           )
           .timeout(Duration(milliseconds: timeoutDuration));
@@ -924,7 +921,7 @@ class ApiService {
       final response = await _client
           .post(
             Uri.parse('$baseUrl/user/register/'),
-            headers: await _getHeaders(includeAuth: false),
+            headers: await getHeaders(includeAuth: false),
             body: json.encode(userData),
           )
           .timeout(Duration(milliseconds: timeoutDuration));
@@ -951,7 +948,7 @@ class ApiService {
       final response = await _client
           .put(
             Uri.parse('$baseUrl/user/profile/'),
-            headers: await _getHeaders(),
+            headers: await getHeaders(),
             body: json.encode(profileData),
           )
           .timeout(Duration(milliseconds: timeoutDuration));
@@ -970,7 +967,7 @@ class ApiService {
         await _client
             .post(
               Uri.parse('$baseUrl/api/token/logout/'),
-              headers: await _getHeaders(),
+              headers: await getHeaders(),
               body: json.encode({'refresh': refreshToken}),
             )
             .timeout(Duration(milliseconds: timeoutDuration));
@@ -994,7 +991,7 @@ class ApiService {
       final response = await _client
           .post(
             Uri.parse('$baseUrl/api/token/refresh/'),
-            headers: await _getHeaders(includeAuth: false),
+            headers: await getHeaders(includeAuth: false),
             body: json.encode({'refresh': refreshToken}),
           )
           .timeout(Duration(milliseconds: timeoutDuration));
@@ -1022,7 +1019,7 @@ class ApiService {
       final response = await _client
           .post(
             Uri.parse(ApiConfig.applyCouponUrl),
-            headers: await _getHeaders(),
+            headers: await getHeaders(),
             body: json.encode({
               'coupon_code': couponCode,
               'cart_total': cartTotal,
@@ -1044,7 +1041,7 @@ class ApiService {
       final response = await _client
           .post(
             Uri.parse(ApiConfig.createOrderUrl),
-            headers: await _getHeaders(),
+            headers: await getHeaders(),
             body: json.encode(orderData),
           )
           .timeout(Duration(milliseconds: timeoutDuration));
@@ -1088,7 +1085,7 @@ class ApiService {
     try {
       final response = await _client.post(
         Uri.parse('$baseUrl/user/change-password/'),
-        headers: await _getHeaders(),
+        headers: await getHeaders(),
         body: json.encode({
           'current_password': currentPassword,
           'new_password': newPassword,
@@ -1114,7 +1111,7 @@ class ApiService {
     try {
       final response = await _client.get(
         Uri.parse('$baseUrl/user/addresses/'),
-        headers: await _getHeaders(),
+        headers: await getHeaders(),
       );
 
       if (response.statusCode == 200) {
@@ -1137,7 +1134,7 @@ class ApiService {
     try {
       final response = await _client.post(
         Uri.parse('$baseUrl/user/addresses/'),
-        headers: await _getHeaders(),
+        headers: await getHeaders(),
         body: json.encode(addressData),
       );
 
@@ -1162,7 +1159,7 @@ class ApiService {
     try {
       final response = await _client.put(
         Uri.parse('$baseUrl/user/addresses/$id/'),
-        headers: await _getHeaders(),
+        headers: await getHeaders(),
         body: json.encode(addressData),
       );
 
@@ -1184,7 +1181,7 @@ class ApiService {
     try {
       final response = await _client.delete(
         Uri.parse('$baseUrl/user/addresses/$id/'),
-        headers: await _getHeaders(),
+        headers: await getHeaders(),
       );
 
       if (response.statusCode == 204) {
@@ -1209,7 +1206,7 @@ class ApiService {
       ApiLogger.logRequest('GET', url);
 
       final response = await _client
-          .get(Uri.parse(url), headers: await _getHeaders())
+          .get(Uri.parse(url), headers: await getHeaders())
           .timeout(Duration(milliseconds: timeoutDuration));
 
       if (response.statusCode == 200) {
@@ -1267,7 +1264,7 @@ class ApiService {
     try {
       final response = await _client.get(
         Uri.parse('$baseUrl/prescription/prescriptions/'),
-        headers: await _getHeaders(),
+        headers: await getHeaders(),
       );
 
       if (response.statusCode == 200) {
