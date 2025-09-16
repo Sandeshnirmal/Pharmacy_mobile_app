@@ -4,6 +4,13 @@ import 'package:fluttertoast/fluttertoast.dart';
 // import 'package:carousel_slider/carousel_slider.dart' as carousel;
 // import 'package:shimmer/shimmer.dart';
 // import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import 'dart:async'; // Import for StreamSubscription
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+// import 'package:carousel_slider/carousel_slider.dart' as carousel;
+// import 'package:shimmer/shimmer.dart';
+// import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'AccountScreen.dart';
 import 'CartScreen.dart';
 import 'ScannerScreen.dart';
@@ -12,6 +19,7 @@ import 'CategoryPage.dart';
 import 'SearchResultsScreen.dart';
 import 'OrderPrescriptionUploadScreen.dart'; // Import for Prescription Upload
 import 'screens/prescription_tracking_screen.dart'; // Import for Prescription Tracking
+import 'LoginScreen.dart'; // Import LoginScreen
 import 'services/api_service.dart';
 import 'services/cart_service.dart';
 import 'models/product_model.dart';
@@ -25,8 +33,33 @@ void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatelessWidget {
+class MyApp extends StatefulWidget {
   const MyApp({super.key});
+
+  @override
+  State<MyApp> createState() => _MyAppState();
+}
+
+class _MyAppState extends State<MyApp> {
+  late StreamSubscription _logoutSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _logoutSubscription = ApiService().onLogout.listen((_) {
+      // Navigate to login screen and clear all previous routes
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+        (Route<dynamic> route) => false,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _logoutSubscription.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,21 +71,17 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => OrderProvider()),
         ChangeNotifierProvider(create: (_) => PrescriptionProvider()),
       ],
-      child: Builder(
-        builder: (context) {
-          return Consumer<ThemeProvider>(
-            builder: (context, themeProvider, child) {
-              return MaterialApp(
-                title: 'Pharmacy App',
-                theme: themeProvider.lightTheme,
-                darkTheme: themeProvider.darkTheme,
-                themeMode: themeProvider.isDarkMode
-                    ? ThemeMode.dark
-                    : ThemeMode.light,
-                home: const SplashScreen(),
-                debugShowCheckedModeBanner: false,
-              );
-            },
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, child) {
+          return MaterialApp(
+            title: 'Pharmacy App',
+            theme: themeProvider.lightTheme,
+            darkTheme: themeProvider.darkTheme,
+            themeMode: themeProvider.isDarkMode
+                ? ThemeMode.dark
+                : ThemeMode.light,
+            home: const SplashScreen(),
+            debugShowCheckedModeBanner: false,
           );
         },
       ),

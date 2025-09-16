@@ -1,25 +1,20 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../config/api_config.dart';
+import 'api_service.dart'; // Import ApiService
 
 class OrderService {
   static String get baseUrl => ApiConfig.apiBaseUrl;
-  final FlutterSecureStorage _storage = const FlutterSecureStorage();
+  final ApiService _apiService = ApiService(); // Use ApiService for headers
 
   // Create order (legacy or for pending orders)
   Future<Map<String, dynamic>> createOrder(
     Map<String, dynamic> orderData,
   ) async {
     try {
-      final token = await _storage.read(key: 'auth_token');
-
       final response = await http.post(
         Uri.parse('$baseUrl/prescription/enhanced-prescriptions/'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
+        headers: await _apiService.getHeaders(), // Use ApiService for headers
         body: json.encode(orderData),
       );
 
@@ -51,29 +46,29 @@ class OrderService {
     required String razorpaySignature,
     required double totalAmount,
     required Map<String, dynamic> cartData,
-    required String deliveryAddress,
-    String paymentMethod = 'Razorpay',
+    required Map<String, dynamic> deliveryAddress, // Changed to Map
+    String paymentMethod = 'RAZORPAY', // Default to RAZORPAY for consistency
     Map<String, dynamic>?
     prescriptionDetails, // Optional for prescription orders
   }) async {
     try {
-      final token = await _storage.read(key: 'auth_token');
-
       final response = await http.post(
         Uri.parse('$baseUrl/order/enhanced/create-paid-order/'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
+        headers: await _apiService.getHeaders(), // Use ApiService for headers
         body: json.encode({
-          'payment_id': paymentId,
-          'razorpay_order_id': razorpayOrderId,
-          'razorpay_signature': razorpaySignature,
-          'total_amount': totalAmount,
-          'cart_data': cartData,
-          'delivery_address': deliveryAddress,
-          'payment_method': paymentMethod,
-          'prescription_details': prescriptionDetails,
+          'items': cartData['items'], // Backend expects 'items' directly
+          'delivery_address': deliveryAddress, // Now a Map
+          'payment_data': {
+            'method': paymentMethod,
+            'payment_id': paymentId,
+            'razorpay_order_id': razorpayOrderId,
+            'razorpay_signature': razorpaySignature,
+            'amount': totalAmount, // Amount should be part of payment_data
+          },
+          'prescription_image_base64':
+              prescriptionDetails?['prescription_image'], // Pass base64 image
+          'prescription_status':
+              prescriptionDetails?['status'], // Pass prescription status
         }),
       );
 
@@ -82,8 +77,9 @@ class OrderService {
       if (response.statusCode == 201) {
         return {
           'success': true,
-          'order_id': responseData['id'],
-          'order': responseData,
+          'order_id':
+              responseData['order_id'], // Use 'order_id' from backend response
+          'order': responseData, // Pass the whole response for other details
           'message': 'Paid order placed successfully',
         };
       } else {
@@ -101,14 +97,9 @@ class OrderService {
   // Get order details
   Future<Map<String, dynamic>?> getOrderDetails(int orderId) async {
     try {
-      final token = await _storage.read(key: 'auth_token');
-
       final response = await http.get(
         Uri.parse('$baseUrl/order/orders/$orderId/'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
+        headers: await _apiService.getHeaders(), // Use ApiService for headers
       );
 
       if (response.statusCode == 200) {
@@ -124,14 +115,9 @@ class OrderService {
   // Get user orders
   Future<List<Map<String, dynamic>>> getUserOrders() async {
     try {
-      final token = await _storage.read(key: 'auth_token');
-
       final response = await http.get(
         Uri.parse('$baseUrl/order/orders/'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
+        headers: await _apiService.getHeaders(), // Use ApiService for headers
       );
 
       if (response.statusCode == 200) {
@@ -148,14 +134,9 @@ class OrderService {
   // Cancel order
   Future<bool> cancelOrder(int orderId, String reason) async {
     try {
-      final token = await _storage.read(key: 'auth_token');
-
       final response = await http.post(
         Uri.parse('$baseUrl/order/orders/$orderId/cancel/'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
+        headers: await _apiService.getHeaders(), // Use ApiService for headers
         body: json.encode({'cancellation_reason': reason}),
       );
 
@@ -169,14 +150,9 @@ class OrderService {
   // Track order
   Future<Map<String, dynamic>?> trackOrder(int orderId) async {
     try {
-      final token = await _storage.read(key: 'auth_token');
-
       final response = await http.get(
         Uri.parse('$baseUrl/order/orders/$orderId/track/'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
+        headers: await _apiService.getHeaders(), // Use ApiService for headers
       );
 
       if (response.statusCode == 200) {
@@ -276,14 +252,9 @@ class OrderService {
   // Get order status updates
   Future<List<Map<String, dynamic>>> getOrderStatusUpdates(int orderId) async {
     try {
-      final token = await _storage.read(key: 'auth_token');
-
       final response = await http.get(
         Uri.parse('$baseUrl/order/orders/$orderId/status-updates/'),
-        headers: {
-          'Content-Type': 'application/json',
-          if (token != null) 'Authorization': 'Bearer $token',
-        },
+        headers: await _apiService.getHeaders(), // Use ApiService for headers
       );
 
       if (response.statusCode == 200) {

@@ -955,38 +955,53 @@ class _PrescriptionCheckoutScreenState
         }
 
         // 2. Create the order only after payment is verified
-        final paidOrderResult = await _orderService.createPaidOrder(
-          paymentId: result.paymentId!,
-          razorpayOrderId: result.orderId!,
-          razorpaySignature: result.signature!,
-          totalAmount: widget.totalAmount,
-          cartData: _getCartData(),
-          deliveryAddress: _addressController.text,
-          paymentMethod: 'razorpay',
-          prescriptionDetails: await _getPrescriptionDetails(),
-        );
+        final deliveryAddressMap = {
+          'name': _nameController.text.trim(),
+          'address_line_1': _addressController.text
+              .trim(), // Assuming addressController holds address_line_1
+          'phone': _phoneController.text.trim(),
+          // Add other required fields for delivery_address if available in UI
+          'city': 'Unknown', // Placeholder, ideally from user input
+          'state': 'Unknown', // Placeholder, ideally from user input
+          'pincode': '000000', // Placeholder, ideally from user input
+        };
 
-        if (paidOrderResult['success'] == true &&
-            paidOrderResult['order'] != null) {
-          // 3. Navigate to order confirmation on success
-          if (mounted) {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => OrderConfirmationScreen(
-                  orderId: paidOrderResult['order_id'] as int,
-                  orderNumber: paidOrderResult['order']['order_number']
-                      .toString(),
-                  totalAmount: widget.totalAmount,
-                ),
-              ),
-            );
-          }
-        } else {
-          throw Exception(
-            paidOrderResult['message'] ?? 'Failed to create order',
-          );
-        }
+        final prescriptionDetailsMap = await _getPrescriptionDetails();
+        // Add a status to prescriptionDetailsMap for the backend
+        prescriptionDetailsMap['status'] = 'pending_review';
+
+        // final paidOrderResult = await _orderService.createPaidOrder(
+        //   paymentId: result.paymentId!,
+        //   razorpayOrderId: result.orderId!,
+        //   razorpaySignature: result.signature!,
+        //   totalAmount: widget.totalAmount,
+        //   cartData: _getCartData(),
+        //   deliveryAddress: deliveryAddressMap, // Now a Map
+        //   paymentMethod: 'RAZORPAY', // Consistent with backend expectation
+        //   prescriptionDetails: prescriptionDetailsMap,
+        // );
+
+        // if (paidOrderResult['success'] == true &&
+        //     paidOrderResult['order'] != null) {
+        //   // 3. Navigate to order confirmation on success
+        //   if (mounted) {
+        //     Navigator.pushReplacement(
+        //       context,
+        //       MaterialPageRoute(
+        //         builder: (context) => OrderConfirmationScreen(
+        //           orderId: paidOrderResult['order_id'] as int,
+        //           orderNumber: paidOrderResult['order']['order_number']
+        //               .toString(),
+        //           totalAmount: widget.totalAmount,
+        //         ),
+        //       ),
+        //     );
+        //   }
+        // } else {
+        //   throw Exception(
+        //     paidOrderResult['message'] ?? 'Failed to create order',
+        //   );
+        // }
       } else {
         String errorMessage = 'Payment process failed';
         if (result.errorCode == 2) {

@@ -120,10 +120,8 @@ class PaymentService {
 
       final response = await http.post(
         Uri.parse(ApiConfig.verifyPaymentUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: await ApiService()
+            .getHeaders(), // Use ApiService to get authenticated headers
         body: json.encode({
           'razorpay_payment_id': paymentId,
           'razorpay_order_id': orderId,
@@ -131,16 +129,12 @@ class PaymentService {
         }),
       );
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return ApiResponse.success(data);
-      } else {
-        final errorData = json.decode(response.body);
-        return ApiResponse.error(
-          errorData['error'] ?? 'Payment verification failed',
-          response.statusCode,
-        );
-      }
+      // Use handleResponse from ApiService for consistent error handling,
+      // especially for 401 Unauthorized.
+      return ApiService().handleResponse(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
     } catch (e) {
       ApiLogger.logError('Payment verification failed: $e');
       return ApiResponse.error('Payment verification failed: $e', 0);

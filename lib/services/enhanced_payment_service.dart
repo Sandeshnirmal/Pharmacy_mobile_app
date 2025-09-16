@@ -6,6 +6,7 @@ import '../models/api_response.dart';
 import '../models/payment_result.dart';
 import '../utils/api_logger.dart';
 import 'package:http/http.dart' as http;
+import 'api_service.dart'; // Import ApiService
 
 class EnhancedPaymentService {
   late final Razorpay _razorpay;
@@ -41,10 +42,8 @@ class EnhancedPaymentService {
 
       final response = await http.post(
         Uri.parse(ApiConfig.createPaymentUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: await ApiService()
+            .getHeaders(), // Use ApiService to get authenticated headers
         body: json.encode({
           'amount': (amount * 100).toInt(), // Convert to paise
           'currency': currency,
@@ -52,16 +51,10 @@ class EnhancedPaymentService {
         }),
       );
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return ApiResponse.success(data);
-      } else {
-        final errorData = json.decode(response.body);
-        return ApiResponse.error(
-          errorData['error'] ?? 'Failed to create payment order',
-          response.statusCode,
-        );
-      }
+      return ApiService().handleResponse(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
     } catch (e) {
       ApiLogger.logError('Payment order creation failed: $e');
       return ApiResponse.error('Network error: $e', 500);
@@ -165,10 +158,8 @@ class EnhancedPaymentService {
     try {
       final response = await http.post(
         Uri.parse(ApiConfig.verifyPaymentUrl),
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
+        headers: await ApiService()
+            .getHeaders(), // Use ApiService to get authenticated headers
         body: json.encode({
           'razorpay_payment_id': paymentId,
           'razorpay_order_id': orderId,
@@ -176,16 +167,10 @@ class EnhancedPaymentService {
         }),
       );
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return ApiResponse.success(data);
-      } else {
-        final errorData = json.decode(response.body);
-        return ApiResponse.error(
-          errorData['error'] ?? 'Payment verification failed',
-          response.statusCode,
-        );
-      }
+      return ApiService().handleResponse(
+        response,
+        (data) => data as Map<String, dynamic>,
+      );
     } catch (e) {
       return ApiResponse.error('Network error: $e', 500);
     }

@@ -1,4 +1,5 @@
 // API Service for Flutter Pharmacy App
+import 'dart:async'; // Import for StreamController
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -27,6 +28,10 @@ class ApiService {
 
   // Secure storage for tokens
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
+
+  // Stream controller for logout events
+  final _logoutController = StreamController<bool>.broadcast();
+  Stream<bool> get onLogout => _logoutController.stream;
 
   // Token management
   Future<String?> getAccessToken() async {
@@ -66,7 +71,8 @@ class ApiService {
   }
 
   // Handle HTTP response with better error handling
-  ApiResponse<T> _handleResponse<T>(
+  ApiResponse<T> handleResponse<T>(
+    // Made public
     http.Response response,
     T Function(Map<String, dynamic>) fromJson,
   ) {
@@ -88,6 +94,15 @@ class ApiService {
               'Request failed with status ${response.statusCode}';
         } catch (e) {
           errorMessage = 'Request failed with status ${response.statusCode}';
+        }
+
+        // Handle 401 Unauthorized specifically
+        if (response.statusCode == 401) {
+          ApiLogger.logError(
+            '401 Unauthorized: Clearing tokens and triggering logout.',
+          );
+          clearTokens();
+          _logoutController.add(true); // Notify listeners to log out
         }
         return ApiResponse.error(errorMessage, response.statusCode);
       }
@@ -193,7 +208,7 @@ class ApiService {
           .get(Uri.parse('$baseUrl/user/profile/'), headers: await getHeaders())
           .timeout(Duration(milliseconds: timeoutDuration));
 
-      return _handleResponse(response, (data) => UserModel.fromJson(data));
+      return handleResponse(response, (data) => UserModel.fromJson(data));
     } catch (e) {
       return ApiResponse.error('Network error: $e', 0);
     }
@@ -349,7 +364,7 @@ class ApiService {
 
       ApiLogger.logResponse(response.statusCode, response.body);
 
-      return _handleResponse(
+      return handleResponse(
         response,
         (data) => PrescriptionUploadResponse.fromJson(data),
       );
@@ -372,7 +387,7 @@ class ApiService {
           .get(Uri.parse(url), headers: await getHeaders())
           .timeout(Duration(milliseconds: timeoutDuration));
 
-      return _handleResponse(
+      return handleResponse(
         response,
         (data) => PrescriptionDetailModel.fromJson(data),
       );
@@ -394,7 +409,7 @@ class ApiService {
           .get(Uri.parse(url), headers: await getHeaders())
           .timeout(Duration(milliseconds: timeoutDuration));
 
-      return _handleResponse(
+      return handleResponse(
         response,
         (data) => PrescriptionStatusResponse.fromJson(data),
       );
@@ -416,7 +431,7 @@ class ApiService {
           .get(Uri.parse(url), headers: await getHeaders())
           .timeout(Duration(milliseconds: timeoutDuration));
 
-      return _handleResponse(
+      return handleResponse(
         response,
         (data) => PrescriptionSuggestionsResponse.fromJson(data),
       );
@@ -438,7 +453,7 @@ class ApiService {
           )
           .timeout(Duration(milliseconds: timeoutDuration));
 
-      return _handleResponse(response, (data) => OrderResponse.fromJson(data));
+      return handleResponse(response, (data) => OrderResponse.fromJson(data));
     } catch (e) {
       return ApiResponse.error('Network error: $e', 0);
     }
@@ -651,7 +666,7 @@ class ApiService {
           )
           .timeout(Duration(milliseconds: timeoutDuration));
 
-      return _handleResponse(response, (data) => OrderModel.fromJson(data));
+      return handleResponse(response, (data) => OrderModel.fromJson(data));
     } catch (e) {
       return ApiResponse.error('Network error: $e', 0);
     }
@@ -953,7 +968,7 @@ class ApiService {
           )
           .timeout(Duration(milliseconds: timeoutDuration));
 
-      return _handleResponse(response, (data) => UserModel.fromJson(data));
+      return handleResponse(response, (data) => UserModel.fromJson(data));
     } catch (e) {
       return ApiResponse.error('Network error: $e', 0);
     }
@@ -1027,7 +1042,7 @@ class ApiService {
           )
           .timeout(Duration(milliseconds: timeoutDuration));
 
-      return _handleResponse(response, (data) => data);
+      return handleResponse(response, (data) => data);
     } catch (e) {
       return ApiResponse.error('Network error: $e', 0);
     }
@@ -1046,7 +1061,7 @@ class ApiService {
           )
           .timeout(Duration(milliseconds: timeoutDuration));
 
-      return _handleResponse(response, (data) => data);
+      return handleResponse(response, (data) => data);
     } catch (e) {
       return ApiResponse.error('Network error: $e', 0);
     }
@@ -1284,5 +1299,6 @@ class ApiService {
   // Dispose
   void dispose() {
     _client.close();
+    _logoutController.close(); // Close the stream controller
   }
 }
