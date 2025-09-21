@@ -7,38 +7,31 @@ class OrderService {
   static String get baseUrl => ApiConfig.apiBaseUrl;
   final ApiService _apiService = ApiService(); // Use ApiService for headers
 
-  // Create a paid order after successful payment
-  Future<Map<String, dynamic>> createPaidOrder({
-    required String paymentId,
-    required String razorpayOrderId,
-    required String razorpaySignature,
-    required double totalAmount,
+  // Create a pending order on the backend
+  Future<Map<String, dynamic>> createPendingOrder({
     required Map<String, dynamic> cartData,
-    required Map<String, dynamic> deliveryAddress, // Changed to Map
-    String paymentMethod = 'RAZORPAY', // Default to RAZORPAY for consistency
-    Map<String, dynamic>?
-    prescriptionDetails, // Optional for prescription orders
+    required Map<String, dynamic> deliveryAddress,
+    String paymentMethod = 'COD', // Default to COD for pending
+    Map<String, dynamic>? prescriptionDetails,
+    required double totalAmount,
+    String notes = '',
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/order/pending/'),
-        headers: await _apiService.getHeaders(), // Use ApiService for headers
+        Uri.parse(
+          '${ApiConfig.orderEndpoint}/pending/',
+        ), // Use the specific pending order endpoint
+        headers: await _apiService.getHeaders(),
         body: json.encode({
-          'items': cartData['items'], // Backend expects 'items' directly
-          'delivery_address': deliveryAddress, // Now a Map
-          'payment_data': {
-            'method': paymentMethod,
-            'payment_id': paymentId,
-            'razorpay_order_id': razorpayOrderId,
-            'razorpay_signature': razorpaySignature,
-            'amount': totalAmount, // Amount should be part of payment_data
-          },
+          'items': cartData['items'],
+          'delivery_address': deliveryAddress,
+          'payment_method': paymentMethod,
+          'total_amount': totalAmount,
+          'notes': notes,
           if (prescriptionDetails != null)
-            'prescription_image_base64':
-                prescriptionDetails['prescription_image'], // Pass base64 image
+            'prescription_image': prescriptionDetails['prescription_image'],
           if (prescriptionDetails != null)
-            'prescription_status':
-                prescriptionDetails['status'], // Pass prescription status
+            'prescription_status': prescriptionDetails['status'],
         }),
       );
 
@@ -47,19 +40,81 @@ class OrderService {
       if (response.statusCode == 201) {
         return {
           'success': true,
-          'order_id':
-              responseData['order_id'], // Use 'order_id' from backend response
-          'order': responseData, // Pass the whole response for other details
-          'message': 'Paid order placed successfully',
+          'order_id': responseData['order_id'],
+          'order_number': responseData['order_number'],
+          'order': responseData,
+          'message': 'Pending order created successfully',
         };
       } else {
         return {
           'success': false,
-          'message': responseData['error'] ?? 'Failed to create paid order',
+          'message': responseData['error'] ?? 'Failed to create pending order',
         };
       }
     } catch (e) {
-      print('Paid order creation error: $e');
+      print('Pending order creation error: $e');
+      return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // Finalize an order after successful payment (or for COD)
+  Future<Map<String, dynamic>> finalizeOrderWithPaymentDetails({
+    required int orderId, // Now requires an existing orderId
+    required String paymentId,
+    required String razorpayOrderId,
+    required String razorpaySignature,
+    required double totalAmount,
+    required Map<String, dynamic>
+    cartData, // Still needed for context, though items are already in pending order
+    required Map<String, dynamic> deliveryAddress,
+    String paymentMethod = 'RAZORPAY',
+    Map<String, dynamic>? prescriptionDetails,
+  }) async {
+    try {
+      // This endpoint should be for confirming/updating an existing order with payment details
+      // The backend endpoint `create_paid_order_for_prescription` is suitable for this.
+      final response = await http.post(
+        Uri.parse(
+          '${ApiConfig.createPaidOrderUrl}',
+        ), // Use the enhanced paid order endpoint
+        headers: await _apiService.getHeaders(),
+        body: json.encode({
+          'order_id': orderId, // Pass the existing order ID
+          'items':
+              cartData['items'], // Re-send items for backend validation/consistency
+          'delivery_address': deliveryAddress,
+          'payment_data': {
+            'method': paymentMethod,
+            'payment_id': paymentId,
+            'razorpay_order_id': razorpayOrderId,
+            'razorpay_signature': razorpaySignature,
+            'amount': totalAmount,
+          },
+          if (prescriptionDetails != null)
+            'prescription_image_base64':
+                prescriptionDetails['prescription_image'],
+          if (prescriptionDetails != null)
+            'prescription_status': prescriptionDetails['status'],
+        }),
+      );
+
+      final responseData = json.decode(response.body);
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return {
+          'success': true,
+          'order_id': responseData['order_id'],
+          'order': responseData,
+          'message': 'Order finalized successfully',
+        };
+      } else {
+        return {
+          'success': false,
+          'message': responseData['error'] ?? 'Failed to finalize order',
+        };
+      }
+    } catch (e) {
+      print('Order finalization error: $e');
       return {'success': false, 'message': 'Network error: $e'};
     }
   }

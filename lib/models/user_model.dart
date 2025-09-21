@@ -24,20 +24,20 @@ class UserModel {
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      id: json['id'] ?? 0,
+      id: int.tryParse(json['id'].toString()) ?? 0, // Safely parse ID to int
       email: json['email'] ?? '',
       firstName: json['first_name'] ?? '',
       lastName: json['last_name'] ?? '',
       phoneNumber: json['phone'],
       role: json['role'] ?? 'customer',
       isActive: json['is_active'] ?? true,
-      dateJoined: json['date_joined'] != null 
-          ? DateTime.parse(json['date_joined']) 
+      dateJoined: json['date_joined'] != null
+          ? DateTime.parse(json['date_joined'])
           : null,
       addresses: json['addresses'] != null
           ? (json['addresses'] as List)
-              .map((address) => AddressModel.fromJson(address))
-              .toList()
+                .map((address) => AddressModel.fromJson(address))
+                .toList()
           : null,
     );
   }

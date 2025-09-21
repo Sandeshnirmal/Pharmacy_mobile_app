@@ -12,6 +12,8 @@ import 'OrderConfirmationScreen.dart';
 import 'package:image_picker/image_picker.dart'; // Import image_picker
 import 'models/user_model.dart'; // Import AddressModel
 import 'services/api_service.dart'; // Import ApiService
+import 'services/payment_service.dart'; // Import PaymentService
+import 'models/payment_result.dart'; // Import PaymentResult
 
 class CheckoutScreen extends StatefulWidget {
   final Cart cart;
@@ -27,14 +29,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final OrderService _orderService = OrderService();
   final AuthService _authService = AuthService();
   final ApiService _apiService = ApiService(); // Initialize ApiService
+  final PaymentService _paymentService =
+      PaymentService(); // Initialize PaymentService
   final TextEditingController _notesController = TextEditingController();
 
+  UserModel? _user; // To store current user details
   List<AddressModel> _addresses = []; // Change to AddressModel list
   int _selectedAddressIndex = 0;
   int _selectedPaymentMethod = 0;
   bool _isPlacingOrder = false;
   bool _isLoadingAddresses = true; // New loading state for addresses
   bool _prescriptionRequired = false; // New state for prescription requirement
+  int?
+  _currentBackendOrderId; // To store the backend order ID after pending order creation
   File? _uploadedPrescriptionImage; // To store the uploaded image file
   String?
   _uploadedPrescriptionBase64; // To store the base64 string of the image
@@ -63,6 +70,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     _checkAuthentication();
     _fetchAddresses(); // Fetch addresses on init
     _checkPrescriptionRequirement(); // Check prescription requirement
+    _paymentService.onPaymentResult.listen(_handlePaymentResult);
   }
 
   Future<void> _checkAuthentication() async {
@@ -72,6 +80,39 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         context,
         MaterialPageRoute(builder: (context) => const LoginScreen()),
       );
+    } else if (isAuth) {
+      final userData = await _authService
+          .getCurrentUser(); // Get current user details
+      if (userData != null) {
+        print('Debug: User data received: $userData'); // Log user data
+        _user = UserModel.fromJson(userData);
+        setState(() {}); // Update state after user data is set
+      } else {
+        print('Debug: User data is null from getCurrentUser.');
+      }
+    }
+  }
+
+  void _handlePaymentResult(PaymentResult result) async {
+    setState(() {
+      _isPlacingOrder = false; // Reset placing order state
+    });
+
+    if (result.success) {
+      _showErrorToast('Payment successful! Verifying order...');
+      // Now place the order on your backend with the payment details
+      if (_currentBackendOrderId != null) {
+        await _placeOrderAfterPayment(
+          orderId: _currentBackendOrderId!, // Pass the stored backend order ID
+          paymentId: result.paymentId!,
+          razorpayOrderId: result.orderId!,
+          razorpaySignature: result.signature!,
+        );
+      } else {
+        _showErrorToast('Error: Backend Order ID not found after payment.');
+      }
+    } else {
+      _showErrorToast('Payment failed: ${result.errorMessage}');
     }
   }
 
@@ -131,6 +172,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   void dispose() {
     _notesController.dispose();
+    _paymentService.dispose(); // Dispose PaymentService
     super.dispose();
   }
 
@@ -150,6 +192,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _placeOrder() async {
+    if (_isPlacingOrder) return; // Prevent double tap
+
     setState(() {
       _isPlacingOrder = true;
     });
@@ -157,61 +201,171 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     try {
       if (_prescriptionRequired && _uploadedPrescriptionImage == null) {
         _showErrorToast('Please upload your prescription to proceed.');
+        setState(() {
+          _isPlacingOrder = false;
+        });
+        return;
+      }
+
+      if (_addresses.isEmpty || _selectedAddressIndex == -1) {
+        _showErrorToast('Please add a delivery address.');
+        setState(() {
+          _isPlacingOrder = false;
+        });
         return;
       }
 
       final selectedAddress = _addresses[_selectedAddressIndex];
       final selectedPayment = _paymentMethods[_selectedPaymentMethod];
 
-      Map<String, dynamic>? prescriptionDetails;
+      String? base64Image;
       if (_prescriptionRequired && _uploadedPrescriptionImage != null) {
         final List<int> imageBytes = await _uploadedPrescriptionImage!
             .readAsBytes();
-        final String base64Image = base64Encode(imageBytes);
-        prescriptionDetails = {
-          'prescription_image': base64Image,
-          'status': _prescriptionStatus ?? 'Pending verification',
-        };
+        base64Image = base64Encode(imageBytes);
       }
 
-      final orderData = {
-        'cart': widget.cart.toJson(),
-        'delivery_address': selectedAddress
-            .toJson(), // Convert AddressModel to JSON
-        'payment_method': selectedPayment['type'],
-        'notes': _notesController.text.trim(),
-        'prescription_details': prescriptionDetails, // Add prescription details
-      };
+      Map<String, dynamic>? prescriptionDetails =
+          _prescriptionRequired && base64Image != null
+          ? {
+              'prescription_image': base64Image,
+              'status': _prescriptionStatus ?? 'pending_review',
+            }
+          : null;
 
-      // For now, use mock payment data as actual payment integration is outside this task's scope.
-      // In a real scenario, payment would be processed here, and its details used below.
-      final String paymentId =
-          'mock_payment_id_${DateTime.now().millisecondsSinceEpoch}';
-      final String razorpayOrderId =
-          'mock_razorpay_order_id_${DateTime.now().millisecondsSinceEpoch}';
-      final String razorpaySignature = 'mock_razorpay_signature';
-      final double totalAmount =
-          widget.cart.total; // Assuming cart.total is the final amount
+      if (selectedPayment['type'] == 'Cash on Delivery') {
+        // For COD, create a pending order and then finalize it immediately
+        final pendingOrderResponse = await _orderService.createPendingOrder(
+          cartData: widget.cart.toJson(),
+          deliveryAddress: selectedAddress.toJson(),
+          paymentMethod: 'COD',
+          prescriptionDetails: prescriptionDetails,
+          totalAmount: widget.cart.total,
+          notes: _notesController.text.trim(),
+        );
 
-      final result = await _orderService.createPaidOrder(
+        if (pendingOrderResponse['success'] == true) {
+          final int orderId = pendingOrderResponse['order_id'];
+          _currentBackendOrderId = orderId; // Store the backend order ID
+          await _placeOrderAfterPayment(
+            orderId: orderId,
+            paymentId: 'COD',
+            razorpayOrderId: 'COD',
+            razorpaySignature: 'COD',
+          );
+        } else {
+          _showErrorToast(
+            pendingOrderResponse['message'] ?? 'Failed to create COD order.',
+          );
+          setState(() {
+            _isPlacingOrder = false;
+          });
+        }
+      } else if (selectedPayment['type'] == 'UPI') {
+        // For UPI, first create a pending order to get an order ID
+        if (_user == null) {
+          _showErrorToast('User details not available for payment.');
+          setState(() {
+            _isPlacingOrder = false;
+          });
+          return;
+        }
+
+        _showErrorToast('Creating pending order...');
+        final pendingOrderResponse = await _orderService.createPendingOrder(
+          cartData: widget.cart.toJson(),
+          deliveryAddress: selectedAddress.toJson(),
+          paymentMethod: 'RAZORPAY',
+          prescriptionDetails: prescriptionDetails,
+          totalAmount: widget.cart.total,
+          notes: _notesController.text.trim(),
+        );
+
+        if (pendingOrderResponse['success'] == true) {
+          final int orderId = pendingOrderResponse['order_id'];
+          _currentBackendOrderId = orderId; // Store the backend order ID
+          _showErrorToast('Pending order created. Initiating UPI payment...');
+
+          final paymentProcessResponse = await _paymentService
+              .processOrderPayment(
+                orderId: orderId.toString(), // Pass the actual backend order ID
+                amount: widget.cart.total,
+                customerName: '${_user!.firstName} ${_user!.lastName}',
+                customerEmail: _user!.email ?? '',
+                customerPhone: _user!.phoneNumber ?? '',
+                description: 'Pharmacy App Order #$orderId',
+              );
+
+          if (!paymentProcessResponse.isSuccess) {
+            _showErrorToast(
+              paymentProcessResponse.error ?? 'Failed to initiate payment.',
+            );
+            setState(() {
+              _isPlacingOrder = false;
+            });
+          }
+          // The actual order finalization will happen in _handlePaymentResult
+        } else {
+          _showErrorToast(
+            pendingOrderResponse['message'] ??
+                'Failed to create pending order for UPI.',
+          );
+          setState(() {
+            _isPlacingOrder = false;
+          });
+        }
+      } else {
+        _showErrorToast('Selected payment method is not supported.');
+        setState(() {
+          _isPlacingOrder = false;
+        });
+      }
+    } catch (e) {
+      _showErrorToast('Error preparing order: $e');
+      setState(() {
+        _isPlacingOrder = false;
+      });
+    }
+  }
+
+  Future<void> _placeOrderAfterPayment({
+    required int orderId, // Now requires an existing orderId
+    required String paymentId,
+    required String razorpayOrderId,
+    required String razorpaySignature,
+  }) async {
+    try {
+      final selectedAddress = _addresses[_selectedAddressIndex];
+      final selectedPayment = _paymentMethods[_selectedPaymentMethod];
+
+      String? base64Image;
+      if (_prescriptionRequired && _uploadedPrescriptionImage != null) {
+        final List<int> imageBytes = await _uploadedPrescriptionImage!
+            .readAsBytes();
+        base64Image = base64Encode(imageBytes);
+      }
+
+      final result = await _orderService.finalizeOrderWithPaymentDetails(
+        orderId: orderId, // Pass the existing order ID
         paymentId: paymentId,
         razorpayOrderId: razorpayOrderId,
         razorpaySignature: razorpaySignature,
-        totalAmount: totalAmount,
+        totalAmount: widget.cart.total,
         cartData: widget.cart.toJson(),
-        deliveryAddress: selectedAddress
-            .toJson(), // Convert AddressModel to JSON
+        deliveryAddress: selectedAddress.toJson(),
         paymentMethod: selectedPayment['type'] == 'Cash on Delivery'
             ? 'COD'
-            : 'RAZORPAY', // Map to backend payment methods
-        prescriptionDetails: prescriptionDetails, // Pass prescription details
+            : 'RAZORPAY',
+        prescriptionDetails: _prescriptionRequired && base64Image != null
+            ? {
+                'prescription_image': base64Image,
+                'status': _prescriptionStatus ?? 'pending_review',
+              }
+            : null,
       );
 
       if (result['success'] == true) {
-        // Clear cart after successful order
         await _cartService.clearCart();
-
-        // Navigate to order confirmation
         if (mounted) {
           Navigator.pushReplacement(
             context,
@@ -224,10 +378,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           );
         }
       } else {
-        _showErrorToast(result['message'] ?? 'Failed to place order');
+        _showErrorToast(
+          result['message'] ?? 'Failed to finalize order after payment.',
+        );
       }
     } catch (e) {
-      _showErrorToast('Error placing order: $e');
+      _showErrorToast('Error finalizing order after payment: $e');
     } finally {
       setState(() {
         _isPlacingOrder = false;
