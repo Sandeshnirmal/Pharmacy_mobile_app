@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import 'api_service.dart';
 import '../utils/logger.dart';
+
 class AuthService {
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
   final ApiService _apiService = ApiService();
@@ -37,7 +38,9 @@ class AuthService {
       }
 
       // Check if token was stored recently (within last 24 hours)
-      final tokenTimestampStr = await _secureStorage.read(key: 'token_timestamp');
+      final tokenTimestampStr = await _secureStorage.read(
+        key: 'token_timestamp',
+      );
       if (tokenTimestampStr != null) {
         final tokenTimestamp = DateTime.parse(tokenTimestampStr);
         final tokenAge = DateTime.now().difference(tokenTimestamp);
@@ -51,13 +54,15 @@ class AuthService {
       }
 
       // Only verify with API call if token is old or we haven't checked recently
-      final response = await http.get(
-        Uri.parse(ApiConfig.userProfileUrl),
-        headers: {
-          'Authorization': 'Token $token',
-          'Content-Type': 'application/json',
-        },
-      ).timeout(Duration(seconds: 10));
+      final response = await http
+          .get(
+            Uri.parse(ApiConfig.userProfileUrl),
+            headers: {
+              'Authorization': 'Bearer $token',
+              'Content-Type': 'application/json',
+            },
+          )
+          .timeout(Duration(seconds: 10));
 
       final isAuth = response.statusCode == 200;
       _cachedAuthState = isAuth;
@@ -93,7 +98,7 @@ class AuthService {
       final response = await http.get(
         Uri.parse(ApiConfig.userProfileUrl),
         headers: {
-          'Authorization': 'Token $token',  // Django TokenAuthentication uses 'Token' not 'Bearer'
+          'Authorization': 'Bearer $token', // Use Bearer for JWT authentication
           'Content-Type': 'application/json',
         },
       );
@@ -124,10 +129,7 @@ class AuthService {
           'Accept': 'application/json',
           'X-Requested-With': 'XMLHttpRequest',
         },
-        body: json.encode({
-          'email': email,
-          'password': password,
-        }),
+        body: json.encode({'email': email, 'password': password}),
       );
 
       final responseData = json.decode(response.body);
@@ -135,9 +137,18 @@ class AuthService {
       if (response.statusCode == 200) {
         // Store auth token securely with timestamp
         if (responseData['access'] != null) {
-          await _secureStorage.write(key: 'access_token', value: responseData['access']);
-          await _secureStorage.write(key: 'refresh_token', value: responseData['refresh']);
-          await _secureStorage.write(key: 'token_timestamp', value: DateTime.now().toIso8601String());
+          await _secureStorage.write(
+            key: 'access_token',
+            value: responseData['access'],
+          );
+          await _secureStorage.write(
+            key: 'refresh_token',
+            value: responseData['refresh'],
+          );
+          await _secureStorage.write(
+            key: 'token_timestamp',
+            value: DateTime.now().toIso8601String(),
+          );
         }
 
         // Store user data
@@ -158,12 +169,14 @@ class AuthService {
       } else if (response.statusCode == 403) {
         return {
           'success': false,
-          'message': 'Access forbidden. Please check backend CORS configuration.',
+          'message':
+              'Access forbidden. Please check backend CORS configuration.',
         };
       } else {
         return {
           'success': false,
-          'message': responseData['error'] ?? responseData['detail'] ?? 'Login failed',
+          'message':
+              responseData['error'] ?? responseData['detail'] ?? 'Login failed',
         };
       }
     } catch (e) {
@@ -178,7 +191,7 @@ class AuthService {
   // Register user with real API
   Future<Map<String, dynamic>> register(Map<String, dynamic> userData) async {
     try {
-    // print('Attempting registration with data: $userData'); // Debug print removed
+      // print('Attempting registration with data: $userData'); // Debug print removed
 
       final response = await http.post(
         Uri.parse(ApiConfig.registerUrl),
@@ -190,20 +203,22 @@ class AuthService {
         body: json.encode(userData),
       );
 
-    // print('Registration response status: ${response.statusCode}'); // Debug print removed
-    // print('Registration response body: ${response.body}'); // Debug print removed
+      // print('Registration response status: ${response.statusCode}'); // Debug print removed
+      // print('Registration response body: ${response.body}'); // Debug print removed
 
       final responseData = json.decode(response.body);
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         return {
           'success': true,
-          'message': 'Registration successful. Please login with your credentials.',
+          'message':
+              'Registration successful. Please login with your credentials.',
         };
       } else if (response.statusCode == 403) {
         return {
           'success': false,
-          'message': 'Access forbidden. Please check backend CORS configuration.',
+          'message':
+              'Access forbidden. Please check backend CORS configuration.',
         };
       } else {
         // Handle validation errors
@@ -222,10 +237,7 @@ class AuthService {
           }
         }
 
-        return {
-          'success': false,
-          'message': errorMessage,
-        };
+        return {'success': false, 'message': errorMessage};
       }
     } catch (e) {
       print('Registration error: $e');
@@ -288,10 +300,7 @@ class AuthService {
 
     // Mock validation
     if (email.isEmpty || password.isEmpty) {
-      return {
-        'success': false,
-        'message': 'Email and password are required',
-      };
+      return {'success': false, 'message': 'Email and password are required'};
     }
 
     if (!email.contains('@')) {
@@ -319,44 +328,36 @@ class AuthService {
     };
 
     // Store mock auth token
-    await _secureStorage.write(key: 'access_token', value: 'mock_token_${DateTime.now().millisecondsSinceEpoch}');
-    
+    await _secureStorage.write(
+      key: 'access_token',
+      value: 'mock_token_${DateTime.now().millisecondsSinceEpoch}',
+    );
+
     // Store user data
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('user_data', json.encode(mockUser));
 
-    return {
-      'success': true,
-      'user': mockUser,
-      'message': 'Login successful',
-    };
+    return {'success': true, 'user': mockUser, 'message': 'Login successful'};
   }
 
   // Mock register for demo purposes
-  Future<Map<String, dynamic>> mockRegister(Map<String, dynamic> userData) async {
+  Future<Map<String, dynamic>> mockRegister(
+    Map<String, dynamic> userData,
+  ) async {
     // Simulate API delay
     await Future.delayed(const Duration(seconds: 2));
 
     // Mock validation
     if (userData['email'] == null || userData['email'].isEmpty) {
-      return {
-        'success': false,
-        'message': 'Email is required',
-      };
+      return {'success': false, 'message': 'Email is required'};
     }
 
     if (userData['password'] == null || userData['password'].isEmpty) {
-      return {
-        'success': false,
-        'message': 'Password is required',
-      };
+      return {'success': false, 'message': 'Password is required'};
     }
 
     if (userData['first_name'] == null || userData['first_name'].isEmpty) {
-      return {
-        'success': false,
-        'message': 'First name is required',
-      };
+      return {'success': false, 'message': 'First name is required'};
     }
 
     if (!userData['email'].contains('@')) {

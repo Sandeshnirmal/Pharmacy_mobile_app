@@ -13,7 +13,8 @@ class OrderConfirmationScreen extends StatefulWidget {
   });
 
   @override
-  State<OrderConfirmationScreen> createState() => _OrderConfirmationScreenState();
+  State<OrderConfirmationScreen> createState() =>
+      _OrderConfirmationScreenState();
 }
 
 class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
@@ -33,21 +34,13 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
       vsync: this,
     );
 
-    _scaleAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.elasticOut,
-    ));
+    _scaleAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.elasticOut),
+    );
 
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeIn,
-    ));
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
+    );
 
     _animationController.forward();
     _loadStatusUpdates();
@@ -59,22 +52,45 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
     super.dispose();
   }
 
-  void _loadStatusUpdates() {
-    setState(() {
-      _statusUpdates = _orderService.getMockStatusUpdates();
-    });
+  Future<void> _loadStatusUpdates() async {
+    try {
+      final updates = await _orderService.getOrderStatusUpdates(widget.orderId);
+      setState(() {
+        _statusUpdates = updates;
+      });
+    } catch (e) {
+      print('Error loading status updates: $e');
+      // Handle error, maybe show a toast or a message to the user
+    }
   }
 
-  IconData _getStatusIcon(String iconName) {
-    switch (iconName) {
-      case 'check_circle':
+  IconData _getStatusIcon(String status) {
+    // Map backend statuses to appropriate icons
+    switch (status) {
+      case 'order_placed':
+        return Icons.assignment;
+      case 'payment_confirmed':
+        return Icons.payment;
+      case 'prescription_verified':
+        return Icons.verified_user;
+      case 'order_confirmed':
         return Icons.check_circle;
-      case 'verified':
-        return Icons.verified;
-      case 'inventory':
-        return Icons.inventory;
-      case 'local_shipping':
+      case 'preparing':
+        return Icons.kitchen;
+      case 'quality_check':
+        return Icons.fact_check;
+      case 'packed':
+        return Icons.inventory_2;
+      case 'ready_for_pickup':
         return Icons.local_shipping;
+      case 'out_for_delivery':
+        return Icons.delivery_dining;
+      case 'delivered':
+        return Icons.check_circle_outline;
+      case 'cancelled':
+        return Icons.cancel;
+      case 'returned':
+        return Icons.assignment_return;
       default:
         return Icons.info;
     }
@@ -96,7 +112,9 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
             onPressed: () {
               Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(builder: (context) => const PharmacyHomePage()),
+                MaterialPageRoute(
+                  builder: (context) => const PharmacyHomePage(),
+                ),
                 (route) => false,
               );
             },
@@ -155,10 +173,7 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
                   const SizedBox(height: 8),
                   Text(
                     'Thank you for your order. We\'ll take care of your health needs.',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -215,7 +230,10 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
                 ),
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.green.shade100,
                   borderRadius: BorderRadius.circular(20),
@@ -233,10 +251,19 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
           ),
           const SizedBox(height: 16),
 
-          _buildDetailRow('Order ID', widget.orderData['order_number'] ?? '#${widget.orderId}'),
-          _buildDetailRow('Total Amount', '₹${widget.orderData['total_amount']?.toStringAsFixed(2) ?? '0.00'}'),
-          _buildDetailRow('Payment Method', widget.orderData['payment_method'] ?? 'Cash on Delivery'),
-          
+          _buildDetailRow(
+            'Order ID',
+            widget.orderData['order_number'] ?? '#${widget.orderId}',
+          ),
+          _buildDetailRow(
+            'Total Amount',
+            '₹${widget.orderData['total_amount']?.toStringAsFixed(2) ?? '0.00'}',
+          ),
+          _buildDetailRow(
+            'Payment Method',
+            widget.orderData['payment_method'] ?? 'Cash on Delivery',
+          ),
+
           if (widget.orderData['estimated_delivery'] != null)
             _buildDetailRow(
               'Estimated Delivery',
@@ -266,7 +293,9 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
             Text(
               '${widget.orderData['delivery_address']['city'] ?? ''}, ${widget.orderData['delivery_address']['state'] ?? ''} - ${widget.orderData['delivery_address']['pincode'] ?? ''}',
             ),
-            Text('Phone: ${widget.orderData['delivery_address']['phone'] ?? ''}'),
+            Text(
+              'Phone: ${widget.orderData['delivery_address']['phone'] ?? ''}',
+            ),
           ],
         ],
       ),
@@ -279,13 +308,7 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[600],
-            ),
-          ),
+          Text(label, style: TextStyle(fontSize: 14, color: Colors.grey[600])),
           Text(
             value,
             style: const TextStyle(
@@ -423,10 +446,7 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
             ),
             child: const Text(
               'Track Your Order',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
         ),
@@ -437,7 +457,9 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
             onPressed: () {
               Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(builder: (context) => const PharmacyHomePage()),
+                MaterialPageRoute(
+                  builder: (context) => const PharmacyHomePage(),
+                ),
                 (route) => false,
               );
             },
@@ -451,10 +473,7 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen>
             ),
             child: const Text(
               'Continue Shopping',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
         ),

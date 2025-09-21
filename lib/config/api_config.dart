@@ -8,7 +8,7 @@ library;
 class ApiConfig {
   // Base URL Configuration
   // Update this IP address when your backend server IP changes
-  static const String _baseIP = '192.168.1.6'; // Android emulator localhost
+  static const String _baseIP = '10.113.77.6'; // Android emulator localhost
   static const String _basePort = '8000';
 
   // Main API Base URLs
@@ -24,10 +24,13 @@ class ApiConfig {
   static const String cartEndpoint = '$apiBaseUrl/cart';
 
   // Specific Auth URLs
-  static const String loginUrl = '$authEndpoint/login/';
-  static const String registerUrl = '$authEndpoint/register/';
-  static const String userProfileUrl = '$authEndpoint/user/';
-  static const String logoutUrl = '$authEndpoint/logout/';
+  static const String loginUrl = '$baseUrl/user/login/';
+  static const String registerUrl = '$baseUrl/register/';
+  static const String userProfileUrl = '$userEndpoint/auth-me/';
+  static const String logoutUrl =
+      '$baseUrl/logout/'; // Assuming logout will also be directly under base URL or handled differently
+  static const String changePasswordUrl = '$baseUrl/change-password/';
+  static const String forgotPasswordUrl = '$baseUrl/forgot-password/';
 
   // Product URLs (Fixed to match backend)
   static const String productsUrl = '$productEndpoint/products/';
@@ -75,6 +78,7 @@ class ApiConfig {
   static const String applyCouponUrl = '$orderEndpoint/apply-coupon/';
   static const String orderTrackingUrl = '$orderEndpoint/tracking/';
   static const String orderStatusHistoryUrl = '$orderEndpoint/status-history/';
+  static const String getAddresses = '$apiBaseUrl/users/addresses/';
 
   // Enhanced Order Flow URLs (Payment First Approach)
   static const String createPaidOrderUrl =

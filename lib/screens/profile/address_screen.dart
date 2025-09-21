@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:pharmacy/services/auth_service.dart';
 import '../../models/address.dart';
 import '../../services/api_service.dart';
+
+// Extension to capitalize the first letter of a string
+extension StringCasingExtension on String {
+  String capitalize() =>
+      length > 0 ? '${this[0].toUpperCase()}${substring(1)}' : '';
+}
 
 class AddressScreen extends StatefulWidget {
   const AddressScreen({super.key});
@@ -14,28 +21,49 @@ class _AddressScreenState extends State<AddressScreen> {
   List<Address> addresses = [];
   bool isLoading = true;
   final ApiService _apiService = ApiService();
+  final AuthService authService = AuthService();
 
+  String? _currentUserId;
   @override
   void initState() {
     super.initState();
-    _loadAddresses();
+    _fetchCurrentUserAndLoadAddresses();
+  }
+
+  Future<void> _fetchCurrentUserAndLoadAddresses() async {
+    final User = await authService.getCurrentUser();
+
+    if (User != null && User.containsKey('id')) {
+      _currentUserId = User['id'] as String;
+      _loadAddresses();
+    }
   }
 
   Future<void> _loadAddresses() async {
+    if (_currentUserId == null) {
+      _showError("No user ID found ");
+    }
+
     try {
       setState(() => isLoading = true);
       final response = await _apiService.getAddresses();
-      if (response['success']) {
+
+      if (response["success"]) {
+        final userAddresses = (response['data'] as List)
+            .where(
+              (addressJson) => addressJson['user'] as String == _currentUserId,
+            )
+            .map((json) => Address.fromJson(json))
+            .toList();
+
         setState(() {
-          addresses = (response['data'] as List)
-              .map((json) => Address.fromJson(json))
-              .toList();
+          addresses = userAddresses;
         });
       } else {
-        _showError(response['error'] ?? 'Failed to load addresses');
+        _showError(response['error'] ?? "Failed to load addresses ");
       }
-    } catch (e) {
-      _showError('Error loading addresses: $e');
+    } catch (error) {
+      _showError("error loading addresses $error");
     } finally {
       setState(() => isLoading = false);
     }
@@ -78,8 +106,8 @@ class _AddressScreenState extends State<AddressScreen> {
       body: isLoading
           ? const Center(child: CircularProgressIndicator(color: Colors.teal))
           : addresses.isEmpty
-              ? _buildEmptyState()
-              : _buildAddressList(),
+          ? _buildEmptyState()
+          : _buildAddressList(),
     );
   }
 
@@ -88,11 +116,7 @@ class _AddressScreenState extends State<AddressScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.location_off,
-            size: 80,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.location_off, size: 80, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
             'No addresses found',
@@ -105,10 +129,7 @@ class _AddressScreenState extends State<AddressScreen> {
           const SizedBox(height: 8),
           Text(
             'Add your first address to get started',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[500],
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey[500]),
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
@@ -140,17 +161,17 @@ class _AddressScreenState extends State<AddressScreen> {
             leading: CircleAvatar(
               backgroundColor: Colors.teal,
               child: Icon(
-                address.type == 'home' ? Icons.home : 
-                address.type == 'work' ? Icons.work : Icons.location_on,
+                address.type == 'home'
+                    ? Icons.home
+                    : address.type == 'work'
+                    ? Icons.work
+                    : Icons.location_on,
                 color: Colors.white,
               ),
             ),
             title: Text(
               address.type.toUpperCase(),
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,19 +182,13 @@ class _AddressScreenState extends State<AddressScreen> {
                   const SizedBox(height: 2),
                   Text(
                     'Landmark: ${address.landmark}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
                 ],
                 const SizedBox(height: 4),
                 Text(
                   '${address.city}, ${address.state} - ${address.pincode}',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
               ],
             ),
@@ -225,7 +240,7 @@ class _AddressScreenState extends State<AddressScreen> {
   void _showAddressDialog(Address? existingAddress) {
     final isEditing = existingAddress != null;
     final formKey = GlobalKey<FormState>();
-    
+
     String type = existingAddress?.type ?? 'home';
     String street = existingAddress?.street ?? '';
     String city = existingAddress?.city ?? '';
@@ -263,7 +278,8 @@ class _AddressScreenState extends State<AddressScreen> {
                     labelText: 'Street Address',
                     border: OutlineInputBorder(),
                   ),
-                  validator: (value) => value?.isEmpty == true ? 'Required' : null,
+                  validator: (value) =>
+                      value?.isEmpty == true ? 'Required' : null,
                   onSaved: (value) => street = value!,
                 ),
                 const SizedBox(height: 16),
@@ -276,7 +292,8 @@ class _AddressScreenState extends State<AddressScreen> {
                           labelText: 'City',
                           border: OutlineInputBorder(),
                         ),
-                        validator: (value) => value?.isEmpty == true ? 'Required' : null,
+                        validator: (value) =>
+                            value?.isEmpty == true ? 'Required' : null,
                         onSaved: (value) => city = value!,
                       ),
                     ),
@@ -288,7 +305,8 @@ class _AddressScreenState extends State<AddressScreen> {
                           labelText: 'State',
                           border: OutlineInputBorder(),
                         ),
-                        validator: (value) => value?.isEmpty == true ? 'Required' : null,
+                        validator: (value) =>
+                            value?.isEmpty == true ? 'Required' : null,
                         onSaved: (value) => state = value!,
                       ),
                     ),
@@ -316,7 +334,8 @@ class _AddressScreenState extends State<AddressScreen> {
                     labelText: 'Landmark (Optional)',
                     border: OutlineInputBorder(),
                   ),
-                  onSaved: (value) => landmark = value?.isEmpty == true ? null : value,
+                  onSaved: (value) =>
+                      landmark = value?.isEmpty == true ? null : value,
                 ),
               ],
             ),
@@ -332,14 +351,17 @@ class _AddressScreenState extends State<AddressScreen> {
               if (formKey.currentState!.validate()) {
                 formKey.currentState!.save();
                 Navigator.pop(context);
-                
+
                 final addressData = {
-                  'type': type,
-                  'street': street,
+                  'address_type': type
+                      .capitalize(), // Changed field name and capitalized
+                  'address_line1': street, // Changed field name
                   'city': city,
                   'state': state,
                   'pincode': pincode,
                   'landmark': landmark,
+                  'is_default': false, // Added default value
+                  'address_line2': '', // Added empty string for optional field
                 };
 
                 if (isEditing) {
@@ -393,7 +415,9 @@ class _AddressScreenState extends State<AddressScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Address'),
-        content: Text('Are you sure you want to delete this ${address.type} address?'),
+        content: Text(
+          'Are you sure you want to delete this ${address.type} address?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

@@ -17,7 +17,6 @@ import 'ScannerScreen.dart';
 import 'ProductDetailsScreen.dart';
 import 'CategoryPage.dart';
 import 'SearchResultsScreen.dart';
-import 'OrderPrescriptionUploadScreen.dart'; // Import for Prescription Upload
 import 'screens/prescription_tracking_screen.dart'; // Import for Prescription Tracking
 import 'LoginScreen.dart'; // Import LoginScreen
 import 'services/api_service.dart';
@@ -1023,32 +1022,6 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => const CategoryPage()),
-                );
-              },
-              iconSize: 30.0, // Increased icon size
-              color: Colors.grey[700],
-            ),
-            IconButton(
-              icon: const Icon(
-                Icons.upload_file,
-              ), // Icon for Prescription Upload
-              onPressed: () {
-                final cartProvider = Provider.of<CartProvider>(
-                  context,
-                  listen: false,
-                );
-                final prescriptionItems = cartProvider.cart.items
-                    .where((item) => item.requiresPrescription)
-                    .toList();
-
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => OrderPrescriptionUploadScreen(
-                      cart: cartProvider.cart,
-                      prescriptionItems: prescriptionItems,
-                    ),
-                  ),
                 );
               },
               iconSize: 30.0, // Increased icon size

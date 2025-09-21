@@ -38,38 +38,69 @@ class Order {
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
+    // Handle potential 'order_status' from Django
+    String orderStatus = json['order_status'] ?? json['status'] ?? 'pending';
+    // Handle potential 'order_date' from Django
+    DateTime orderCreatedAt = json['created_at'] != null
+        ? DateTime.parse(json['created_at'])
+        : (json['order_date'] != null
+              ? DateTime.parse(json['order_date'])
+              : DateTime.now());
+
+    // Handle delivery_address as shippingAddress
+    Address? shippingAddress;
+    if (json['delivery_address'] != null && json['delivery_address'] is Map) {
+      // Create a dummy ID for the address if not provided by Django's JSONField
+      // This is a workaround as Django's JSONField for address doesn't have an ID
+      final Map<String, dynamic> addressJson = Map<String, dynamic>.from(
+        json['delivery_address'],
+      );
+      addressJson['id'] = 0; // Assign a dummy ID
+      addressJson['created_at'] = orderCreatedAt
+          .toIso8601String(); // Use order creation date
+      addressJson['updated_at'] = orderCreatedAt
+          .toIso8601String(); // Use order creation date
+      addressJson['type'] = 'delivery'; // Default type
+      addressJson['street'] =
+          addressJson['address_line_1'] ?? ''; // Map address_line_1 to street
+      addressJson['pincode'] =
+          addressJson['pincode']?.toString() ?? ''; // Ensure pincode is string
+      shippingAddress = Address.fromJson(addressJson);
+    } else if (json['address'] != null && json['address'] is Map) {
+      // If Django sends a nested Address object (less likely with current serializer)
+      shippingAddress = Address.fromJson(json['address']);
+    }
+
     return Order(
       id: json['id'] ?? 0,
-      status: json['status'] ?? 'pending',
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
-          : DateTime.now(),
+      status: orderStatus,
+      createdAt: orderCreatedAt,
       updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'])
           : null,
       totalAmount: _parseDouble(json['total_amount']),
       discountAmount: _parseDouble(json['discount_amount']),
-      taxAmount: _parseDouble(json['tax_amount']),
-      shippingAmount: _parseDouble(json['shipping_amount']),
+      taxAmount: _parseDouble(
+        json['tax_amount'],
+      ), // Django doesn't provide this directly
+      shippingAmount: _parseDouble(
+        json['shipping_fee'],
+      ), // Map shipping_fee to shippingAmount
       paymentMethod: json['payment_method'],
       paymentStatus: json['payment_status'],
       items: json['items'] != null
           ? (json['items'] as List)
-              .map((item) => OrderItem.fromJson(item))
-              .toList()
+                .map((item) => OrderItem.fromJson(item))
+                .toList()
           : [],
-      shippingAddress: json['shipping_address'] != null
-          ? Address.fromJson(json['shipping_address'])
-          : null,
-      billingAddress: json['billing_address'] != null
-          ? Address.fromJson(json['billing_address'])
-          : null,
+      shippingAddress: shippingAddress,
+      billingAddress: null, // Django doesn't provide this directly
       notes: json['notes'],
       trackingNumber: json['tracking_number'],
-      estimatedDelivery: json['estimated_delivery'] != null
-          ? DateTime.parse(json['estimated_delivery'])
+      estimatedDelivery: json['expected_delivery_date'] != null
+          ? DateTime.parse(json['expected_delivery_date'])
           : null,
-      userId: json['user_id'] ?? 0,
+      userId: json['user'] ?? 0, // Map 'user' (ID) to 'userId'
     );
   }
 
@@ -205,15 +236,23 @@ class OrderItem {
   });
 
   factory OrderItem.fromJson(Map<String, dynamic> json) {
+    // Extract product details from nested 'product' object
+    final productJson = json['product'] as Map<String, dynamic>?;
+    final productId = productJson?['id'] ?? json['product_id'] ?? 0;
+    final productName = productJson?['name'] ?? json['product_name'] ?? '';
+    final productImage = productJson?['image_url'] ?? json['product_image'];
+
     return OrderItem(
       id: json['id'] ?? 0,
-      productId: json['product_id'] ?? 0,
-      productName: json['product_name'] ?? '',
-      productImage: json['product_image'],
+      productId: productId,
+      productName: productName,
+      productImage: productImage,
       quantity: json['quantity'] ?? 1,
-      unitPrice: _parseDouble(json['unit_price']),
+      unitPrice: _parseDouble(
+        json['unit_price_at_order'] ?? json['unit_price'],
+      ), // Prefer unit_price_at_order
       totalPrice: _parseDouble(json['total_price']),
-      notes: json['notes'],
+      notes: json['notes'], // Django OrderItemSerializer doesn't have 'notes'
     );
   }
 
@@ -311,17 +350,23 @@ class Address {
   factory Address.fromJson(Map<String, dynamic> json) {
     return Address(
       id: json['id'] ?? 0,
-      type: json['type'] ?? 'home',
-      street: json['street'] ?? '',
+      type:
+          json['address_type'] ??
+          json['type'] ??
+          'home', // Handle both 'address_type' and 'type'
+      street:
+          json['address_line_1'] ??
+          json['street'] ??
+          '', // Handle both 'address_line_1' and 'street'
       city: json['city'] ?? '',
       state: json['state'] ?? '',
-      pincode: json['pincode'] ?? '',
+      pincode: json['pincode']?.toString() ?? '', // Ensure pincode is string
       landmark: json['landmark'],
       isDefault: json['is_default'] ?? false,
-      createdAt: json['created_at'] != null 
+      createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
           : DateTime.now(),
-      updatedAt: json['updated_at'] != null 
+      updatedAt: json['updated_at'] != null
           ? DateTime.parse(json['updated_at'])
           : DateTime.now(),
     );

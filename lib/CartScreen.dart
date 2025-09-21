@@ -184,21 +184,21 @@ class _CartScreenState extends State<CartScreen> {
     final prescriptionItems = _cart.items
         .where((item) => item.requiresPrescription)
         .toList();
-    if (prescriptionItems.isNotEmpty) {
-      // Navigate to prescription checkout (payment-first flow)
-      if (mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => PrescriptionCheckoutScreen(
-              cartItems: _cart.items,
-              totalAmount: _cart.total,
-            ),
-          ),
-        );
-      }
-      return;
-    }
+    // if (prescriptionItems.isNotEmpty) {
+    //   // Navigate to prescription checkout (payment-first flow)
+    //   if (mounted) {
+    //     Navigator.push(
+    //       context,
+    //       MaterialPageRoute(
+    //         builder: (context) => PrescriptionCheckoutScreen(
+    //           cartItems: _cart.items,
+    //           totalAmount: _cart.total,
+    //         ),
+    //       ),
+    //     );
+    //   }
+    //   return;
+    // }
 
     // Navigate to regular checkout screen for non-prescription items
     if (mounted) {

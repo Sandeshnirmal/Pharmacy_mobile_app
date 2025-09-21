@@ -7,38 +7,6 @@ class OrderService {
   static String get baseUrl => ApiConfig.apiBaseUrl;
   final ApiService _apiService = ApiService(); // Use ApiService for headers
 
-  // Create order (legacy or for pending orders)
-  Future<Map<String, dynamic>> createOrder(
-    Map<String, dynamic> orderData,
-  ) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/prescription/enhanced-prescriptions/'),
-        headers: await _apiService.getHeaders(), // Use ApiService for headers
-        body: json.encode(orderData),
-      );
-
-      final responseData = json.decode(response.body);
-
-      if (response.statusCode == 201) {
-        return {
-          'success': true,
-          'order_id': responseData['id'],
-          'order': responseData,
-          'message': 'Order placed successfully',
-        };
-      } else {
-        return {
-          'success': false,
-          'message': responseData['error'] ?? 'Failed to create order',
-        };
-      }
-    } catch (e) {
-      print('Order creation error: $e');
-      return {'success': false, 'message': 'Network error: $e'};
-    }
-  }
-
   // Create a paid order after successful payment
   Future<Map<String, dynamic>> createPaidOrder({
     required String paymentId,
@@ -53,7 +21,7 @@ class OrderService {
   }) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/order/enhanced/create-paid-order/'),
+        Uri.parse('$baseUrl/order/pending/'),
         headers: await _apiService.getHeaders(), // Use ApiService for headers
         body: json.encode({
           'items': cartData['items'], // Backend expects 'items' directly
@@ -65,10 +33,12 @@ class OrderService {
             'razorpay_signature': razorpaySignature,
             'amount': totalAmount, // Amount should be part of payment_data
           },
-          'prescription_image_base64':
-              prescriptionDetails?['prescription_image'], // Pass base64 image
-          'prescription_status':
-              prescriptionDetails?['status'], // Pass prescription status
+          if (prescriptionDetails != null)
+            'prescription_image_base64':
+                prescriptionDetails['prescription_image'], // Pass base64 image
+          if (prescriptionDetails != null)
+            'prescription_status':
+                prescriptionDetails['status'], // Pass prescription status
         }),
       );
 
@@ -165,66 +135,6 @@ class OrderService {
     }
   }
 
-  // Mock order creation for demo purposes
-  Future<Map<String, dynamic>> mockCreateOrder(
-    Map<String, dynamic> orderData,
-  ) async {
-    // Simulate API delay
-    await Future.delayed(const Duration(seconds: 2));
-
-    // Generate mock order ID
-    final orderId = DateTime.now().millisecondsSinceEpoch;
-
-    // Convert cart items to order item structure
-    final cartItems = orderData['cart']['items'] as List<dynamic>;
-    final orderItems = cartItems
-        .map(
-          (cartItem) => {
-            'id':
-                DateTime.now().millisecondsSinceEpoch +
-                cartItems.indexOf(cartItem),
-            'product': {
-              'id': cartItem['product_id'],
-              'name': cartItem['name'],
-              'manufacturer': cartItem['manufacturer'],
-              'strength': cartItem['strength'],
-              'form': cartItem['form'],
-              'price': cartItem['price'],
-              'mrp': cartItem['mrp'],
-              'imageUrl': cartItem['image_url'],
-              'requiresPrescription': cartItem['requires_prescription'],
-              'displayName':
-                  cartItem['strength'] != null && cartItem['form'] != null
-                  ? '${cartItem['name']} ${cartItem['strength']} ${cartItem['form']}'
-                  : cartItem['name'],
-            },
-            'quantity': cartItem['quantity'],
-            'price': cartItem['price'],
-            'totalPrice': cartItem['price'] * cartItem['quantity'],
-          },
-        )
-        .toList();
-
-    return {
-      'success': true,
-      'order_id': orderId,
-      'order': {
-        'id': orderId,
-        'order_number': 'ORD${orderId.toString().substring(8)}',
-        'status': 'Confirmed',
-        'total_amount': orderData['cart']['total'],
-        'delivery_address': orderData['delivery_address'],
-        'payment_method': orderData['payment_method'],
-        'estimated_delivery': DateTime.now()
-            .add(const Duration(days: 2))
-            .toIso8601String(),
-        'items': orderItems,
-        'created_at': DateTime.now().toIso8601String(),
-      },
-      'message': 'Order placed successfully',
-    };
-  }
-
   // Process payment (mock implementation)
   Future<Map<String, dynamic>> processPayment({
     required int orderId,
@@ -266,42 +176,6 @@ class OrderService {
       print('Error fetching status updates: $e');
       return [];
     }
-  }
-
-  // Mock status updates for demo
-  List<Map<String, dynamic>> getMockStatusUpdates() {
-    return [
-      {
-        'status': 'Order Confirmed',
-        'description': 'Your order has been confirmed and is being prepared',
-        'timestamp': DateTime.now()
-            .subtract(const Duration(hours: 2))
-            .toIso8601String(),
-        'icon': 'check_circle',
-      },
-      {
-        'status': 'Prescription Verified',
-        'description': 'Your prescription has been verified by our pharmacist',
-        'timestamp': DateTime.now()
-            .subtract(const Duration(hours: 1))
-            .toIso8601String(),
-        'icon': 'verified',
-      },
-      {
-        'status': 'Order Packed',
-        'description': 'Your medicines have been packed and ready for dispatch',
-        'timestamp': DateTime.now()
-            .subtract(const Duration(minutes: 30))
-            .toIso8601String(),
-        'icon': 'inventory',
-      },
-      {
-        'status': 'Out for Delivery',
-        'description': 'Your order is out for delivery',
-        'timestamp': DateTime.now().toIso8601String(),
-        'icon': 'local_shipping',
-      },
-    ];
   }
 
   // Estimate delivery time

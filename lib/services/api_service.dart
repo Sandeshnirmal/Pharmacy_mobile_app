@@ -62,12 +62,52 @@ class ApiService {
     if (includeAuth) {
       final token = await getAccessToken();
       if (token != null) {
-        headers['Authorization'] =
-            'Token $token'; // Django TokenAuthentication uses 'Token' not 'Bearer'
+        headers['Authorization'] = 'Bearer $token';
       }
     }
 
     return headers;
+  }
+
+  // Generic method to send HTTP requests with token refresh logic
+  Future<http.Response> _sendRequest(
+    Future<http.Response> Function() request, {
+    bool includeAuth = true,
+    bool isRetry = false,
+  }) async {
+    try {
+      http.Response response = await request();
+
+      if (response.statusCode == 401 && includeAuth && !isRetry) {
+        ApiLogger.logError('401 Unauthorized. Attempting token refresh...');
+        final refreshed = await refreshAccessToken();
+        if (refreshed) {
+          ApiLogger.log('Token refreshed successfully. Retrying request...');
+          // Re-create headers with new token for retry
+          // This assumes the original request builder will fetch new headers
+          // For simplicity, we'll just re-run the request.
+          // A more robust solution might involve passing a function to get headers.
+          return await request(); // Retry the original request
+        } else {
+          ApiLogger.logError(
+            'Token refresh failed. Clearing tokens and logging out.',
+          );
+          await clearTokens();
+          _logoutController.add(true); // Notify listeners to log out
+          return response; // Return original 401 response
+        }
+      } else if (response.statusCode == 401 && includeAuth && isRetry) {
+        ApiLogger.logError(
+          '401 Unauthorized on retry. Clearing tokens and logging out.',
+        );
+        await clearTokens();
+        _logoutController.add(true); // Notify listeners to log out
+      }
+      return response;
+    } catch (e) {
+      ApiLogger.logError('Request failed: $e');
+      rethrow; // Re-throw to be caught by individual API methods
+    }
   }
 
   // Handle HTTP response with better error handling
@@ -99,10 +139,12 @@ class ApiService {
         // Handle 401 Unauthorized specifically
         if (response.statusCode == 401) {
           ApiLogger.logError(
-            '401 Unauthorized: Clearing tokens and triggering logout.',
+            '401 Unauthorized: Token expired or invalid. Attempting refresh.',
           );
-          clearTokens();
-          _logoutController.add(true); // Notify listeners to log out
+          // Do not clear tokens here, let the retry mechanism handle it
+          // The actual retry logic will be implemented in a wrapper function
+          // that calls this handleResponse. For now, just return an error
+          // indicating a 401, which the wrapper will catch.
         }
         return ApiResponse.error(errorMessage, response.statusCode);
       }
@@ -126,12 +168,16 @@ class ApiService {
       }
 
       // Test server connectivity
-      final response = await _client
-          .get(
-            Uri.parse('${ApiConfig.baseUrl}/'),
-            headers: await getHeaders(includeAuth: false),
-          )
-          .timeout(Duration(milliseconds: 10000));
+      final response = await _sendRequest(
+        () async => _client
+            .get(
+              // Mark the lambda as async
+              Uri.parse('${ApiConfig.baseUrl}/'),
+              headers: await getHeaders(includeAuth: false),
+            )
+            .timeout(Duration(milliseconds: 10000)),
+        includeAuth: false,
+      );
 
       ApiLogger.logResponse(response.statusCode, 'Connection test response');
 
@@ -204,9 +250,14 @@ class ApiService {
 
   Future<ApiResponse<UserModel>> getUserProfile() async {
     try {
-      final response = await _client
-          .get(Uri.parse('$baseUrl/user/profile/'), headers: await getHeaders())
-          .timeout(Duration(milliseconds: timeoutDuration));
+      final response = await _sendRequest(
+        () async => _client
+            .get(
+              Uri.parse(ApiConfig.userProfileUrl),
+              headers: await getHeaders(),
+            )
+            .timeout(Duration(milliseconds: timeoutDuration)),
+      );
 
       return handleResponse(response, (data) => UserModel.fromJson(data));
     } catch (e) {
@@ -286,19 +337,64 @@ class ApiService {
       );
 
       final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
+      http.Response response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 401) {
+        ApiLogger.logError(
+          '401 Unauthorized for multipart request. Attempting token refresh...',
+        );
+        final refreshed = await refreshAccessToken();
+        if (refreshed) {
+          ApiLogger.log(
+            'Token refreshed successfully. Retrying multipart request...',
+          );
+          // Re-create request with new headers
+          final newRequest = http.MultipartRequest(
+            'POST',
+            Uri.parse(ApiConfig.prescriptionForOrderUrl),
+          );
+          final newHeaders = await getHeaders();
+          newHeaders.remove('Content-Type');
+          newRequest.headers.addAll(newHeaders);
+          newRequest.files.add(
+            await http.MultipartFile.fromPath(
+              'image',
+              imageFile.path,
+              filename: 'prescription.$fileExtension',
+              contentType: MediaType.parse(mimeType),
+            ),
+          );
+          final newStreamedResponse = await newRequest.send();
+          response = await http.Response.fromStream(newStreamedResponse);
+        } else {
+          ApiLogger.logError(
+            'Token refresh failed for multipart request. Clearing tokens and logging out.',
+          );
+          await clearTokens();
+          _logoutController.add(true);
+          return ApiResponse.error(
+            'Authentication failed. Please log in again.',
+            response.statusCode,
+          );
+        }
+      }
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = json.decode(response.body);
         return ApiResponse.success(data);
       } else {
-        final errorData = json.decode(response.body);
-        return ApiResponse.error(
-          errorData['error'] ?? 'Upload failed',
-          response.statusCode,
-        );
+        String errorMessage = 'Upload failed';
+        try {
+          final errorData = json.decode(response.body);
+          errorMessage =
+              errorData['error'] ?? errorData['detail'] ?? errorMessage;
+        } catch (e) {
+          // If error body is not JSON, use generic message
+        }
+        return ApiResponse.error(errorMessage, response.statusCode);
       }
     } catch (e) {
+      ApiLogger.logError('Upload prescription for order error: $e');
       return ApiResponse.error('Network error: $e', 0);
     }
   }
@@ -360,7 +456,49 @@ class ApiService {
       final streamedResponse = await request.send().timeout(
         Duration(milliseconds: timeoutDuration * 3),
       );
-      final response = await http.Response.fromStream(streamedResponse);
+      http.Response response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 401) {
+        ApiLogger.logError(
+          '401 Unauthorized for multipart request. Attempting token refresh...',
+        );
+        final refreshed = await refreshAccessToken();
+        if (refreshed) {
+          ApiLogger.log(
+            'Token refreshed successfully. Retrying multipart request...',
+          );
+          // Re-create request with new headers
+          final newRequest = http.MultipartRequest(
+            'POST',
+            Uri.parse(ApiConfig.prescriptionUploadUrl),
+          );
+          final newHeaders = await getHeaders();
+          newHeaders.remove('Content-Type');
+          newRequest.headers.addAll(newHeaders);
+          newRequest.files.add(
+            await http.MultipartFile.fromPath(
+              'image',
+              imageFile.path,
+              filename: 'prescription.$fileExtension',
+              contentType: MediaType.parse(mimeType),
+            ),
+          );
+          final newStreamedResponse = await newRequest.send().timeout(
+            Duration(milliseconds: timeoutDuration * 3),
+          );
+          response = await http.Response.fromStream(newStreamedResponse);
+        } else {
+          ApiLogger.logError(
+            'Token refresh failed for multipart request. Clearing tokens and logging out.',
+          );
+          await clearTokens();
+          _logoutController.add(true);
+          return ApiResponse.error(
+            'Authentication failed. Please log in again.',
+            response.statusCode,
+          );
+        }
+      }
 
       ApiLogger.logResponse(response.statusCode, response.body);
 
@@ -383,9 +521,11 @@ class ApiService {
           '${ApiConfig.baseUrl}/prescription/mobile/detail/$prescriptionId/';
       ApiLogger.logRequest('GET', url);
 
-      final response = await _client
-          .get(Uri.parse(url), headers: await getHeaders())
-          .timeout(Duration(milliseconds: timeoutDuration));
+      final response = await _sendRequest(
+        () async => _client
+            .get(Uri.parse(url), headers: await getHeaders())
+            .timeout(Duration(milliseconds: timeoutDuration)),
+      );
 
       return handleResponse(
         response,
@@ -405,9 +545,11 @@ class ApiService {
           '${ApiConfig.baseUrl}/prescription/mobile/status/$prescriptionId/';
       ApiLogger.logRequest('GET', url);
 
-      final response = await _client
-          .get(Uri.parse(url), headers: await getHeaders())
-          .timeout(Duration(milliseconds: timeoutDuration));
+      final response = await _sendRequest(
+        () async => _client
+            .get(Uri.parse(url), headers: await getHeaders())
+            .timeout(Duration(milliseconds: timeoutDuration)),
+      );
 
       return handleResponse(
         response,
@@ -427,9 +569,11 @@ class ApiService {
           '${ApiConfig.baseUrl}/prescription/mobile/suggestions/$prescriptionId/';
       ApiLogger.logRequest('GET', url);
 
-      final response = await _client
-          .get(Uri.parse(url), headers: await getHeaders())
-          .timeout(Duration(milliseconds: timeoutDuration));
+      final response = await _sendRequest(
+        () async => _client
+            .get(Uri.parse(url), headers: await getHeaders())
+            .timeout(Duration(milliseconds: timeoutDuration)),
+      );
 
       return handleResponse(
         response,
@@ -445,13 +589,15 @@ class ApiService {
     Map<String, dynamic> orderData,
   ) async {
     try {
-      final response = await _client
-          .post(
-            Uri.parse(ApiConfig.prescriptionCreateOrderUrl),
-            headers: await getHeaders(),
-            body: json.encode(orderData),
-          )
-          .timeout(Duration(milliseconds: timeoutDuration));
+      final response = await _sendRequest(
+        () async => _client
+            .post(
+              Uri.parse(ApiConfig.prescriptionCreateOrderUrl),
+              headers: await getHeaders(),
+              body: json.encode(orderData),
+            )
+            .timeout(Duration(milliseconds: timeoutDuration)),
+      );
 
       return handleResponse(response, (data) => OrderResponse.fromJson(data));
     } catch (e) {
@@ -468,9 +614,11 @@ class ApiService {
         ApiConfig.enhancedProductsUrl,
       ).replace(queryParameters: queryParams);
 
-      final response = await _client
-          .get(uri, headers: await getHeaders())
-          .timeout(Duration(milliseconds: timeoutDuration));
+      final response = await _sendRequest(
+        () async => _client
+            .get(uri, headers: await getHeaders())
+            .timeout(Duration(milliseconds: timeoutDuration)),
+      );
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         final data = json.decode(response.body);
@@ -822,7 +970,7 @@ class ApiService {
     try {
       final response = await _client
           .post(
-            Uri.parse('$baseUrl/api/order/pending/'),
+            Uri.parse('${ApiConfig.ordersUrl}/pending/'),
             headers: await getHeaders(),
             body: json.encode(orderData),
           )
@@ -935,7 +1083,7 @@ class ApiService {
     try {
       final response = await _client
           .post(
-            Uri.parse('$baseUrl/user/register/'),
+            Uri.parse(ApiConfig.registerUrl),
             headers: await getHeaders(includeAuth: false),
             body: json.encode(userData),
           )
@@ -962,7 +1110,7 @@ class ApiService {
     try {
       final response = await _client
           .put(
-            Uri.parse('$baseUrl/user/profile/'),
+            Uri.parse(ApiConfig.userProfileUrl),
             headers: await getHeaders(),
             body: json.encode(profileData),
           )
@@ -978,15 +1126,9 @@ class ApiService {
   Future<ApiResponse<Map<String, dynamic>>> logout() async {
     try {
       final refreshToken = await getRefreshToken();
-      if (refreshToken != null) {
-        await _client
-            .post(
-              Uri.parse('$baseUrl/api/token/logout/'),
-              headers: await getHeaders(),
-              body: json.encode({'refresh': refreshToken}),
-            )
-            .timeout(Duration(milliseconds: timeoutDuration));
-      }
+      // No server-side logout endpoint is explicitly defined for JWT blacklisting.
+      // Logout is handled by clearing local tokens.
+      // If a server-side logout is needed, it must be implemented in the backend.
 
       await clearTokens();
       return ApiResponse.success({'message': 'Logged out successfully'});
@@ -1070,25 +1212,19 @@ class ApiService {
   // Additional API methods for profile features
 
   // Forgot Password
-  Future<Map<String, dynamic>> forgotPassword(String email) async {
+  Future<ApiResponse<Map<String, dynamic>>> forgotPassword(String email) async {
     try {
-      final response = await _client.post(
-        Uri.parse('$baseUrl/user/forgot-password/'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({'email': email}),
-      );
+      final response = await _client
+          .post(
+            Uri.parse(ApiConfig.forgotPasswordUrl),
+            headers: await getHeaders(includeAuth: false),
+            body: json.encode({'email': email}),
+          )
+          .timeout(Duration(milliseconds: timeoutDuration));
 
-      if (response.statusCode == 200) {
-        return {'success': true, 'data': json.decode(response.body)};
-      } else {
-        final errorData = json.decode(response.body);
-        return {
-          'success': false,
-          'error': errorData['error'] ?? 'Failed to send reset email',
-        };
-      }
+      return handleResponse(response, (data) => data as Map<String, dynamic>);
     } catch (e) {
-      return {'success': false, 'error': 'Network error: $e'};
+      return ApiResponse.error('Network error: $e', 0);
     }
   }
 
@@ -1099,7 +1235,7 @@ class ApiService {
   ) async {
     try {
       final response = await _client.post(
-        Uri.parse('$baseUrl/user/change-password/'),
+        Uri.parse(ApiConfig.changePasswordUrl),
         headers: await getHeaders(),
         body: json.encode({
           'current_password': currentPassword,
@@ -1125,7 +1261,7 @@ class ApiService {
   Future<Map<String, dynamic>> getAddresses() async {
     try {
       final response = await _client.get(
-        Uri.parse('$baseUrl/user/addresses/'),
+        Uri.parse(ApiConfig.getAddresses),
         headers: await getHeaders(),
       );
 
