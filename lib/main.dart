@@ -18,6 +18,7 @@ import 'ProductDetailsScreen.dart';
 import 'CategoryPage.dart';
 import 'SearchResultsScreen.dart';
 import 'screens/prescription_tracking_screen.dart'; // Import for Prescription Tracking
+import 'PrescriptionCameraScreen.dart'; // Import for Prescription Upload
 import 'LoginScreen.dart'; // Import LoginScreen
 import 'services/api_service.dart';
 import 'services/cart_service.dart';
@@ -541,13 +542,13 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                           IconButton(
                             icon: const Icon(
                               Icons.camera_alt_outlined,
-                              color: Colors.teal,
-                            ),
+                            ), // Icon for Prescription Upload
                             onPressed: () {
-                              Navigator.push(
+                              Navigator.pushReplacement(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const ScannerScreen(),
+                                  builder: (context) =>
+                                      const PrescriptionCameraScreen(),
                                 ),
                               );
                             },
@@ -1041,6 +1042,30 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
               },
               iconSize: 30.0, // Increased icon size
               color: Colors.grey[700],
+            ),
+            Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(
+                    Icons.camera_alt_outlined,
+                  ), // Icon for Prescription Upload
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const PrescriptionCameraScreen(),
+                      ),
+                    );
+                  },
+                  iconSize: 30.0, // Increased icon size
+                  color: Colors.grey[700],
+                ),
+                Text(
+                  'Upload',
+                  style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                ),
+              ],
             ),
             // This is the floating action button for the scanner
             const SizedBox(width: 48), // The space for the FAB

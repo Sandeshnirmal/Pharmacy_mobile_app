@@ -115,7 +115,7 @@ class _PrescriptionCameraScreenState extends State<PrescriptionCameraScreen> {
         );
 
         // Wait for AI processing
-        await _waitForProcessing(uploadResponse.prescriptionId.toString());
+        await _waitForProcessing(uploadResponse.prescriptionId);
       } else {
         setState(() {
           _isUploading = false;
@@ -140,7 +140,7 @@ class _PrescriptionCameraScreenState extends State<PrescriptionCameraScreen> {
     }
   }
 
-  Future<void> _waitForProcessing(int prescriptionId) async {
+  Future<void> _waitForProcessing(String prescriptionId) async {
     const maxAttempts = 20; // 40 seconds with 2-second intervals
     int attempts = 0;
 
