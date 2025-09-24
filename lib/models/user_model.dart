@@ -106,8 +106,8 @@ class AddressModel {
   factory AddressModel.fromJson(Map<String, dynamic> json) {
     return AddressModel(
       id: json['id'] ?? 0,
-      addressLine1: json['address_line_1'] ?? '',
-      addressLine2: json['address_line_2'],
+      addressLine1: json['address_line1'] ?? '', // Corrected key
+      addressLine2: json['address_line2'], // Corrected key
       city: json['city'] ?? '',
       state: json['state'] ?? '',
       pincode: json['pincode'] ?? '',
@@ -119,8 +119,8 @@ class AddressModel {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'address_line_1': addressLine1,
-      'address_line_2': addressLine2,
+      'address_line1': addressLine1, // Corrected key
+      'address_line2': addressLine2, // Corrected key
       'city': city,
       'state': state,
       'pincode': pincode,

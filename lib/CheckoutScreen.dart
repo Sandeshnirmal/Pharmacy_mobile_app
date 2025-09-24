@@ -129,6 +129,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     try {
       final response = await _apiService.getAddresses();
+      // Debug print
       if (response['success'] == true && response['data'] != null) {
         final List<dynamic> addressJson = response['data'];
         setState(() {
@@ -154,6 +155,27 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         setState(() {
           _addresses = [];
           _selectedAddressIndex = -1;
+        });
+      }
+
+      // Fallback: If _addresses is still empty, try to use addresses from _user
+      if (_addresses.isEmpty &&
+          _user != null &&
+          _user!.addresses != null &&
+          _user!.addresses!.isNotEmpty) {
+        print('Debug: Falling back to user addresses.');
+        setState(() {
+          _addresses = _user!.addresses!;
+          if (_addresses.isNotEmpty) {
+            _selectedAddressIndex = _addresses.indexWhere(
+              (addr) => addr.isDefault,
+            );
+            if (_selectedAddressIndex == -1) {
+              _selectedAddressIndex = 0;
+            }
+          } else {
+            _selectedAddressIndex = -1;
+          }
         });
       }
     } catch (e) {
@@ -657,8 +679,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         title: Row(
                           children: [
                             Text(
-                              address
-                                  .addressLine1, // Using AddressModel property
+                              address.addressLine1,
+
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                               ),
@@ -689,20 +711,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         subtitle: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              address.addressLine1,
-                            ), // Using AddressModel property
                             if (address.addressLine2 != null &&
                                 address.addressLine2!.isNotEmpty)
-                              Text(
-                                address.addressLine2!,
-                              ), // Using AddressModel property
+                              Text(address.addressLine2!),
                             Text(
-                              '${address.city}, ${address.state} - ${address.pincode}', // Using AddressModel properties
+                              '${address.city}, ${address.state} - ${address.pincode}',
                             ),
-                            // Assuming phone number is not part of AddressModel, or needs to be fetched from UserModel
-                            // For now, I'll remove the phone number line as it's not directly in AddressModel
-                            // Text('Phone: ${address['phone']}'),
                           ],
                         ),
                         onTap: () {
