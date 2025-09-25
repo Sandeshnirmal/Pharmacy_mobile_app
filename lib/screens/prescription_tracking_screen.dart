@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../models/prescription_detail_model.dart';
-import '../services/prescription_service.dart';
-import '../services/auth_service.dart'; // Import AuthService
-import '../providers/cart_provider.dart';
-import '../models/product_model.dart';
-import '../ProductDetailsScreen.dart'; // Assuming this screen exists for product details
-import '../LoginScreen.dart'; // Import LoginScreen
-import 'package:flutter/material.dart'; // Ensure Material is imported for Color shades
+import 'package:pharmacy/models/prescription_detail_model.dart';
+import 'package:pharmacy/services/prescription_service.dart';
+import 'package:pharmacy/services/auth_service.dart'; // Import AuthService
+import 'package:pharmacy/providers/cart_provider.dart';
+import 'package:pharmacy/models/product_model.dart';
+import 'package:pharmacy/ProductDetailsScreen.dart'; // Assuming this screen exists for product details
+import 'package:pharmacy/LoginScreen.dart'; // Import LoginScreen
 
 class PrescriptionTrackingScreen extends StatefulWidget {
   final String? prescriptionId; // Added optional prescriptionId
@@ -227,23 +226,38 @@ class _PrescriptionTrackingScreenState
                                 children: [
                                   ClipRRect(
                                     borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(
-                                      prescription.imageUrl,
-                                      width: 80,
-                                      height: 80,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) =>
-                                              Container(
-                                                width: 80,
-                                                height: 80,
-                                                color: Colors.grey.shade200,
-                                                child: Icon(
-                                                  Icons.broken_image,
-                                                  color: Colors.grey.shade400,
+                                    child: (prescription.imageUrl.isNotEmpty)
+                                        ? Image.network(
+                                            prescription.imageUrl,
+                                            width: 80,
+                                            height: 80,
+                                            fit: BoxFit.cover,
+                                            errorBuilder:
+                                                (
+                                                  context,
+                                                  error,
+                                                  stackTrace,
+                                                ) => Container(
+                                                  width: 80,
+                                                  height: 80,
+                                                  color: Colors.grey.shade200,
+                                                  child: Icon(
+                                                    Icons.broken_image,
+                                                    color: Colors.grey.shade400,
+                                                  ),
                                                 ),
-                                              ),
-                                    ),
+                                          )
+                                        : Container(
+                                            width: 80,
+                                            height: 80,
+                                            color: Colors.grey.shade200,
+                                            child: Icon(
+                                              Icons
+                                                  .receipt_long, // Placeholder icon
+                                              color: Colors.grey.shade400,
+                                              size: 40,
+                                            ),
+                                          ),
                                   ),
                                   const SizedBox(width: 16),
                                   Expanded(
@@ -252,7 +266,7 @@ class _PrescriptionTrackingScreenState
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'Prescription ID: ${prescription.id}',
+                                          'Prescription #${index + 1}', // Use index number
                                           style: const TextStyle(
                                             fontWeight: FontWeight.bold,
                                             fontSize: 16,
@@ -429,20 +443,30 @@ class PrescriptionDetailViewScreen extends StatelessWidget {
             Center(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  prescription.imageUrl,
-                  height: 250,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    height: 250,
-                    color: Colors.grey.shade200,
-                    child: Icon(
-                      Icons.broken_image,
-                      color: Colors.grey.shade400,
-                      size: 80,
-                    ),
-                  ),
-                ),
+                child: (prescription.imageUrl.isNotEmpty)
+                    ? Image.network(
+                        prescription.imageUrl,
+                        height: 250,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          height: 250,
+                          color: Colors.grey.shade200,
+                          child: Icon(
+                            Icons.broken_image,
+                            color: Colors.grey.shade400,
+                            size: 80,
+                          ),
+                        ),
+                      )
+                    : Container(
+                        height: 250,
+                        color: Colors.grey.shade200,
+                        child: Icon(
+                          Icons.receipt_long, // Placeholder icon
+                          color: Colors.grey.shade400,
+                          size: 80,
+                        ),
+                      ),
               ),
             ),
             const SizedBox(height: 24),
@@ -461,9 +485,231 @@ class PrescriptionDetailViewScreen extends StatelessWidget {
               icon: Icons.calendar_today,
               color: Colors.blueGrey,
             ),
+            // Display extracted medicine details if available
+            if (prescription.extractedMedicineName != null &&
+                prescription.extractedMedicineName!.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              const Text(
+                'Extracted Prescription Details (Legacy)',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const Divider(height: 20, thickness: 1),
+              _buildInfoCard(
+                title: 'Medicine Name',
+                value: prescription.extractedMedicineName!,
+                icon: Icons.medical_information,
+                color: Colors.deepPurple,
+              ),
+              if (prescription.extractedDosage != null &&
+                  prescription.extractedDosage!.isNotEmpty)
+                _buildInfoCard(
+                  title: 'Dosage',
+                  value: prescription.extractedDosage!,
+                  icon: Icons.straighten,
+                  color: Colors.indigo,
+                ),
+              if (prescription.extractedForm != null &&
+                  prescription.extractedForm!.isNotEmpty)
+                _buildInfoCard(
+                  title: 'Form',
+                  value: prescription.extractedForm!,
+                  icon: Icons.category,
+                  color: Colors.blue,
+                ),
+              if (prescription.extractedFrequency != null &&
+                  prescription.extractedFrequency!.isNotEmpty)
+                _buildInfoCard(
+                  title: 'Frequency',
+                  value: prescription.extractedFrequency!,
+                  icon: Icons.access_time,
+                  color: Colors.lightBlue,
+                ),
+              if (prescription.mappingStatus != null &&
+                  prescription.mappingStatus!.isNotEmpty)
+                _buildInfoCard(
+                  title: 'Mapping Status',
+                  value: prescription.mappingStatus!,
+                  icon: Icons.link,
+                  color: Colors.brown,
+                ),
+            ],
             const SizedBox(height: 24),
             Text(
-              'Suggested Medicines (${prescription.suggestedMedicines?.length ?? 0})',
+              'Prescription Medicines (${prescription.prescriptionMedicines?.length ?? 0})',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const Divider(height: 20, thickness: 1),
+            if (prescription.prescriptionMedicines == null ||
+                prescription.prescriptionMedicines!.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20.0),
+                  child: Text(
+                    'No detailed medicines found for this prescription.',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              )
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: prescription.prescriptionMedicines!.length,
+                itemBuilder: (context, index) {
+                  final medicineDetail = prescription.prescriptionMedicines![index];
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 8.0),
+                    elevation: 1,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: ExpansionTile(
+                      title: Text(
+                        medicineDetail.extractedMedicineName ?? 'Unknown Medicine',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text(
+                        'Status: ${medicineDetail.mappingStatusDisplay ?? 'N/A'}',
+                      ),
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (medicineDetail.extractedDosage != null && medicineDetail.extractedDosage!.isNotEmpty)
+                                _buildDetailRow('Dosage:', medicineDetail.extractedDosage!),
+                              if (medicineDetail.extractedFrequency != null && medicineDetail.extractedFrequency!.isNotEmpty)
+                                _buildDetailRow('Frequency:', medicineDetail.extractedFrequency!),
+                              if (medicineDetail.extractedForm != null && medicineDetail.extractedForm!.isNotEmpty)
+                                _buildDetailRow('Form:', medicineDetail.extractedForm!),
+                              if (medicineDetail.aiConfidenceScore != null)
+                                _buildDetailRow('AI Confidence:', '${(medicineDetail.aiConfidenceScore! * 100).toStringAsFixed(1)}%'),
+                              const SizedBox(height: 10),
+                              if (medicineDetail.mappedProduct != null) ...[
+                                const Text(
+                                  'Mapped Product:',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                ListTile(
+                                  leading: ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      medicineDetail.mappedProduct!.imageUrl ??
+                                          'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400',
+                                      width: 40,
+                                      height: 40,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) =>
+                                          Container(
+                                            width: 40,
+                                            height: 40,
+                                            color: Colors.grey.shade200,
+                                            child: Icon(
+                                              Icons.broken_image,
+                                              color: Colors.grey.shade400,
+                                            ),
+                                          ),
+                                    ),
+                                  ),
+                                  title: Text(medicineDetail.mappedProduct!.name),
+                                  subtitle: Text('₹${medicineDetail.mappedProduct!.price.toStringAsFixed(2)}'),
+                                  trailing: IconButton(
+                                    icon: const Icon(Icons.add_shopping_cart, color: Colors.teal),
+                                    onPressed: () {
+                                      cartProvider.addItem(medicineDetail.mappedProduct!, 1);
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('${medicineDetail.mappedProduct!.name} added to cart!'),
+                                          backgroundColor: Colors.green,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => ProductDetailsScreen(
+                                          product: medicineDetail.mappedProduct!.toJson(),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                              if (medicineDetail.suggestedProducts != null && medicineDetail.suggestedProducts!.isNotEmpty) ...[
+                                const SizedBox(height: 10),
+                                const Text(
+                                  'Other Suggestions:',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                ...medicineDetail.suggestedProducts!.map((product) => ListTile(
+                                  leading: ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      product.imageUrl ??
+                                          'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400',
+                                      width: 40,
+                                      height: 40,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) =>
+                                          Container(
+                                            width: 40,
+                                            height: 40,
+                                            color: Colors.grey.shade200,
+                                            child: Icon(
+                                              Icons.broken_image,
+                                              color: Colors.grey.shade400,
+                                            ),
+                                          ),
+                                    ),
+                                  ),
+                                  title: Text(product.name),
+                                  subtitle: Text('₹${product.price.toStringAsFixed(2)}'),
+                                  trailing: IconButton(
+                                    icon: const Icon(Icons.add_shopping_cart, color: Colors.teal),
+                                    onPressed: () {
+                                      cartProvider.addItem(product, 1);
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('${product.name} added to cart!'),
+                                          backgroundColor: Colors.green,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => ProductDetailsScreen(
+                                          product: product.toJson(),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                )).toList(),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            const SizedBox(height: 24),
+            Text(
+              'Aggregated Suggested Medicines (${prescription.suggestedMedicines?.length ?? 0})',
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -477,7 +723,7 @@ class PrescriptionDetailViewScreen extends StatelessWidget {
                 child: Padding(
                   padding: EdgeInsets.symmetric(vertical: 20.0),
                   child: Text(
-                    'No medicines suggested yet or prescription is still processing.',
+                    'No aggregated medicines suggested yet or prescription is still processing.',
                     style: TextStyle(color: Colors.grey),
                   ),
                 ),
@@ -566,6 +812,7 @@ class PrescriptionDetailViewScreen extends StatelessWidget {
   }) {
     return Container(
       padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 8.0), // Added margin for spacing
       decoration: BoxDecoration(
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
@@ -594,6 +841,25 @@ class PrescriptionDetailViewScreen extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(value),
           ),
         ],
       ),

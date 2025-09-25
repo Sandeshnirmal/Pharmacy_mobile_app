@@ -1361,28 +1361,37 @@ class ApiService {
           .timeout(Duration(milliseconds: timeoutDuration));
 
       if (response.statusCode == 200) {
+        ApiLogger.log('Raw response body for getUserPrescriptions: ${response.body}');
         final dynamic decodedData = json.decode(response.body);
         if (decodedData is List) {
-          final prescriptions = decodedData
-              .map(
-                (json) => PrescriptionDetailModel.fromJson(
-                  json as Map<String, dynamic>,
-                ),
-              )
-              .toList();
+          final List<PrescriptionDetailModel> prescriptions = [];
+          for (var item in decodedData) {
+            if (item is Map<String, dynamic>) {
+              prescriptions.add(PrescriptionDetailModel.fromJson(item));
+            } else {
+              ApiLogger.logError(
+                'Unexpected item type in getUserPrescriptions list: $item (type: ${item.runtimeType})',
+              );
+              // Optionally, you could skip this item or throw a more specific error
+            }
+          }
           return ApiResponse.success(prescriptions);
         } else if (decodedData is Map &&
             decodedData.containsKey('prescriptions') &&
             decodedData['prescriptions'] is List) {
           // Handle cases where the response is a map containing a 'prescriptions' list
           final List<dynamic> prescriptionsList = decodedData['prescriptions'];
-          final prescriptions = prescriptionsList
-              .map(
-                (json) => PrescriptionDetailModel.fromJson(
-                  json as Map<String, dynamic>,
-                ),
-              )
-              .toList();
+          final List<PrescriptionDetailModel> prescriptions = [];
+          for (var item in prescriptionsList) {
+            if (item is Map<String, dynamic>) {
+              prescriptions.add(PrescriptionDetailModel.fromJson(item));
+            } else {
+              ApiLogger.logError(
+                'Unexpected item type in getUserPrescriptions list (nested): $item (type: ${item.runtimeType})',
+              );
+              // Optionally, you could skip this item or throw a more specific error
+            }
+          }
           return ApiResponse.success(prescriptions);
         } else if (decodedData is Map && decodedData.isEmpty) {
           // Handle empty map response as an empty list
@@ -1390,7 +1399,7 @@ class ApiService {
         } else {
           // If the response is not a list or a map with a 'prescriptions' list, treat as empty
           ApiLogger.logError(
-            'Unexpected response format for getUserPrescriptions: $decodedData',
+            'Unexpected response format for getUserPrescriptions: $decodedData (type: ${decodedData.runtimeType})',
           );
           return ApiResponse.success([]);
         }

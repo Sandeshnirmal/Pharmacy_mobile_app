@@ -449,12 +449,16 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
               ),
             ),
             const SizedBox(width: 8),
-            const Text(
-              'InfxMart',
-              style: TextStyle(
-                color: Colors.teal,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
+            Expanded(
+              // Wrap with Expanded to prevent overflow
+              child: const Text(
+                'InfxMart',
+                style: TextStyle(
+                  color: Colors.teal,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
+                overflow: TextOverflow.ellipsis, // Add overflow handling
               ),
             ),
           ],
@@ -496,6 +500,9 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                         fontWeight: FontWeight.bold,
                       ),
                       textAlign: TextAlign.center,
+                      maxLines: 1, // Ensure text doesn't overflow vertically
+                      overflow:
+                          TextOverflow.ellipsis, // Handle horizontal overflow
                     ),
                   ),
                 ),
@@ -581,7 +588,9 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
               // Banner Section
               if (_bannerImages.isNotEmpty) ...[
                 Container(
-                  height: 180,
+                  height:
+                      MediaQuery.of(context).size.height *
+                      0.25, // Responsive height
                   margin: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12.0),
@@ -663,7 +672,9 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
                 child: Container(
-                  height: 180,
+                  height:
+                      MediaQuery.of(context).size.height *
+                      0.25, // Responsive height
                   width: double.infinity,
                   decoration: BoxDecoration(
                     color: Colors
@@ -741,7 +752,9 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
               ),
               const SizedBox(height: 15),
               SizedBox(
-                height: 220, // Height for horizontal product list
+                height:
+                    MediaQuery.of(context).size.height *
+                    0.3, // Responsive height
                 child: _isLoading
                     ? const Center(
                         child: CircularProgressIndicator(color: Colors.teal),
@@ -832,7 +845,9 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
               ),
               const SizedBox(height: 15),
               SizedBox(
-                height: 220,
+                height:
+                    MediaQuery.of(context).size.height *
+                    0.3, // Responsive height
                 child: _isLoadingTrending
                     ? const Center(
                         child: CircularProgressIndicator(color: Colors.teal),
@@ -905,7 +920,9 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
               ),
               const SizedBox(height: 15),
               SizedBox(
-                height: 220, // Height for horizontal product list
+                height:
+                    MediaQuery.of(context).size.height *
+                    0.3, // Responsive height
                 child: _isLoading
                     ? const Center(
                         child: CircularProgressIndicator(color: Colors.teal),
@@ -957,7 +974,9 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
               ),
               const SizedBox(height: 15),
               SizedBox(
-                height: 220, // Height for horizontal product list
+                height:
+                    MediaQuery.of(context).size.height *
+                    0.3, // Responsive height
                 child: _isLoading
                     ? const Center(
                         child: CircularProgressIndicator(color: Colors.teal),
@@ -1000,12 +1019,11 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
       ),
       // Modified Bottom Navigation Bar
       bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 4.0, // Reduced notchMargin from 8.0 to 4.0
         color: Colors.white,
         elevation: 10.0, // Added elevation for a subtle lift
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          mainAxisAlignment:
+              MainAxisAlignment.spaceEvenly, // Distribute items evenly
           children: <Widget>[
             IconButton(
               icon: const Icon(Icons.home_outlined),
@@ -1058,8 +1076,6 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
               iconSize: 30.0, // Increased icon size
               color: Colors.grey[700],
             ),
-            // This is the floating action button for the scanner
-            const SizedBox(width: 48), // The space for the FAB
             IconButton(
               icon: const Icon(Icons.shopping_cart_outlined),
               onPressed: () {
@@ -1086,21 +1102,6 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
             ),
           ],
         ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => const ScannerScreen()),
-          );
-        },
-        backgroundColor: Colors.teal,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30.0), // Makes it circular
-        ),
-        elevation: 8.0, // Added elevation for the FAB
-        child: const Icon(Icons.qr_code_scanner, color: Colors.white),
       ),
     );
   }
@@ -1172,7 +1173,7 @@ class ProductCard extends StatelessWidget {
       // Wrap with GestureDetector to detect taps
       onTap: onTap, // Assign the onTap callback
       child: Container(
-        width: 160,
+        width: MediaQuery.of(context).size.width * 0.4, // Responsive width
         margin: const EdgeInsets.only(right: 15.0),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -1301,9 +1302,12 @@ class ProductCard extends StatelessWidget {
                           child: const Text(
                             'Add to Cart',
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: 10, // Reduced font size
                               fontWeight: FontWeight.bold,
                             ),
+                            maxLines: 1, // Ensure text doesn't overflow
+                            overflow: TextOverflow
+                                .ellipsis, // Handle overflow with ellipsis
                           ),
                         ),
                       ),

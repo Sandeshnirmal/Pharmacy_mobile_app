@@ -444,11 +444,17 @@ class _CartScreenState extends State<CartScreen> {
                       fontWeight: FontWeight.bold,
                       color: Colors.black87,
                     ),
+                    maxLines: 2, // Limit to 2 lines
+                    overflow:
+                        TextOverflow.ellipsis, // Add ellipsis if overflows
                   ),
                   const SizedBox(height: 4),
                   Text(
                     '${item.manufacturer} ${item.strength ?? ''}',
                     style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    maxLines: 1, // Limit to 1 line
+                    overflow:
+                        TextOverflow.ellipsis, // Add ellipsis if overflows
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -834,9 +840,15 @@ class _CartScreenState extends State<CartScreen> {
               ),
               elevation: 2,
             ),
-            child: Text(
-              'Proceed to Checkout • ₹${_cart.total.toStringAsFixed(2)}',
-              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            child: Flexible(
+              child: Text(
+                'Proceed to Checkout • ₹${_cart.total.toStringAsFixed(2)}',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ),
         ),
