@@ -5,7 +5,6 @@ import 'package:fluttertoast/fluttertoast.dart';
 
 import 'services/prescription_service.dart';
 import 'services/auth_service.dart';
-import 'CheckoutScreen.dart';
 import 'models/cart_model.dart';
 import 'models/cart_item.dart';
 import 'screens/prescription_tracking_screen.dart'; // Import PrescriptionTrackingScreen

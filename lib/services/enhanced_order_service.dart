@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../config/api_config.dart';
 import '../models/order.dart';
-import '../models/prescription.dart';
 
 class EnhancedOrderService {
   static const String _tag = 'EnhancedOrderService';

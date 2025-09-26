@@ -5,7 +5,6 @@ import 'package:pharmacy/models/prescription_detail_model.dart';
 import 'package:pharmacy/services/prescription_service.dart';
 import 'package:pharmacy/services/auth_service.dart'; // Import AuthService
 import 'package:pharmacy/providers/cart_provider.dart';
-import 'package:pharmacy/models/product_model.dart';
 import 'package:pharmacy/ProductDetailsScreen.dart'; // Assuming this screen exists for product details
 import 'package:pharmacy/LoginScreen.dart'; // Import LoginScreen
 
@@ -564,7 +563,8 @@ class PrescriptionDetailViewScreen extends StatelessWidget {
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: prescription.prescriptionMedicines!.length,
                 itemBuilder: (context, index) {
-                  final medicineDetail = prescription.prescriptionMedicines![index];
+                  final medicineDetail =
+                      prescription.prescriptionMedicines![index];
                   return Card(
                     margin: const EdgeInsets.symmetric(vertical: 8.0),
                     elevation: 1,
@@ -573,7 +573,8 @@ class PrescriptionDetailViewScreen extends StatelessWidget {
                     ),
                     child: ExpansionTile(
                       title: Text(
-                        medicineDetail.extractedMedicineName ?? 'Unknown Medicine',
+                        medicineDetail.extractedMedicineName ??
+                            'Unknown Medicine',
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       subtitle: Text(
@@ -581,18 +582,36 @@ class PrescriptionDetailViewScreen extends StatelessWidget {
                       ),
                       children: [
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16.0,
+                            vertical: 8.0,
+                          ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              if (medicineDetail.extractedDosage != null && medicineDetail.extractedDosage!.isNotEmpty)
-                                _buildDetailRow('Dosage:', medicineDetail.extractedDosage!),
-                              if (medicineDetail.extractedFrequency != null && medicineDetail.extractedFrequency!.isNotEmpty)
-                                _buildDetailRow('Frequency:', medicineDetail.extractedFrequency!),
-                              if (medicineDetail.extractedForm != null && medicineDetail.extractedForm!.isNotEmpty)
-                                _buildDetailRow('Form:', medicineDetail.extractedForm!),
+                              if (medicineDetail.extractedDosage != null &&
+                                  medicineDetail.extractedDosage!.isNotEmpty)
+                                _buildDetailRow(
+                                  'Dosage:',
+                                  medicineDetail.extractedDosage!,
+                                ),
+                              if (medicineDetail.extractedFrequency != null &&
+                                  medicineDetail.extractedFrequency!.isNotEmpty)
+                                _buildDetailRow(
+                                  'Frequency:',
+                                  medicineDetail.extractedFrequency!,
+                                ),
+                              if (medicineDetail.extractedForm != null &&
+                                  medicineDetail.extractedForm!.isNotEmpty)
+                                _buildDetailRow(
+                                  'Form:',
+                                  medicineDetail.extractedForm!,
+                                ),
                               if (medicineDetail.aiConfidenceScore != null)
-                                _buildDetailRow('AI Confidence:', '${(medicineDetail.aiConfidenceScore! * 100).toStringAsFixed(1)}%'),
+                                _buildDetailRow(
+                                  'AI Confidence:',
+                                  '${(medicineDetail.aiConfidenceScore! * 100).toStringAsFixed(1)}%',
+                                ),
                               const SizedBox(height: 10),
                               if (medicineDetail.mappedProduct != null) ...[
                                 const Text(
@@ -608,27 +627,42 @@ class PrescriptionDetailViewScreen extends StatelessWidget {
                                       width: 40,
                                       height: 40,
                                       fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) =>
-                                          Container(
-                                            width: 40,
-                                            height: 40,
-                                            color: Colors.grey.shade200,
-                                            child: Icon(
-                                              Icons.broken_image,
-                                              color: Colors.grey.shade400,
-                                            ),
-                                          ),
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              Container(
+                                                width: 40,
+                                                height: 40,
+                                                color: Colors.grey.shade200,
+                                                child: Icon(
+                                                  Icons.broken_image,
+                                                  color: Colors.grey.shade400,
+                                                ),
+                                              ),
                                     ),
                                   ),
-                                  title: Text(medicineDetail.mappedProduct!.name),
-                                  subtitle: Text('₹${medicineDetail.mappedProduct!.price.toStringAsFixed(2)}'),
+                                  title: Text(
+                                    medicineDetail.mappedProduct!.name,
+                                  ),
+                                  subtitle: Text(
+                                    '₹${medicineDetail.mappedProduct!.price.toStringAsFixed(2)}',
+                                  ),
                                   trailing: IconButton(
-                                    icon: const Icon(Icons.add_shopping_cart, color: Colors.teal),
+                                    icon: const Icon(
+                                      Icons.add_shopping_cart,
+                                      color: Colors.teal,
+                                    ),
                                     onPressed: () {
-                                      cartProvider.addItem(medicineDetail.mappedProduct!, 1);
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      cartProvider.addItem(
+                                        medicineDetail.mappedProduct!,
+                                        1,
+                                      );
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         SnackBar(
-                                          content: Text('${medicineDetail.mappedProduct!.name} added to cart!'),
+                                          content: Text(
+                                            '${medicineDetail.mappedProduct!.name} added to cart!',
+                                          ),
                                           backgroundColor: Colors.green,
                                         ),
                                       );
@@ -638,66 +672,85 @@ class PrescriptionDetailViewScreen extends StatelessWidget {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => ProductDetailsScreen(
-                                          product: medicineDetail.mappedProduct!.toJson(),
-                                        ),
+                                        builder: (context) =>
+                                            ProductDetailsScreen(
+                                              product: medicineDetail
+                                                  .mappedProduct!
+                                                  .toJson(),
+                                            ),
                                       ),
                                     );
                                   },
                                 ),
                               ],
-                              if (medicineDetail.suggestedProducts != null && medicineDetail.suggestedProducts!.isNotEmpty) ...[
+                              if (medicineDetail.suggestedProducts != null &&
+                                  medicineDetail
+                                      .suggestedProducts!
+                                      .isNotEmpty) ...[
                                 const SizedBox(height: 10),
                                 const Text(
                                   'Other Suggestions:',
                                   style: TextStyle(fontWeight: FontWeight.bold),
                                 ),
-                                ...medicineDetail.suggestedProducts!.map((product) => ListTile(
-                                  leading: ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(
-                                      product.imageUrl ??
-                                          'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400',
-                                      width: 40,
-                                      height: 40,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (context, error, stackTrace) =>
-                                          Container(
-                                            width: 40,
-                                            height: 40,
-                                            color: Colors.grey.shade200,
-                                            child: Icon(
-                                              Icons.broken_image,
-                                              color: Colors.grey.shade400,
-                                            ),
-                                          ),
+                                ...medicineDetail.suggestedProducts!.map(
+                                  (product) => ListTile(
+                                    leading: ClipRRect(
+                                      borderRadius: BorderRadius.circular(8),
+                                      child: Image.network(
+                                        product.imageUrl ??
+                                            'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400',
+                                        width: 40,
+                                        height: 40,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                Container(
+                                                  width: 40,
+                                                  height: 40,
+                                                  color: Colors.grey.shade200,
+                                                  child: Icon(
+                                                    Icons.broken_image,
+                                                    color: Colors.grey.shade400,
+                                                  ),
+                                                ),
+                                      ),
                                     ),
-                                  ),
-                                  title: Text(product.name),
-                                  subtitle: Text('₹${product.price.toStringAsFixed(2)}'),
-                                  trailing: IconButton(
-                                    icon: const Icon(Icons.add_shopping_cart, color: Colors.teal),
-                                    onPressed: () {
-                                      cartProvider.addItem(product, 1);
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text('${product.name} added to cart!'),
-                                          backgroundColor: Colors.green,
+                                    title: Text(product.name),
+                                    subtitle: Text(
+                                      '₹${product.price.toStringAsFixed(2)}',
+                                    ),
+                                    trailing: IconButton(
+                                      icon: const Icon(
+                                        Icons.add_shopping_cart,
+                                        color: Colors.teal,
+                                      ),
+                                      onPressed: () {
+                                        cartProvider.addItem(product, 1);
+                                        ScaffoldMessenger.of(
+                                          context,
+                                        ).showSnackBar(
+                                          SnackBar(
+                                            content: Text(
+                                              '${product.name} added to cart!',
+                                            ),
+                                            backgroundColor: Colors.green,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) =>
+                                              ProductDetailsScreen(
+                                                product: product.toJson(),
+                                              ),
                                         ),
                                       );
                                     },
                                   ),
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) => ProductDetailsScreen(
-                                          product: product.toJson(),
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                )).toList(),
+                                ),
                               ],
                             ],
                           ),
@@ -767,7 +820,7 @@ class PrescriptionDetailViewScreen extends StatelessWidget {
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       subtitle: Text(
-                        '${medicine.manufacturer ?? 'N/A'} - ₹${medicine.price?.toStringAsFixed(2) ?? '0.00'}',
+                        '${medicine.manufacturer ?? 'N/A'} - ₹${medicine.price.toStringAsFixed(2) ?? '0.00'}',
                       ),
                       trailing: IconButton(
                         icon: const Icon(
@@ -853,14 +906,9 @@ class PrescriptionDetailViewScreen extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: const TextStyle(fontWeight: FontWeight.w500),
-          ),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
           const SizedBox(width: 8),
-          Expanded(
-            child: Text(value),
-          ),
+          Expanded(child: Text(value)),
         ],
       ),
     );

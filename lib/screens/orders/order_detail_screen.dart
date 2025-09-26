@@ -4,8 +4,12 @@ import 'package:provider/provider.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import '../../providers/order_provider.dart';
 import '../../models/order.dart';
+import 'dart:io'; // For File operations
+import 'package:path_provider/path_provider.dart'; // For getting local directory
+import 'package:open_filex/open_filex.dart'; // For opening files
 import '../../models/order_model.dart';
 import 'order_tracking_screen.dart';
+import '../../services/api_service.dart'; // Import ApiService
 
 class OrderDetailScreen extends StatefulWidget {
   final int orderId;
@@ -47,7 +51,12 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
         actions: [
-          if (_order != null)
+          if (_order != null) ...[
+            IconButton(
+              icon: const Icon(Icons.download),
+              tooltip: 'Download Invoice',
+              onPressed: () => _downloadInvoice(_order!.id),
+            ),
             IconButton(
               icon: const Icon(Icons.local_shipping),
               tooltip: 'Track Order',
@@ -74,16 +83,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 );
               },
             ),
-          IconButton(
-            icon: const Icon(Icons.share),
-            onPressed: () {
-              Fluttertoast.showToast(
-                msg: "Share feature coming soon!",
-                toastLength: Toast.LENGTH_SHORT,
-                gravity: ToastGravity.BOTTOM,
-              );
-            },
-          ),
+            IconButton(
+              icon: const Icon(Icons.share),
+              onPressed: () {
+                Fluttertoast.showToast(
+                  msg: "Share feature coming soon!",
+                  toastLength: Toast.LENGTH_SHORT,
+                  gravity: ToastGravity.BOTTOM,
+                );
+              },
+            ),
+          ],
         ],
       ),
       body: _isLoading
@@ -515,5 +525,53 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   String _formatDate(DateTime date) {
     return '${date.day}/${date.month}/${date.year}';
+  }
+
+  Future<void> _downloadInvoice(int orderId) async {
+    Fluttertoast.showToast(
+      msg: "Downloading invoice...",
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+    );
+
+    try {
+      final apiService = ApiService();
+      final response = await apiService.downloadInvoicePdf(orderId);
+
+      if (response.isSuccess && response.data != null) {
+        final directory = await getApplicationDocumentsDirectory();
+        final filePath = '${directory.path}/invoice_$orderId.pdf';
+        final file = File(filePath);
+        await file.writeAsBytes(response.data!);
+
+        Fluttertoast.showToast(
+          msg: "Invoice downloaded to $filePath",
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.BOTTOM,
+        );
+
+        // Open the downloaded file
+        final result = await OpenFilex.open(filePath);
+        if (result.type != ResultType.done) {
+          Fluttertoast.showToast(
+            msg: "Could not open file: ${result.message}",
+            toastLength: Toast.LENGTH_LONG,
+            gravity: ToastGravity.BOTTOM,
+          );
+        }
+      } else {
+        Fluttertoast.showToast(
+          msg: "Failed to download invoice: ${response.error}",
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.BOTTOM,
+        );
+      }
+    } catch (e) {
+      Fluttertoast.showToast(
+        msg: "Error downloading invoice: $e",
+        toastLength: Toast.LENGTH_LONG,
+        gravity: ToastGravity.BOTTOM,
+      );
+    }
   }
 }

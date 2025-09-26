@@ -1190,6 +1190,37 @@ class ApiService {
     }
   }
 
+  // Download Invoice PDF
+  Future<ApiResponse<List<int>>> downloadInvoicePdf(int orderId) async {
+    try {
+      final url = '${ApiConfig.orderEndpoint}/invoices/$orderId/download/';
+      ApiLogger.logRequest('GET', url);
+
+      final response = await _sendRequest(
+        () async => _client
+            .get(Uri.parse(url), headers: await getHeaders())
+            .timeout(Duration(milliseconds: timeoutDuration)),
+      );
+
+      if (response.statusCode == 200) {
+        return ApiResponse.success(response.bodyBytes);
+      } else {
+        String errorMessage = 'Failed to download invoice';
+        try {
+          final errorData = json.decode(response.body);
+          errorMessage =
+              errorData['error'] ?? errorData['detail'] ?? errorMessage;
+        } catch (e) {
+          // If error body is not JSON, use generic message
+        }
+        return ApiResponse.error(errorMessage, response.statusCode);
+      }
+    } catch (e) {
+      ApiLogger.logError('Download invoice error: $e');
+      return ApiResponse.error('Network error: $e', 0);
+    }
+  }
+
   // Create order
   Future<ApiResponse<Map<String, dynamic>>> createOrder(
     Map<String, dynamic> orderData,
@@ -1222,7 +1253,7 @@ class ApiService {
           )
           .timeout(Duration(milliseconds: timeoutDuration));
 
-      return handleResponse(response, (data) => data as Map<String, dynamic>);
+      return handleResponse(response, (data) => data);
     } catch (e) {
       return ApiResponse.error('Network error: $e', 0);
     }
@@ -1361,7 +1392,9 @@ class ApiService {
           .timeout(Duration(milliseconds: timeoutDuration));
 
       if (response.statusCode == 200) {
-        ApiLogger.log('Raw response body for getUserPrescriptions: ${response.body}');
+        ApiLogger.log(
+          'Raw response body for getUserPrescriptions: ${response.body}',
+        );
         final dynamic decodedData = json.decode(response.body);
         if (decodedData is List) {
           final List<PrescriptionDetailModel> prescriptions = [];

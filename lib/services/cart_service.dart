@@ -1,14 +1,12 @@
 // Cart Service for Flutter Pharmacy App
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:synchronized/synchronized.dart';
 import '../models/cart_model.dart';
 import '../models/cart_item.dart';
 import '../models/product_model.dart';
 import '../models/api_response.dart';
 import 'api_service.dart';
 
-import '../models/cart_item.dart';
 
 class CartService {
   static const String _cartKey = 'pharmacy_cart';

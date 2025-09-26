@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:io'; // Import for File
 import 'package:fluttertoast/fluttertoast.dart';
 import 'models/cart_model.dart';
-import 'models/cart_item.dart'; // Import CartItem
+// Import CartItem
 import 'services/cart_service.dart';
 import 'services/order_service.dart';
 import 'services/auth_service.dart';
@@ -255,58 +255,41 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             }
           : null;
 
-      if (selectedPayment['type'] == 'Cash on Delivery') {
-        // For COD, create a pending order and then finalize it immediately
-        final pendingOrderResponse = await _orderService.createPendingOrder(
-          cartData: widget.cart.toJson(),
-          deliveryAddress: selectedAddress.toJson(),
-          paymentMethod: 'COD',
-          prescriptionDetails: prescriptionDetails,
-          totalAmount: widget.cart.total,
-          notes: _notesController.text.trim(),
-        );
+      // Always call createPendingOrder first to handle existing pending orders or create new ones
+      final pendingOrderResponse = await _orderService.createPendingOrder(
+        cartData: widget.cart.toJson(),
+        deliveryAddress: selectedAddress.toJson(),
+        paymentMethod: selectedPayment['type'] == 'Cash on Delivery'
+            ? 'COD'
+            : 'RAZORPAY',
+        prescriptionDetails: prescriptionDetails,
+        totalAmount: widget.cart.total,
+        notes: _notesController.text.trim(),
+      );
 
-        if (pendingOrderResponse['success'] == true) {
-          final int orderId = pendingOrderResponse['order_id'];
-          _currentBackendOrderId = orderId; // Store the backend order ID
+      if (pendingOrderResponse['success'] == true) {
+        final int orderId = pendingOrderResponse['order_id'];
+        _currentBackendOrderId = orderId; // Store the backend order ID
+        _showErrorToast(
+          pendingOrderResponse['message'],
+        ); // Show message from backend (re-using or new)
+
+        if (selectedPayment['type'] == 'Cash on Delivery') {
+          // For COD, finalize immediately after getting the order ID
           await _placeOrderAfterPayment(
             orderId: orderId,
             paymentId: 'COD',
             razorpayOrderId: 'COD',
             razorpaySignature: 'COD',
           );
-        } else {
-          _showErrorToast(
-            pendingOrderResponse['message'] ?? 'Failed to create COD order.',
-          );
-          setState(() {
-            _isPlacingOrder = false;
-          });
-        }
-      } else if (selectedPayment['type'] == 'UPI') {
-        // For UPI, first create a pending order to get an order ID
-        if (_user == null) {
-          _showErrorToast('User details not available for payment.');
-          setState(() {
-            _isPlacingOrder = false;
-          });
-          return;
-        }
-
-        _showErrorToast('Creating pending order...');
-        final pendingOrderResponse = await _orderService.createPendingOrder(
-          cartData: widget.cart.toJson(),
-          deliveryAddress: selectedAddress.toJson(),
-          paymentMethod: 'RAZORPAY',
-          prescriptionDetails: prescriptionDetails,
-          totalAmount: widget.cart.total,
-          notes: _notesController.text.trim(),
-        );
-
-        if (pendingOrderResponse['success'] == true) {
-          final int orderId = pendingOrderResponse['order_id'];
-          _currentBackendOrderId = orderId; // Store the backend order ID
-          _showErrorToast('Pending order created. Initiating UPI payment...');
+        } else if (selectedPayment['type'] == 'UPI') {
+          if (_user == null) {
+            _showErrorToast('User details not available for payment.');
+            setState(() {
+              _isPlacingOrder = false;
+            });
+            return;
+          }
 
           final paymentProcessResponse = await _paymentService
               .processOrderPayment(
@@ -328,16 +311,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           }
           // The actual order finalization will happen in _handlePaymentResult
         } else {
-          _showErrorToast(
-            pendingOrderResponse['message'] ??
-                'Failed to create pending order for UPI.',
-          );
+          _showErrorToast('Selected payment method is not supported.');
           setState(() {
             _isPlacingOrder = false;
           });
         }
       } else {
-        _showErrorToast('Selected payment method is not supported.');
+        _showErrorToast(
+          pendingOrderResponse['message'] ?? 'Failed to create/manage order.',
+        );
         setState(() {
           _isPlacingOrder = false;
         });

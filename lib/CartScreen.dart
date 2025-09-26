@@ -6,7 +6,6 @@ import 'models/cart_item.dart';
 import 'models/cart_model.dart';
 import 'services/cart_service.dart';
 import 'services/auth_service.dart';
-import 'screens/checkout/prescription_checkout_screen.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});

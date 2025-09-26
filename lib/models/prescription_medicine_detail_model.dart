@@ -1,5 +1,4 @@
 import 'package:pharmacy/models/product_model.dart';
-import 'package:pharmacy/config/api_config.dart';
 
 class PrescriptionMedicineDetailModel {
   final String id; // Changed to String
@@ -57,8 +56,11 @@ class PrescriptionMedicineDetailModel {
     }
 
     ProductModel? mappedProductModel;
-    if (json['mapped_product'] != null && json['mapped_product'] is Map<String, dynamic>) {
-      mappedProductModel = ProductModel.fromJson(json['mapped_product'] as Map<String, dynamic>);
+    if (json['mapped_product'] != null &&
+        json['mapped_product'] is Map<String, dynamic>) {
+      mappedProductModel = ProductModel.fromJson(
+        json['mapped_product'] as Map<String, dynamic>,
+      );
     }
 
     return PrescriptionMedicineDetailModel(
@@ -107,7 +109,9 @@ class PrescriptionMedicineDetailModel {
       'verified_dosage': verifiedDosage,
       'verified_form': verifiedForm,
       'mapped_product': mappedProduct?.toJson(),
-      'suggested_products': suggestedProducts?.map((ProductModel e) => e.toJson()).toList(),
+      'suggested_products': suggestedProducts
+          ?.map((ProductModel e) => e.toJson())
+          .toList(),
       'product_name': productName,
       'product_price': productPrice,
       'product_strength': productStrength,

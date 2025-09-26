@@ -53,7 +53,7 @@ class EnhancedPaymentService {
 
       return ApiService().handleResponse(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       ApiLogger.logError('Payment order creation failed: $e');
@@ -169,7 +169,7 @@ class EnhancedPaymentService {
 
       return ApiService().handleResponse(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       return ApiResponse.error('Network error: $e', 500);

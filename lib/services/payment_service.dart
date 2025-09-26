@@ -133,7 +133,7 @@ class PaymentService {
       // especially for 401 Unauthorized.
       return ApiService().handleResponse(
         response,
-        (data) => data as Map<String, dynamic>,
+        (data) => data,
       );
     } catch (e) {
       ApiLogger.logError('Payment verification failed: $e');

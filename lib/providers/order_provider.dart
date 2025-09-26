@@ -29,29 +29,37 @@ class OrderProvider with ChangeNotifier {
       final result = await _apiService.getOrders();
 
       if (result.isSuccess && result.data != null) {
-        // Convert OrderModel list to Order list
-        _orders = result.data!.map((orderModel) => Order(
-          id: orderModel.id,
-          status: orderModel.status,
-          createdAt: orderModel.orderDate,
-          totalAmount: orderModel.totalAmount,
-          items: orderModel.items.map((item) => OrderItem(
-            id: item.id,
-            productId: item.product.id,
-            productName: item.product.displayName,
-            productImage: item.product.imageUrl,
-            quantity: item.quantity,
-            unitPrice: item.price,
-            totalPrice: item.totalPrice,
-          )).toList(),
-          userId: 0, // Default value
-        )).toList();
+        print('OrderProvider: Successfully fetched ${result.data!.length} orders from API.');
+        _orders = result.data!.map((orderModel) {
+          print('OrderProvider: Mapping OrderModel (ID: ${orderModel.id}, Status: ${orderModel.status})');
+          return Order(
+            id: orderModel.id,
+            status: orderModel.status,
+            createdAt: orderModel.orderDate,
+            totalAmount: orderModel.totalAmount,
+            items: orderModel.items.map((item) {
+              print('OrderProvider: Mapping OrderItemModel (ID: ${item.id}, Product: ${item.product.name}, Quantity: ${item.quantity})');
+              return OrderItem(
+                id: item.id,
+                productId: item.product.id,
+                productName: item.product.displayName,
+                productImage: item.product.imageUrl,
+                quantity: item.quantity,
+                unitPrice: item.price,
+                totalPrice: item.totalPrice,
+              );
+            }).toList(),
+            userId: 0, // Default value - consider fetching actual user ID if available
+          );
+        }).toList();
         _setLoading(false);
       } else {
+        print('OrderProvider: Failed to load orders. Error: ${result.error}');
         _setError(result.error ?? 'Failed to load orders');
         _setLoading(false);
       }
     } catch (e) {
+      print('OrderProvider: Exception during order loading: $e');
       _setError('Failed to load orders: $e');
       _setLoading(false);
     }
@@ -64,27 +72,33 @@ class OrderProvider with ChangeNotifier {
 
       if (result.isSuccess && result.data != null) {
         final orderModel = result.data!;
+        print('OrderProvider: Successfully fetched OrderDetail for ID: ${orderModel.id}');
         return Order(
           id: orderModel.id,
           status: orderModel.status,
           createdAt: orderModel.orderDate,
           totalAmount: orderModel.totalAmount,
-          items: orderModel.items.map((item) => OrderItem(
-            id: item.id,
-            productId: item.product.id,
-            productName: item.product.displayName,
-            productImage: item.product.imageUrl,
-            quantity: item.quantity,
-            unitPrice: item.price,
-            totalPrice: item.totalPrice,
-          )).toList(),
-          userId: 0, // Default value
+          items: orderModel.items.map((item) {
+            print('OrderProvider: Mapping OrderDetailItem (ID: ${item.id}, Product: ${item.product.name}, Quantity: ${item.quantity})');
+            return OrderItem(
+              id: item.id,
+              productId: item.product.id,
+              productName: item.product.displayName,
+              productImage: item.product.imageUrl,
+              quantity: item.quantity,
+              unitPrice: item.price,
+              totalPrice: item.totalPrice,
+            );
+          }).toList(),
+          userId: 0, // Default value - consider fetching actual user ID if available
         );
       } else {
+        print('OrderProvider: Failed to get order details for ID: $orderId. Error: ${result.error}');
         _setError(result.error ?? 'Failed to get order details');
         return null;
       }
     } catch (e) {
+      print('OrderProvider: Exception during order detail loading for ID: $orderId: $e');
       _setError('Failed to get order details: $e');
       return null;
     }

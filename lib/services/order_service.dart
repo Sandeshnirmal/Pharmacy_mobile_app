@@ -37,22 +37,26 @@ class OrderService {
 
       final responseData = json.decode(response.body);
 
-      if (response.statusCode == 201) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
         return {
           'success': true,
           'order_id': responseData['order_id'],
           'order_number': responseData['order_number'],
           'order': responseData,
-          'message': 'Pending order created successfully',
+          'message':
+              responseData['message'] ?? 'Pending order processed successfully',
         };
       } else {
         return {
           'success': false,
-          'message': responseData['error'] ?? 'Failed to create pending order',
+          'message':
+              responseData['error'] ??
+              responseData['message'] ??
+              'Failed to create pending order',
         };
       }
     } catch (e) {
-      print('Pending order creation error: $e');
+      print('Pending order creation/management error: $e');
       return {'success': false, 'message': 'Network error: $e'};
     }
   }
@@ -75,7 +79,7 @@ class OrderService {
       // The backend endpoint `create_paid_order_for_prescription` is suitable for this.
       final response = await http.post(
         Uri.parse(
-          '${ApiConfig.createPaidOrderUrl}',
+          ApiConfig.createPaidOrderUrl,
         ), // Use the enhanced paid order endpoint
         headers: await _apiService.getHeaders(),
         body: json.encode({
@@ -116,6 +120,27 @@ class OrderService {
     } catch (e) {
       print('Order finalization error: $e');
       return {'success': false, 'message': 'Network error: $e'};
+    }
+  }
+
+  // Get the most recent pending order for the user
+  Future<Map<String, dynamic>?> getUserPendingOrder() async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConfig.orderEndpoint}/pending-order/'),
+        headers: await _apiService.getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        if (responseData['success'] == true) {
+          return responseData;
+        }
+      }
+      return null;
+    } catch (e) {
+      print('Error fetching user pending order: $e');
+      return null;
     }
   }
 

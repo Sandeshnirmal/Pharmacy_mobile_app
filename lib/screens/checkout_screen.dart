@@ -1,10 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../services/payment_service.dart'; // Use the updated PaymentService
 import '../services/order_service.dart'; // Import OrderService
 import '../models/payment_result.dart'; // Import PaymentResult
-import '../providers/order_provider.dart'; // Assuming you have an OrderProvider
+// Assuming you have an OrderProvider
 import '../utils/api_logger.dart';
 import '../services/auth_service.dart'; // Import AuthService
 

@@ -192,7 +192,7 @@ class OrderModel {
       orderNumber: json['order_number'] ?? '',
       orderDate: DateTime.parse(json['order_date'] ?? DateTime.now().toIso8601String()),
       status: json['status'] ?? '',
-      totalAmount: (json['total_amount'] ?? 0.0).toDouble(),
+      totalAmount: ProductModel._parseDouble(json['total_amount']),
       paymentMethod: json['payment_method'] ?? '',
       paymentStatus: json['payment_status'],
       deliveryAddress: json['delivery_address'] != null
@@ -267,8 +267,8 @@ class OrderItemModel {
       id: json['id'] ?? 0,
       product: ProductModel.fromJson(json['product'] ?? {}),
       quantity: json['quantity'] ?? 0,
-      price: (json['price'] ?? 0.0).toDouble(),
-      totalPrice: (json['total_price'] ?? 0.0).toDouble(),
+      price: ProductModel._parseDouble(json['price']),
+      totalPrice: ProductModel._parseDouble(json['total_price']),
     );
   }
 
@@ -314,5 +314,3 @@ class OrderResponse {
     );
   }
 }
-
-
