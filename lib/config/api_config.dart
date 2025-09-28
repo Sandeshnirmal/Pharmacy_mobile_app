@@ -8,7 +8,7 @@ library;
 class ApiConfig {
   // Base URL Configuration
   // Update this IP address when your backend server IP changes
-  static const String _baseIP = '192.168.1.4';// Android emulator localhost
+  static const String _baseIP = '192.168.1.4'; // Android emulator localhost
   static const String _basePort = '8000';
 
   // Main API Base URLs
@@ -25,7 +25,7 @@ class ApiConfig {
 
   // Specific Auth URLs
   static const String loginUrl = '$baseUrl/user/login/';
-  static const String registerUrl = '$baseUrl/register/';
+  static const String registerUrl = '$baseUrl/api/auth/register/';
   static const String userProfileUrl = '$userEndpoint/auth-me/';
   static const String logoutUrl =
       '$baseUrl/logout/'; // Assuming logout will also be directly under base URL or handled differently

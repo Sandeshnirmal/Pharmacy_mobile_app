@@ -1380,6 +1380,59 @@ class ApiService {
     }
   }
 
+  // Courier Serviceability Check
+  Future<Map<String, dynamic>> checkPincodeServiceability(
+    String pincode,
+  ) async {
+    try {
+      final url =
+          '${ApiConfig.apiBaseUrl}/courier/shipments/check_pincode_serviceability/?pincode=$pincode';
+      ApiLogger.logRequest('GET', url);
+
+      final response = await _sendRequest(
+        () async => _client
+            .get(Uri.parse(url), headers: await getHeaders())
+            .timeout(Duration(milliseconds: timeoutDuration)),
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> backendResponse = json.decode(response.body);
+        final bool isServiceable = backendResponse['is_serviceable'] ?? false;
+        final String city = backendResponse['city'] ?? 'Unknown';
+        final String state = backendResponse['state'] ?? 'Unknown';
+
+        return {
+          'success': true,
+          'is_serviceable': isServiceable,
+          'city': city,
+          'state': state,
+          'data': backendResponse, // Keep raw data for debugging if needed
+        };
+      } else {
+        String errorMessage = 'Failed to check pincode serviceability';
+        try {
+          final errorData = json.decode(response.body);
+          errorMessage =
+              errorData['error'] ?? errorData['detail'] ?? errorMessage;
+        } catch (e) {
+          // If error body is not JSON, use generic message
+        }
+        return {
+          'success': false,
+          'is_serviceable': false, // Explicitly false on error
+          'error': errorMessage,
+        };
+      }
+    } catch (e) {
+      ApiLogger.logError('Pincode serviceability check error: $e');
+      return {
+        'success': false,
+        'is_serviceable': false,
+        'error': 'Network error: $e',
+      };
+    }
+  }
+
   // Prescription Management
   Future<ApiResponse<List<PrescriptionDetailModel>>>
   getUserPrescriptions() async {

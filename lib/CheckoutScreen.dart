@@ -48,6 +48,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String?
   _uploadedPrescriptionImageUrl; // To store the URL if uploaded to backend
   String? _prescriptionStatus; // To store the status after upload/processing
+  bool _isPincodeServiceable = false; // New state for pincode serviceability
+  String? _pincodeServiceabilityMessage; // Message for pincode serviceability
+  bool _isCheckingPincode = false; // Loading state for pincode check
 
   final List<Map<String, dynamic>> _paymentMethods = [
     {
@@ -70,6 +73,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     _checkAuthentication();
     _fetchAddresses(); // Fetch addresses on init
     _checkPrescriptionRequirement(); // Check prescription requirement
+    _loadExistingPendingOrder(); // Load existing pending order on init
     _paymentService.onPaymentResult.listen(_handlePaymentResult);
   }
 
@@ -90,6 +94,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       } else {
         print('Debug: User data is null from getCurrentUser.');
       }
+    }
+  }
+
+  Future<void> _loadExistingPendingOrder() async {
+    try {
+      final pendingOrder = await _orderService.getUserPendingOrder();
+      if (pendingOrder != null && pendingOrder['success'] == true) {
+        setState(() {
+          _currentBackendOrderId = pendingOrder['order_id'];
+        });
+        _showErrorToast('Found existing pending order. Re-using it.');
+      }
+    } catch (e) {
+      print('Error loading existing pending order: $e');
     }
   }
 
@@ -149,12 +167,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           } else {
             _selectedAddressIndex = -1; // No addresses available
           }
+          // After addresses are fetched and a selection is made, check pincode serviceability
+          if (_selectedAddressIndex != -1) {
+            _checkPincodeServiceability(
+              _addresses[_selectedAddressIndex].pincode,
+            );
+          }
         });
       } else {
         _showErrorToast(response['error'] ?? 'Failed to load addresses');
         setState(() {
           _addresses = [];
           _selectedAddressIndex = -1;
+          _isPincodeServiceable = false;
+          _pincodeServiceabilityMessage = 'No addresses found.';
         });
       }
 
@@ -176,6 +202,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           } else {
             _selectedAddressIndex = -1;
           }
+          if (_selectedAddressIndex != -1) {
+            _checkPincodeServiceability(
+              _addresses[_selectedAddressIndex].pincode,
+            );
+          }
         });
       }
     } catch (e) {
@@ -183,10 +214,46 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       setState(() {
         _addresses = [];
         _selectedAddressIndex = -1;
+        _isPincodeServiceable = false;
+        _pincodeServiceabilityMessage = 'Error fetching addresses.';
       });
     } finally {
       setState(() {
         _isLoadingAddresses = false;
+      });
+    }
+  }
+
+  Future<void> _checkPincodeServiceability(String pincode) async {
+    setState(() {
+      _isCheckingPincode = true;
+      _pincodeServiceabilityMessage = 'Checking serviceability for $pincode...';
+    });
+
+    try {
+      final response = await _apiService.checkPincodeServiceability(pincode);
+      if (response['success'] == true && response['is_serviceable'] == true) {
+        setState(() {
+          _isPincodeServiceable = true;
+          _pincodeServiceabilityMessage =
+              'Serviceable in ${response['city']}, ${response['state']}';
+        });
+      } else {
+        setState(() {
+          _isPincodeServiceable = false;
+          _pincodeServiceabilityMessage =
+              response['error'] ?? 'Not serviceable in this area.';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isPincodeServiceable = false;
+        _pincodeServiceabilityMessage = 'Error checking serviceability: $e';
+      });
+      _showErrorToast('Error checking pincode serviceability: $e');
+    } finally {
+      setState(() {
+        _isCheckingPincode = false;
       });
     }
   }
@@ -231,6 +298,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       if (_addresses.isEmpty || _selectedAddressIndex == -1) {
         _showErrorToast('Please add a delivery address.');
+        setState(() {
+          _isPlacingOrder = false;
+        });
+        return;
+      }
+
+      if (!_isPincodeServiceable) {
+        _showErrorToast(
+          _pincodeServiceabilityMessage ??
+              'Selected address is not serviceable.',
+        );
         setState(() {
           _isPlacingOrder = false;
         });
@@ -699,11 +777,71 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             Text(
                               '${address.city}, ${address.state} - ${address.pincode}',
                             ),
+                            if (isSelected && _isCheckingPincode)
+                              const Padding(
+                                padding: EdgeInsets.only(top: 8.0),
+                                child: Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Colors.teal,
+                                            ),
+                                      ),
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Checking serviceability...',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.teal,
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            else if (isSelected &&
+                                _pincodeServiceabilityMessage != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8.0),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      _isPincodeServiceable
+                                          ? Icons.check_circle_outline
+                                          : Icons.cancel_outlined,
+                                      color: _isPincodeServiceable
+                                          ? Colors.green
+                                          : Colors.red,
+                                      size: 16,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        _pincodeServiceabilityMessage!,
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: _isPincodeServiceable
+                                              ? Colors.green
+                                              : Colors.red,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                           ],
                         ),
                         onTap: () {
                           setState(() {
                             _selectedAddressIndex = index;
+                            _checkPincodeServiceability(address.pincode);
                           });
                         },
                       ),
