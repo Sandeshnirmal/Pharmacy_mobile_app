@@ -742,24 +742,7 @@ class _CartScreenState extends State<CartScreen> {
           const SizedBox(height: 8),
           _buildPriceRow('Tax (GST)', '₹${_cart.taxAmount.toStringAsFixed(2)}'),
           const SizedBox(height: 8),
-          _buildPriceRow(
-            'Shipping',
-            _cart.finalShipping == 0
-                ? 'FREE'
-                : '₹${_cart.finalShipping.toStringAsFixed(2)}',
-            color: _cart.finalShipping == 0 ? Colors.green : null,
-          ),
-          if (_cart.subtotal < 500 && _cart.finalShipping > 0) ...[
-            const SizedBox(height: 4),
-            Text(
-              'Add ₹${(500 - _cart.subtotal).toStringAsFixed(2)} more for free shipping',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-                fontStyle: FontStyle.italic,
-              ),
-            ),
-          ],
+          _buildPriceRow('Shipping', 'FREE', color: Colors.green),
           const Divider(height: 24, thickness: 1),
           _buildPriceRow(
             'Total',

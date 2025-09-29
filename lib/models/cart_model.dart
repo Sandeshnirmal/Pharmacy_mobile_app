@@ -12,7 +12,7 @@ class Cart {
     this.items = const [],
     this.couponCode,
     this.couponDiscount = 0.0,
-    this.shippingFee = 50.0,
+    this.shippingFee = 0.0,
     this.taxRate = 0.18, // 18% GST
   });
 
@@ -22,8 +22,7 @@ class Cart {
   double get couponSavings => couponDiscount;
   double get totalSavings => productSavings + couponSavings;
   double get taxAmount => (subtotal - couponDiscount) * taxRate;
-  double get finalShipping =>
-      subtotal >= 500 ? 0.0 : shippingFee; // Free shipping above ₹500
+  double get finalShipping => 0.0;
   double get total => subtotal - couponDiscount + taxAmount + finalShipping;
 
   int get totalItems => items.fold(0, (sum, item) => sum + item.quantity);
@@ -35,14 +34,12 @@ class Cart {
     List<CartItem>? items,
     String? couponCode,
     double? couponDiscount,
-    double? shippingFee,
     double? taxRate,
   }) {
     return Cart(
       items: items ?? this.items,
       couponCode: couponCode ?? this.couponCode,
       couponDiscount: couponDiscount ?? this.couponDiscount,
-      shippingFee: shippingFee ?? this.shippingFee,
       taxRate: taxRate ?? this.taxRate,
     );
   }
@@ -52,7 +49,6 @@ class Cart {
       'items': items.map((item) => item.toJson()).toList(),
       'coupon_code': couponCode,
       'coupon_discount': couponDiscount,
-      'shipping_fee': shippingFee,
       'tax_rate': taxRate,
     };
   }
