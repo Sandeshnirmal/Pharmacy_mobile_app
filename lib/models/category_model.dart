@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart'; // For IconData
 
 class CategoryModel {
-  final String id;
+  final int id;
   final String name;
   final String? imageUrl; // Optional image for category
   final IconData? icon; // Optional icon for category
@@ -15,7 +15,7 @@ class CategoryModel {
 
   factory CategoryModel.fromJson(Map<String, dynamic> json) {
     return CategoryModel(
-      id: json['id'].toString(),
+      id: json['id'] as int,
       name: json['name'] as String,
       imageUrl: json['image_url'] as String?,
       // You might map a string from the API to an IconData here if needed

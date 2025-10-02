@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/product_provider.dart';
 import '../../models/product_model.dart';
+import '../../models/category_model.dart'; // Import CategoryModel
 import 'product_detail_screen.dart';
 
 class ProductsScreen extends StatefulWidget {
@@ -14,24 +15,26 @@ class ProductsScreen extends StatefulWidget {
 
 class _ProductsScreenState extends State<ProductsScreen> {
   final TextEditingController _searchController = TextEditingController();
-  String _selectedCategory = 'All';
+  String _selectedCategoryName = 'All'; // Changed to store category name
 
-  final List<String> _categories = [
-    'All',
-    'Pain Relief',
-    'Cold & Flu',
-    'Digestive Health',
-    'Vitamins',
-    'Antibiotics',
-    'Diabetes',
-    'Heart Health',
-  ];
+  // The list of categories will now come from the ProductProvider
+  // final List<String> _categories = [
+  //   'All',
+  //   'Pain Relief',
+  //   'Cold & Flu',
+  //   'Digestive Health',
+  //   'Vitamins',
+  //   'Antibiotics',
+  //   'Diabetes',
+  //   'Heart Health',
+  // ];
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<ProductProvider>().loadProducts();
+      context.read<ProductProvider>().loadCategories(); // Load categories
     });
   }
 
@@ -51,13 +54,28 @@ class _ProductsScreenState extends State<ProductsScreen> {
 
   void _onCategoryChanged(String category) {
     setState(() {
-      _selectedCategory = category;
+      _selectedCategoryName = category;
     });
 
     if (category == 'All') {
       context.read<ProductProvider>().loadProducts(refresh: true);
     } else {
-      context.read<ProductProvider>().getProductsByCategory(category);
+      // Find the category ID from the loaded categories
+      final productProvider = context.read<ProductProvider>();
+      final selectedCategory = productProvider.categories.firstWhere(
+        (cat) => cat.name == category,
+        orElse: () => CategoryModel(
+          id: -1,
+          name: 'All',
+        ), // Fallback for 'All' or not found
+      );
+
+      if (selectedCategory.id != -1) {
+        productProvider.getProductsByCategory(selectedCategory.id);
+      } else {
+        // If 'All' or category not found, load all products
+        productProvider.loadProducts(refresh: true);
+      }
     }
   }
 
@@ -97,34 +115,46 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   borderRadius: BorderRadius.circular(25),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 20,
+                  vertical: 15,
+                ),
               ),
             ),
           ),
 
           // Category Filter
-          Container(
-            height: 50,
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: _categories.length,
-              itemBuilder: (context, index) {
-                final category = _categories[index];
-                final isSelected = category == _selectedCategory;
-                
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: FilterChip(
-                    label: Text(category),
-                    selected: isSelected,
-                    onSelected: (_) => _onCategoryChanged(category),
-                    selectedColor: Colors.teal.withValues(alpha: 0.2),
-                    checkmarkColor: Colors.teal,
-                  ),
-                );
-              },
-            ),
+          Consumer<ProductProvider>(
+            builder: (context, productProvider, child) {
+              final categories = [
+                CategoryModel(id: 0, name: 'All'), // Add 'All' option
+                ...productProvider.categories,
+              ];
+
+              return Container(
+                height: 50,
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: categories.length,
+                  itemBuilder: (context, index) {
+                    final category = categories[index];
+                    final isSelected = category.name == _selectedCategoryName;
+
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: FilterChip(
+                        label: Text(category.name),
+                        selected: isSelected,
+                        onSelected: (_) => _onCategoryChanged(category.name),
+                        selectedColor: Colors.teal.withOpacity(0.2),
+                        checkmarkColor: Colors.teal,
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
           ),
 
           // Products List
@@ -196,12 +226,13 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   onRefresh: () => productProvider.loadProducts(refresh: true),
                   child: GridView.builder(
                     padding: const EdgeInsets.all(16),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 0.75,
-                      crossAxisSpacing: 16,
-                      mainAxisSpacing: 16,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 0.75,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                        ),
                     itemCount: products.length,
                     itemBuilder: (context, index) {
                       final product = products[index];
@@ -220,9 +251,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
   Widget _buildProductCard(ProductModel product) {
     return Card(
       elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: () {
           Navigator.push(
@@ -242,16 +271,21 @@ class _ProductsScreenState extends State<ProductsScreen> {
               child: Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(12),
+                  ),
                   color: Colors.grey[100],
                 ),
                 child: product.imageUrl != null
                     ? ClipRRect(
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(12),
+                        ),
                         child: Image.network(
                           product.imageUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => _buildPlaceholderImage(),
+                          errorBuilder: (context, error, stackTrace) =>
+                              _buildPlaceholderImage(),
                         ),
                       )
                     : _buildPlaceholderImage(),
@@ -276,22 +310,19 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    
+
                     const SizedBox(height: 4),
-                    
+
                     // Manufacturer
                     Text(
                       product.manufacturer,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    
+
                     const Spacer(),
-                    
+
                     // Price and Stock
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -319,9 +350,14 @@ class _ProductsScreenState extends State<ProductsScreen> {
                           ],
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: product.isInStock ? Colors.green : Colors.red,
+                            color: product.isInStock
+                                ? Colors.green
+                                : Colors.red,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
@@ -351,11 +387,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
         color: Colors.grey[200],
         borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
       ),
-      child: const Icon(
-        Icons.medical_services,
-        size: 48,
-        color: Colors.grey,
-      ),
+      child: const Icon(Icons.medical_services, size: 48, color: Colors.grey),
     );
   }
 }

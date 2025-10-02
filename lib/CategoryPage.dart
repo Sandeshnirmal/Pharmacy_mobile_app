@@ -54,12 +54,13 @@ class _CategoryPageState extends State<CategoryPage> {
     super.dispose();
   }
 
-  void _searchCategory(String categoryName) {
+  void _searchCategory(CategoryModel category) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => SearchResultsScreen(
-          searchQuery: categoryName,
+          searchQuery: category.name, // Still pass name for display/fallback
+          categoryId: category.id, // Pass ID for API filtering
           isFromPrescription: false,
         ),
       ),
@@ -269,7 +270,7 @@ class _CategoryPageState extends State<CategoryPage> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         onTap: () {
-          _searchCategory(category.name);
+          _searchCategory(category);
         },
         borderRadius: BorderRadius.circular(16),
         child: Container(

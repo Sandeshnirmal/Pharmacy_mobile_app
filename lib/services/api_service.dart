@@ -608,12 +608,27 @@ class ApiService {
 
   // Product APIs
   Future<ApiResponse<List<ProductModel>>> getProducts({
-    Map<String, String>? queryParams,
+    String? searchQuery,
+    int? categoryId, // Changed to int? categoryId
+    Map<String, String>? additionalQueryParams,
   }) async {
     try {
+      Map<String, String> queryParams = {};
+      if (searchQuery != null && searchQuery.isNotEmpty) {
+        queryParams['search'] = searchQuery;
+      }
+      if (categoryId != null) {
+        // Check for int? categoryId
+        queryParams['category'] = categoryId
+            .toString(); // Convert to string for query parameter
+      }
+      if (additionalQueryParams != null) {
+        queryParams.addAll(additionalQueryParams);
+      }
+
       final uri = Uri.parse(
         ApiConfig.enhancedProductsUrl,
-      ).replace(queryParameters: queryParams);
+      ).replace(queryParameters: queryParams.isEmpty ? null : queryParams);
 
       final response = await _sendRequest(
         () async => _client
@@ -657,7 +672,7 @@ class ApiService {
 
   // Search products
   Future<ApiResponse<List<ProductModel>>> searchProducts(String query) async {
-    return getProducts(queryParams: {'search': query});
+    return getProducts(searchQuery: query);
   }
 
   // Search prescription-based medicines

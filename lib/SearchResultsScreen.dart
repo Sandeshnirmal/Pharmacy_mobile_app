@@ -11,6 +11,7 @@ class SearchResultsScreen extends StatefulWidget {
   final List<String>? extractedMedicines; // From prescription scanning
   final bool isFromPrescription;
   final int? prescriptionId; // For direct prescription-based search
+  final int? categoryId; // New: For category-based product listing
 
   const SearchResultsScreen({
     super.key,
@@ -18,6 +19,7 @@ class SearchResultsScreen extends StatefulWidget {
     this.extractedMedicines,
     this.isFromPrescription = false,
     this.prescriptionId,
+    this.categoryId, // Initialize new parameter
   });
 
   @override
@@ -58,13 +60,19 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
         // Load prescription-based products using medicine suggestions API
         await _loadPrescriptionBasedProducts();
       } else {
-        // Load all products for regular search
-        final response = await _apiService.getProducts();
+        // Load products for regular search, using categoryId or searchQuery
+        final response = await _apiService.getProducts(
+          categoryId: widget.categoryId, // Pass category ID if available
+          searchQuery: widget.categoryId == null
+              ? _currentQuery
+              : null, // Only pass searchQuery if no categoryId
+        );
         if (response.isSuccess && response.data != null) {
           setState(() {
             _allProducts = response.data!;
+            _searchResults = response
+                .data!; // Directly set search results as they are already filtered by API
           });
-          _performSearch(_currentQuery);
         }
       }
     } catch (e) {
@@ -245,24 +253,20 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
         results = results.toSet().toList();
       }
     } else {
-      // Regular search
-      results = _allProducts
-          .where(
-            (product) =>
-                product.name.toLowerCase().contains(query.toLowerCase()) ||
-                product.manufacturer.toLowerCase().contains(
-                  query.toLowerCase(),
-                ) ||
-                (product.genericName?.toLowerCase().contains(
-                      query.toLowerCase(),
-                    ) ??
-                    false) ||
-                (product.description?.toLowerCase().contains(
-                      query.toLowerCase(),
-                    ) ??
-                    false),
-          )
-          .toList();
+      // For regular search, if the query changes, refetch from API with search parameter
+      // If a categoryId was provided initially, prioritize searching within that category
+      if (query.isNotEmpty && query != _currentQuery) {
+        final response = await _apiService.getProducts(
+          searchQuery: query,
+          categoryId: widget.categoryId, // Keep category filter if present
+        );
+        if (response.isSuccess && response.data != null) {
+          results = response.data!;
+        }
+      } else {
+        results =
+            _allProducts; // If query is empty or same as initial category, show all loaded products
+      }
     }
 
     setState(() {

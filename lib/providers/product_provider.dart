@@ -1,14 +1,16 @@
 // Product Provider for Flutter Pharmacy App
 import 'package:flutter/foundation.dart';
 import '../models/product_model.dart';
+import '../models/category_model.dart'; // Import CategoryModel
 import '../services/api_service.dart';
 
 class ProductProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
-  
+
   // State variables
   List<ProductModel> _products = [];
   List<ProductModel> _searchResults = [];
+  List<CategoryModel> _categories = []; // New: Store categories
   bool _isLoading = false;
   bool _isSearching = false;
   String? _error;
@@ -24,6 +26,8 @@ class ProductProvider with ChangeNotifier {
 
   bool get hasProducts => _products.isNotEmpty;
   bool get hasSearchResults => _searchResults.isNotEmpty;
+  List<CategoryModel> get categories =>
+      _categories; // New: Getter for categories
 
   // Load all products
   Future<void> loadProducts({bool refresh = false}) async {
@@ -34,7 +38,7 @@ class ProductProvider with ChangeNotifier {
 
     try {
       final result = await _apiService.getProducts();
-      
+
       if (result.isSuccess) {
         _products = result.data!;
         _setLoading(false);
@@ -63,7 +67,7 @@ class ProductProvider with ChangeNotifier {
 
     try {
       final result = await _apiService.searchProducts(query);
-      
+
       if (result.isSuccess) {
         _searchResults = result.data!;
         _setSearching(false);
@@ -77,16 +81,34 @@ class ProductProvider with ChangeNotifier {
     }
   }
 
-  // Get products by category
-  Future<void> getProductsByCategory(String category) async {
+  // Load categories
+  Future<void> loadCategories() async {
     _setLoading(true);
     _clearError();
 
     try {
-      final result = await _apiService.getProducts(
-        queryParams: {'category': category},
-      );
-      
+      final result = await _apiService.getCategories();
+      if (result.isSuccess) {
+        _categories = result.data!;
+        _setLoading(false);
+      } else {
+        _setError(result.error!);
+        _setLoading(false);
+      }
+    } catch (e) {
+      _setError('Failed to load categories: $e');
+      _setLoading(false);
+    }
+  }
+
+  // Get products by category
+  Future<void> getProductsByCategory(int categoryId) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final result = await _apiService.getProducts(categoryId: categoryId);
+
       if (result.isSuccess) {
         _products = result.data!;
         _setLoading(false);
@@ -111,8 +133,14 @@ class ProductProvider with ChangeNotifier {
   }
 
   // Get products by prescription requirement
-  List<ProductModel> getProductsByPrescriptionRequirement(bool requiresPrescription) {
-    return _products.where((product) => product.requiresPrescription == requiresPrescription).toList();
+  List<ProductModel> getProductsByPrescriptionRequirement(
+    bool requiresPrescription,
+  ) {
+    return _products
+        .where(
+          (product) => product.requiresPrescription == requiresPrescription,
+        )
+        .toList();
   }
 
   // Get product by ID
@@ -156,6 +184,4 @@ class ProductProvider with ChangeNotifier {
     _error = null;
     notifyListeners();
   }
-
-
 }
