@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+// import 'package:pharmacy/screens/home/home_screen.dart';
 import 'CheckoutScreen.dart';
 import 'LoginScreen.dart';
 import 'models/cart_item.dart';
 import 'models/cart_model.dart';
 import 'services/cart_service.dart';
 import 'services/auth_service.dart';
+// import 'main.dart';
+import 'CategoryPage.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -343,7 +346,12 @@ class _CartScreenState extends State<CartScreen> {
           ),
           const SizedBox(height: 24),
           ElevatedButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const CategoryPage()),
+              ),
+            },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.teal,
               foregroundColor: Colors.white,

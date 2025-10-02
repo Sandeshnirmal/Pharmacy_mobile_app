@@ -4,17 +4,9 @@ import 'CartScreen.dart';
 import 'ScannerScreen.dart';
 import 'SearchResultsScreen.dart';
 import 'main.dart';
+import 'services/api_service.dart'; // Import ApiService
+import 'models/category_model.dart'; // Import CategoryModel
 
-// --- Category Model ---
-class Category {
-  final String id;
-  final String name;
-  final IconData icon;
-
-  const Category({required this.id, required this.name, required this.icon});
-}
-
-// --- CategoryPage Widget ---
 class CategoryPage extends StatefulWidget {
   const CategoryPage({super.key});
 
@@ -24,19 +16,37 @@ class CategoryPage extends StatefulWidget {
 
 class _CategoryPageState extends State<CategoryPage> {
   final TextEditingController _searchController = TextEditingController();
-  
-  final List<Category> categories = const [
-    Category(id: '1', name: 'Prescription Drugs', icon: Icons.medication_liquid),
-    Category(id: '2', name: 'Over-the-Counter', icon: Icons.healing),
-    Category(id: '3', name: 'Vitamins & Supplements', icon: Icons.medication),
-    Category(id: '4', name: 'Personal Care', icon: Icons.shower),
-    Category(id: '5', name: 'Baby Care', icon: Icons.child_care),
-    Category(id: '6', name: 'First Aid', icon: Icons.medical_services),
-    Category(id: '7', name: 'Homeopathy', icon: Icons.biotech),
-    Category(id: '8', name: 'Ayurveda', icon: Icons.grass),
-    Category(id: '9', name: 'Healthcare Devices', icon: Icons.monitor_heart),
-    Category(id: '10', name: 'Pet Care', icon: Icons.pets),
-  ];
+  final ApiService _apiService = ApiService(); // Initialize ApiService
+
+  List<CategoryModel> _categories = [];
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCategories();
+  }
+
+  Future<void> _fetchCategories() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    final result = await _apiService.getCategories();
+    if (result.isSuccess) {
+      setState(() {
+        _categories = result.data!;
+        _isLoading = false;
+      });
+    } else {
+      setState(() {
+        _error = result.error;
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -107,11 +117,16 @@ class _CategoryPageState extends State<CategoryPage> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.camera_alt_outlined, color: Colors.teal),
+                      icon: const Icon(
+                        Icons.camera_alt_outlined,
+                        color: Colors.teal,
+                      ),
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const ScannerScreen()),
+                          MaterialPageRoute(
+                            builder: (context) => const ScannerScreen(),
+                          ),
                         );
                       },
                       tooltip: 'Scan Prescription',
@@ -132,7 +147,10 @@ class _CategoryPageState extends State<CategoryPage> {
                   borderRadius: BorderRadius.circular(25),
                   borderSide: const BorderSide(color: Colors.teal, width: 2),
                 ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 20,
+                ),
               ),
               onSubmitted: _performSearch,
             ),
@@ -140,22 +158,38 @@ class _CategoryPageState extends State<CategoryPage> {
 
           // Categories Grid
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: GridView.builder(
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  childAspectRatio: 1.1,
-                ),
-                itemCount: categories.length,
-                itemBuilder: (context, index) {
-                  final category = categories[index];
-                  return _buildCategoryCard(category);
-                },
-              ),
-            ),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text('Error: $_error'),
+                        ElevatedButton(
+                          onPressed: _fetchCategories,
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    ),
+                  )
+                : Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: GridView.builder(
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 16,
+                            mainAxisSpacing: 16,
+                            childAspectRatio: 1.1,
+                          ),
+                      itemCount: _categories.length,
+                      itemBuilder: (context, index) {
+                        final category = _categories[index];
+                        return _buildCategoryCard(category);
+                      },
+                    ),
+                  ),
           ),
         ],
       ),
@@ -172,7 +206,9 @@ class _CategoryPageState extends State<CategoryPage> {
               onPressed: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => const PharmacyHomePage()),
+                  MaterialPageRoute(
+                    builder: (context) => const PharmacyHomePage(),
+                  ),
                 );
               },
               iconSize: 30.0,
@@ -201,7 +237,9 @@ class _CategoryPageState extends State<CategoryPage> {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => const AccountScreen()),
+                  MaterialPageRoute(
+                    builder: (context) => const AccountScreen(),
+                  ),
                 );
               },
               iconSize: 30.0,
@@ -225,12 +263,10 @@ class _CategoryPageState extends State<CategoryPage> {
     );
   }
 
-  Widget _buildCategoryCard(Category category) {
+  Widget _buildCategoryCard(CategoryModel category) {
     return Card(
       elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         onTap: () {
           _searchCategory(category.name);
@@ -243,10 +279,7 @@ class _CategoryPageState extends State<CategoryPage> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [
-                Colors.teal.shade50,
-                Colors.teal.shade100,
-              ],
+              colors: [Colors.teal.shade50, Colors.teal.shade100],
             ),
           ),
           child: Column(
@@ -259,7 +292,7 @@ class _CategoryPageState extends State<CategoryPage> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
-                  category.icon,
+                  category.icon ?? Icons.category, // Use default if null
                   size: 32,
                   color: Colors.white,
                 ),

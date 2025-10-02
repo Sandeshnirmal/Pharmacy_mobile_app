@@ -115,7 +115,7 @@ class _PrescriptionCameraScreenState extends State<PrescriptionCameraScreen> {
         );
 
         // Wait for AI processing
-        await _waitForProcessing(uploadResponse.prescriptionId.toString());
+        await _waitForProcessing(int.parse(uploadResponse.prescriptionId));
       } else {
         setState(() {
           _isUploading = false;

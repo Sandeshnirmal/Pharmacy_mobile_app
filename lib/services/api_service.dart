@@ -11,6 +11,7 @@ import '../models/user_model.dart';
 import '../models/prescription_model.dart';
 import '../models/prescription_detail_model.dart'; // Import the new model
 import '../models/product_model.dart';
+import '../models/category_model.dart'; // Import CategoryModel
 import '../utils/api_logger.dart';
 import '../utils/network_helper.dart';
 
@@ -1236,6 +1237,59 @@ class ApiService {
 
       return handleResponse(response, (data) => data);
     } catch (e) {
+      return ApiResponse.error('Network error: $e', 0);
+    }
+  }
+
+  // Category APIs
+  Future<ApiResponse<List<CategoryModel>>> getCategories() async {
+    try {
+      final url =
+          '${ApiConfig.baseUrl}/api/products/legacy/categories/'; // Assuming this endpoint
+      ApiLogger.logRequest('GET', url);
+
+      final response = await _sendRequest(
+        () async => _client
+            .get(Uri.parse(url), headers: await getHeaders())
+            .timeout(Duration(milliseconds: timeoutDuration)),
+      );
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        final data = json.decode(response.body);
+        if (data is List) {
+          final categories = data
+              .map(
+                (item) => CategoryModel.fromJson(item as Map<String, dynamic>),
+              )
+              .toList();
+          return ApiResponse.success(categories);
+        } else if (data is Map && data.containsKey('results')) {
+          final results = data['results'] as List;
+          final categories = results
+              .map(
+                (item) => CategoryModel.fromJson(item as Map<String, dynamic>),
+              )
+              .toList();
+          return ApiResponse.success(categories);
+        } else {
+          return ApiResponse.error(
+            'Invalid response format for categories',
+            response.statusCode,
+          );
+        }
+      } else {
+        String errorMessage = 'Failed to load categories';
+        try {
+          final errorData = json.decode(response.body);
+          errorMessage =
+              errorData['error'] ?? errorData['detail'] ?? errorMessage;
+        } catch (e) {
+          // If error body is not JSON, use generic message
+        }
+        return ApiResponse.error(errorMessage, response.statusCode);
+      }
+    } catch (e) {
+      ApiLogger.logError('Get categories error: $e');
       return ApiResponse.error('Network error: $e', 0);
     }
   }
