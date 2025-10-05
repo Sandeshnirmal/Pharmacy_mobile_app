@@ -8,6 +8,7 @@ import 'services/auth_service.dart';
 import 'screens/profile/prescription_history_screen.dart';
 import 'screens/profile/address_screen.dart';
 import 'screens/profile/settings_screen.dart';
+import 'main.dart';
 
 class AccountScreen extends StatefulWidget {
   const AccountScreen({super.key});
@@ -111,7 +112,13 @@ class _AccountScreenState extends State<AccountScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.black87),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () =>
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const PharmacyHomePage(),
+              ),
+            )
         ),
         title: const Text(
           'Profile',

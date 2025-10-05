@@ -6,6 +6,7 @@ import 'package:pharmacy/models/prescription_detail_model.dart';
 import 'package:pharmacy/services/prescription_service.dart';
 import 'package:pharmacy/services/auth_service.dart'; // Import AuthService
 import 'package:pharmacy/providers/cart_provider.dart';
+import 'package:pharmacy/main.dart';
 // Import ProductModel
 import 'package:pharmacy/LoginScreen.dart'; // Import LoginScreen
 
@@ -108,11 +109,22 @@ class _PrescriptionTrackingScreenState
         return Icons.info_outline;
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          // Explicitly set the color here to rule out any theme issues.
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const PharmacyHomePage(),
+              ),
+            );
+          },
+        ),
         title: const Text('Prescription Tracking'),
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,

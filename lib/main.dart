@@ -798,7 +798,7 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
 
               // Featured Medicines Section
               const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.0),
+                padding: EdgeInsets.symmetric(horizontal: 17.0),
                 child: Text(
                   'Featured Medicines',
                   style: TextStyle(
@@ -808,11 +808,11 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 15),
+              const SizedBox(height: 17),
               SizedBox(
                 height:
                     MediaQuery.of(context).size.height *
-                    0.3, // Responsive height
+                    0.334, // Responsive height
                 child: _isLoading
                     ? const Center(
                         child: CircularProgressIndicator(color: Colors.teal),
@@ -847,8 +847,8 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                             brandName: product['brand'],
                             price: product['price'],
                             mrp: product['mrp'],
-                            requiresPrescription:
-                                product['requiresPrescription'],
+                            // requiresPrescription:
+                            //     product['requiresPrescription'],
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -858,8 +858,8 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                                 ),
                               );
                             },
-                            onAddToCart: () =>
-                                _addToCart(_featuredProducts[index]),
+                            // onAddToCart: () =>
+                            //     _addToCart(_featuredProducts[index]),
                           );
                         },
                       ),
@@ -901,11 +901,11 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                   ],
                 ),
               ),
-              const SizedBox(height: 15),
+              const SizedBox(height: 17),
               SizedBox(
                 height:
                     MediaQuery.of(context).size.height *
-                    0.3, // Responsive height
+                    0.334, // Responsive height
                 child: _isLoadingTrending
                     ? const Center(
                         child: CircularProgressIndicator(color: Colors.teal),
@@ -945,8 +945,8 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                             brandName: product['brand'],
                             price: product['price'],
                             mrp: product['mrp'],
-                            requiresPrescription:
-                                product['requiresPrescription'],
+                            // requiresPrescription:
+                            //     product['requiresPrescription'],
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -956,8 +956,8 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                                 ),
                               );
                             },
-                            onAddToCart: () =>
-                                _addToCart(_trendingProducts[index]),
+                            // onAddToCart: () =>
+                            //     _addToCart(_trendingProducts[index]),
                           );
                         },
                       ),
@@ -976,11 +976,11 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 15),
+              const SizedBox(height: 20),
               SizedBox(
                 height:
                     MediaQuery.of(context).size.height *
-                    0.3, // Responsive height
+                    0.334, // Responsive height
                 child: _isLoading
                     ? const Center(
                         child: CircularProgressIndicator(color: Colors.teal),
@@ -999,8 +999,8 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                             brandName: product['brand'],
                             price: product['price'],
                             mrp: product['mrp'],
-                            requiresPrescription:
-                                product['requiresPrescription'],
+                            // requiresPrescription:
+                            //     product['requiresPrescription'],
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -1010,8 +1010,8 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                                 ),
                               );
                             },
-                            onAddToCart: () =>
-                                _addToCart(_everydayProducts[index]),
+                            // onAddToCart: () =>
+                            //     _addToCart(_everydayProducts[index]),
                           );
                         },
                       ),
@@ -1030,11 +1030,11 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 15),
+              const SizedBox(height: 17),
               SizedBox(
                 height:
                     MediaQuery.of(context).size.height *
-                    0.3, // Responsive height
+                    0.334, // Responsive height
                 child: _isLoading
                     ? const Center(
                         child: CircularProgressIndicator(color: Colors.teal),
@@ -1053,8 +1053,8 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                             brandName: product['brand'],
                             price: product['price'],
                             mrp: product['mrp'],
-                            requiresPrescription:
-                                product['requiresPrescription'],
+                            // requiresPrescription:
+                            //     product['requiresPrescription'],
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -1064,8 +1064,8 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                                 ),
                               );
                             },
-                            onAddToCart: () =>
-                                _addToCart(_coldCoughProducts[index]),
+                            // onAddToCart: () =>
+                            //     _addToCart(_coldCoughProducts[index]),
                           );
                         },
                       ),

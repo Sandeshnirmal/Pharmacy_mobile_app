@@ -7,7 +7,7 @@ import 'models/cart_item.dart';
 import 'models/cart_model.dart';
 import 'services/cart_service.dart';
 import 'services/auth_service.dart';
-// import 'main.dart';
+import 'main.dart';
 import 'CategoryPage.dart';
 
 class CartScreen extends StatefulWidget {
@@ -301,6 +301,18 @@ class _CartScreenState extends State<CartScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
+        leading: IconButton(
+          // Explicitly set the color here to rule out any theme issues.
+          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const PharmacyHomePage(),
+              ),
+            );
+          },
+        ),
         title: const Text(
           'Cart',
           style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
