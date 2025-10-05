@@ -10,7 +10,6 @@ class PrescriptionMedicineDetailModel {
   final String? extractedDuration;
   final String? extractedInstructions;
   final double? aiConfidenceScore;
-  final String? mappingStatus;
   final bool? isValidForOrder;
   final String? verifiedMedicineName;
   final String? verifiedDosage;
@@ -21,7 +20,22 @@ class PrescriptionMedicineDetailModel {
   final double? productPrice;
   final String? productStrength;
   final String? productForm;
-  final String? mappingStatusDisplay;
+  final String? verificationStatusDisplay;
+
+  // New fields from API response
+  final int? quantityPrescribed;
+  final int? quantityDispensed;
+  final double? unitPrice;
+  final double? totalPrice;
+  final bool? customerApproved;
+  final String? pharmacistComment;
+  final String? clarificationNotes;
+  final String? verifiedFrequency;
+  final String? verifiedDuration;
+  final int? verifiedQuantity;
+  final String? verifiedInstructions;
+  final int? lineNumber;
+  final bool? isPrescriptionRequired;
 
   PrescriptionMedicineDetailModel({
     required this.id,
@@ -33,7 +47,6 @@ class PrescriptionMedicineDetailModel {
     this.extractedDuration,
     this.extractedInstructions,
     this.aiConfidenceScore,
-    this.mappingStatus,
     this.isValidForOrder,
     this.verifiedMedicineName,
     this.verifiedDosage,
@@ -44,7 +57,20 @@ class PrescriptionMedicineDetailModel {
     this.productPrice,
     this.productStrength,
     this.productForm,
-    this.mappingStatusDisplay,
+    this.verificationStatusDisplay,
+    this.quantityPrescribed,
+    this.quantityDispensed,
+    this.unitPrice,
+    this.totalPrice,
+    this.customerApproved,
+    this.pharmacistComment,
+    this.clarificationNotes,
+    this.verifiedFrequency,
+    this.verifiedDuration,
+    this.verifiedQuantity,
+    this.verifiedInstructions,
+    this.lineNumber,
+    this.isPrescriptionRequired,
   });
 
   factory PrescriptionMedicineDetailModel.fromJson(Map<String, dynamic> json) {
@@ -75,7 +101,6 @@ class PrescriptionMedicineDetailModel {
       aiConfidenceScore: json['ai_confidence_score'] is String
           ? double.tryParse(json['ai_confidence_score'])
           : (json['ai_confidence_score'] as num?)?.toDouble(),
-      mappingStatus: json['mapping_status'] as String?,
       isValidForOrder: json['is_valid_for_order'] as bool?,
       verifiedMedicineName: json['verified_medicine_name'] as String?,
       verifiedDosage: json['verified_dosage'] as String?,
@@ -88,7 +113,24 @@ class PrescriptionMedicineDetailModel {
           : (json['product_price'] as num?)?.toDouble(),
       productStrength: json['product_strength'] as String?,
       productForm: json['product_form'] as String?,
-      mappingStatusDisplay: json['mapping_status_display'] as String?,
+      verificationStatusDisplay: json['verification_status'] as String?,
+      quantityPrescribed: json['quantity_prescribed'] as int?,
+      quantityDispensed: json['quantity_dispensed'] as int?,
+      unitPrice: json['unit_price'] is String
+          ? double.tryParse(json['unit_price'])
+          : (json['unit_price'] as num?)?.toDouble(),
+      totalPrice: json['total_price'] is String
+          ? double.tryParse(json['total_price'])
+          : (json['total_price'] as num?)?.toDouble(),
+      customerApproved: json['customer_approved'] as bool?,
+      pharmacistComment: json['pharmacist_comment'] as String?,
+      clarificationNotes: json['clarification_notes'] as String?,
+      verifiedFrequency: json['verified_frequency'] as String?,
+      verifiedDuration: json['verified_duration'] as String?,
+      verifiedQuantity: json['verified_quantity'] as int?,
+      verifiedInstructions: json['verified_instructions'] as String?,
+      lineNumber: json['line_number'] as int?,
+      isPrescriptionRequired: json['is_prescription_required'] as bool?,
     );
   }
 
@@ -103,7 +145,6 @@ class PrescriptionMedicineDetailModel {
       'extracted_duration': extractedDuration,
       'extracted_instructions': extractedInstructions,
       'ai_confidence_score': aiConfidenceScore,
-      'mapping_status': mappingStatus,
       'is_valid_for_order': isValidForOrder,
       'verified_medicine_name': verifiedMedicineName,
       'verified_dosage': verifiedDosage,
@@ -116,7 +157,20 @@ class PrescriptionMedicineDetailModel {
       'product_price': productPrice,
       'product_strength': productStrength,
       'product_form': productForm,
-      'mapping_status_display': mappingStatusDisplay,
+      'verification_status': verificationStatusDisplay,
+      'quantity_prescribed': quantityPrescribed,
+      'quantity_dispensed': quantityDispensed,
+      'unit_price': unitPrice,
+      'total_price': totalPrice,
+      'customer_approved': customerApproved,
+      'pharmacist_comment': pharmacistComment,
+      'clarification_notes': clarificationNotes,
+      'verified_frequency': verifiedFrequency,
+      'verified_duration': verifiedDuration,
+      'verified_quantity': verifiedQuantity,
+      'verified_instructions': verifiedInstructions,
+      'line_number': lineNumber,
+      'is_prescription_required': isPrescriptionRequired,
     };
   }
 }

@@ -791,6 +791,9 @@ class ApiService {
           .timeout(Duration(milliseconds: timeoutDuration));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
+        ApiLogger.log(
+          'Raw API response for getOrders: ${response.body}',
+        ); // Added debug print
         final data = json.decode(response.body);
         if (data is List) {
           final list = data
@@ -956,7 +959,7 @@ class ApiService {
     try {
       final response = await _client
           .post(
-            Uri.parse('$baseUrl/prescription/ocr/analyze/'),
+            Uri.parse('${ApiConfig.prescriptionEndpoint}/ocr/analyze/'),
             headers: await getHeaders(),
             body: json.encode({'image': base64Image}),
           )

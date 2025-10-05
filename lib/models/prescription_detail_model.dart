@@ -8,15 +8,37 @@ class PrescriptionDetailModel {
   final String imageUrl;
   final String status;
   final DateTime uploadedAt;
-  final List<ProductModel>? suggestedMedicines; // Products identified from prescription
-  final List<PrescriptionMedicineDetailModel>? prescriptionMedicines; // Detailed prescription medicines
+  final List<ProductModel>?
+  suggestedMedicines; // Products identified from prescription
+  final List<PrescriptionMedicineDetailModel>?
+  prescriptionMedicines; // Detailed prescription medicines
 
   // New fields for extracted medicine details
   final String? extractedMedicineName;
   final String? extractedDosage;
   final String? extractedFrequency;
   final String? extractedForm;
-  final String? mappingStatus;
+
+  // New fields from API response
+  final String? userName;
+  final String? userEmail;
+  final String? userPhone;
+  final int? totalMedicines;
+  final int? verifiedMedicines;
+  final String? processingStatus;
+  final String? prescriptionNumber;
+  final String? patientName;
+  final int? patientAge;
+  final String? patientGender;
+  final String? doctorName;
+  final String? doctorLicense;
+  final String? hospitalClinic;
+  final DateTime? prescriptionDate;
+  final double? aiConfidenceScore;
+  final String? rejectionReason;
+  final String? clarificationNotes;
+  final String? pharmacistNotes;
+  final String? verificationNotes;
 
   PrescriptionDetailModel({
     required this.id,
@@ -28,8 +50,26 @@ class PrescriptionDetailModel {
     this.extractedDosage,
     this.extractedFrequency,
     this.extractedForm,
-    this.mappingStatus,
     this.prescriptionMedicines,
+    this.userName,
+    this.userEmail,
+    this.userPhone,
+    this.totalMedicines,
+    this.verifiedMedicines,
+    this.processingStatus,
+    this.prescriptionNumber,
+    this.patientName,
+    this.patientAge,
+    this.patientGender,
+    this.doctorName,
+    this.doctorLicense,
+    this.hospitalClinic,
+    this.prescriptionDate,
+    this.aiConfidenceScore,
+    this.rejectionReason,
+    this.clarificationNotes,
+    this.pharmacistNotes,
+    this.verificationNotes,
   });
 
   factory PrescriptionDetailModel.fromJson(Map<String, dynamic> json) {
@@ -75,8 +115,29 @@ class PrescriptionDetailModel {
       extractedDosage: json['extracted_dosage']?.toString(),
       extractedFrequency: json['extracted_frequency']?.toString(),
       extractedForm: json['extracted_form']?.toString(),
-      mappingStatus: json['mapping_status_display']
-          ?.toString(), // Use mapping_status_display
+      userName: json['user_name']?.toString(),
+      userEmail: json['user_email']?.toString(),
+      userPhone: json['user_phone']?.toString(),
+      totalMedicines: json['total_medicines'] as int?,
+      verifiedMedicines: json['verified_medicines'] as int?,
+      processingStatus: json['processing_status']?.toString(),
+      prescriptionNumber: json['prescription_number']?.toString(),
+      patientName: json['patient_name']?.toString(),
+      patientAge: json['patient_age'] as int?,
+      patientGender: json['patient_gender']?.toString(),
+      doctorName: json['doctor_name']?.toString(),
+      doctorLicense: json['doctor_license']?.toString(),
+      hospitalClinic: json['hospital_clinic']?.toString(),
+      prescriptionDate: DateTime.tryParse(
+        json['prescription_date']?.toString() ?? '',
+      ),
+      aiConfidenceScore: json['ai_confidence_score'] is String
+          ? double.tryParse(json['ai_confidence_score'])
+          : (json['ai_confidence_score'] as num?)?.toDouble(),
+      rejectionReason: json['rejection_reason']?.toString(),
+      clarificationNotes: json['clarification_notes']?.toString(),
+      pharmacistNotes: json['pharmacist_notes']?.toString(),
+      verificationNotes: json['verification_notes']?.toString(),
     );
   }
 
@@ -93,8 +154,28 @@ class PrescriptionDetailModel {
       'extracted_dosage': extractedDosage,
       'extracted_frequency': extractedFrequency,
       'extracted_form': extractedForm,
-      'mapping_status_display': mappingStatus,
-      'prescription_medicines': prescriptionMedicines?.map((e) => e.toJson()).toList(),
+      'prescription_medicines': prescriptionMedicines
+          ?.map((e) => e.toJson())
+          .toList(),
+      'user_name': userName,
+      'user_email': userEmail,
+      'user_phone': userPhone,
+      'total_medicines': totalMedicines,
+      'verified_medicines': verifiedMedicines,
+      'processing_status': processingStatus,
+      'prescription_number': prescriptionNumber,
+      'patient_name': patientName,
+      'patient_age': patientAge,
+      'patient_gender': patientGender,
+      'doctor_name': doctorName,
+      'doctor_license': doctorLicense,
+      'hospital_clinic': hospitalClinic,
+      'prescription_date': prescriptionDate?.toIso8601String(),
+      'ai_confidence_score': aiConfidenceScore,
+      'rejection_reason': rejectionReason,
+      'clarification_notes': clarificationNotes,
+      'pharmacist_notes': pharmacistNotes,
+      'verification_notes': verificationNotes,
     };
   }
 }

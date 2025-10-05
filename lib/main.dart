@@ -5,12 +5,15 @@ import 'package:fluttertoast/fluttertoast.dart';
 // import 'package:shimmer/shimmer.dart';
 // import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'dart:async'; // Import for StreamSubscription
+// Import for File
+import 'package:http/http.dart' as http; // Import for http requests
+import 'package:image_picker/image_picker.dart'; // Import for image_picker
 // import 'package:carousel_slider/carousel_slider.dart' as carousel;
 // import 'package:shimmer/shimmer.dart';
 // import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'AccountScreen.dart';
 import 'CartScreen.dart';
-import 'ScannerScreen.dart';
+// import 'ScannerScreen.dart'; // Removed as direct camera access is implemented
 import 'ProductDetailsScreen.dart';
 import 'CategoryPage.dart';
 import 'SearchResultsScreen.dart';
@@ -244,6 +247,70 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
         _error = 'Network error: $e';
         _isLoading = false;
       });
+    }
+  }
+
+  // Function to handle prescription scanning and OCR
+  Future<void> _scanPrescription() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? image = await picker.pickImage(source: ImageSource.camera);
+
+    if (image != null) {
+      setState(() {
+        _isLoading = true; // Show loading indicator
+        _error = '';
+      });
+
+      try {
+        var request = http.MultipartRequest(
+          'POST',
+          Uri.parse(
+            'http://192.168.1.7:8000/api/prescriptions/ocr/analyze/',
+          ), // Use the provided URL
+        );
+        request.files.add(
+          await http.MultipartFile.fromPath('image', image.path),
+        );
+
+        var response = await request.send();
+
+        if (response.statusCode == 200) {
+          final responseBody = await http.Response.fromStream(response);
+          final ocrResult =
+              responseBody.body; // Assuming the body is the OCR text
+
+          // Navigate to SearchResultsScreen with the OCR result
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SearchResultsScreen(
+                searchQuery: ocrResult,
+                isFromPrescription: true,
+              ),
+            ),
+          );
+        } else {
+          Fluttertoast.showToast(
+            msg: 'OCR API failed with status: ${response.statusCode}',
+            toastLength: Toast.LENGTH_LONG,
+            gravity: ToastGravity.BOTTOM,
+            backgroundColor: Colors.red,
+            textColor: Colors.white,
+          );
+        }
+      } catch (e) {
+        Fluttertoast.showToast(
+          msg: 'Error during OCR: $e',
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
+      } finally {
+        setState(() {
+          _isLoading = false; // Hide loading indicator
+        });
+      }
     }
   }
 
@@ -548,14 +615,8 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                               Icons.camera_alt_outlined,
                               color: Colors.teal,
                             ),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const ScannerScreen(),
-                                ),
-                              );
-                            },
+                            onPressed:
+                                _scanPrescription, // Call the new function
                             tooltip: 'Scan Prescription',
                           ),
                           IconButton(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'models/prescription_model.dart';
 import 'services/api_service.dart';
+import 'CartScreen.dart'; // Import CartScreen
 
 class PrescriptionResultScreen extends StatefulWidget {
   final int prescriptionId;
@@ -15,7 +16,8 @@ class PrescriptionResultScreen extends StatefulWidget {
   });
 
   @override
-  State<PrescriptionResultScreen> createState() => _PrescriptionResultScreenState();
+  State<PrescriptionResultScreen> createState() =>
+      _PrescriptionResultScreenState();
 }
 
 class _PrescriptionResultScreenState extends State<PrescriptionResultScreen> {
@@ -29,7 +31,9 @@ class _PrescriptionResultScreenState extends State<PrescriptionResultScreen> {
     super.initState();
     // Pre-select available medicines
     _selectedMedicines = widget.suggestions.medicines
-        .where((medicine) => medicine.isAvailable && medicine.productInfo != null)
+        .where(
+          (medicine) => medicine.isAvailable && medicine.productInfo != null,
+        )
         .map((medicine) => medicine.copyWith(selectedQuantity: 1))
         .toList();
     _calculatePricing();
@@ -37,7 +41,8 @@ class _PrescriptionResultScreenState extends State<PrescriptionResultScreen> {
 
   void _calculatePricing() {
     double subtotal = _selectedMedicines.fold(0.0, (total, medicine) {
-      return total + (medicine.productInfo?.price ?? 0.0) * medicine.selectedQuantity;
+      return total +
+          (medicine.productInfo?.price ?? 0.0) * medicine.selectedQuantity;
     });
 
     double shipping = subtotal >= 500 ? 0.0 : 50.0;
@@ -66,13 +71,13 @@ class _PrescriptionResultScreenState extends State<PrescriptionResultScreen> {
 
     setState(() {
       final index = _selectedMedicines.indexWhere((m) => m.id == medicine.id);
-      
+
       if (index >= 0) {
         _selectedMedicines.removeAt(index);
       } else {
         _selectedMedicines.add(medicine.copyWith(selectedQuantity: 1));
       }
-      
+
       _calculatePricing();
     });
   }
@@ -108,8 +113,6 @@ class _PrescriptionResultScreenState extends State<PrescriptionResultScreen> {
     return medicine.id != 0 ? medicine.selectedQuantity : 0;
   }
 
-
-
   Future<void> _proceedToOrder() async {
     if (_selectedMedicines.isEmpty) {
       Fluttertoast.showToast(
@@ -129,26 +132,31 @@ class _PrescriptionResultScreenState extends State<PrescriptionResultScreen> {
     try {
       final orderData = {
         'prescription_id': widget.prescriptionId,
-        'medicines': _selectedMedicines.map((medicine) => {
-          'detail_id': medicine.id,
-          'quantity': medicine.selectedQuantity,
-        }).toList(),
+        'medicines': _selectedMedicines
+            .map(
+              (medicine) => {
+                'detail_id': medicine.id,
+                'quantity': medicine.selectedQuantity,
+              },
+            )
+            .toList(),
         'address_id': 1, // Dummy address ID
         'payment_method': 'UPI', // Dummy payment method
         'special_instructions': 'Order from prescription processing',
       };
 
       final result = await _apiService.createPrescriptionOrder(orderData);
-      
+
       setState(() {
         _isCreatingOrder = false;
       });
 
       if (result.isSuccess) {
         final orderResponse = result.data!;
-        
+
         Fluttertoast.showToast(
-          msg: "Order created successfully! Order #${orderResponse.orderNumber}",
+          msg:
+              "Order created successfully! Order #${orderResponse.orderNumber}",
           toastLength: Toast.LENGTH_LONG,
           gravity: ToastGravity.BOTTOM,
         );
@@ -166,7 +174,7 @@ class _PrescriptionResultScreenState extends State<PrescriptionResultScreen> {
       setState(() {
         _isCreatingOrder = false;
       });
-      
+
       Fluttertoast.showToast(
         msg: "Order error: $e",
         toastLength: Toast.LENGTH_LONG,
@@ -209,7 +217,10 @@ class _PrescriptionResultScreenState extends State<PrescriptionResultScreen> {
                       children: [
                         const Text('Processing Status: '),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.green,
                             borderRadius: BorderRadius.circular(12),
@@ -294,7 +305,9 @@ class _PrescriptionResultScreenState extends State<PrescriptionResultScreen> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    ...widget.suggestions.medicines.map((medicine) => _buildMedicineCard(medicine)),
+                    ...widget.suggestions.medicines.map(
+                      (medicine) => _buildMedicineCard(medicine),
+                    ),
                   ],
                 ),
               ),
@@ -374,6 +387,29 @@ class _PrescriptionResultScreenState extends State<PrescriptionResultScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
+                          onPressed: () {
+                            // Navigate to CartScreen
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const CartScreen(),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.add_shopping_cart),
+                          label: const Text('Add to Cart'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors
+                                .blueGrey, // Different color for distinction
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10), // Spacing between buttons
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
                           onPressed: _isCreatingOrder ? null : _proceedToOrder,
                           icon: _isCreatingOrder
                               ? const SizedBox(
@@ -381,11 +417,17 @@ class _PrescriptionResultScreenState extends State<PrescriptionResultScreen> {
                                   height: 20,
                                   child: CircularProgressIndicator(
                                     strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
                                   ),
                                 )
                               : const Icon(Icons.shopping_cart),
-                          label: Text(_isCreatingOrder ? 'Creating Order...' : 'Proceed to Order'),
+                          label: Text(
+                            _isCreatingOrder
+                                ? 'Creating Order...'
+                                : 'Proceed to Order',
+                          ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.teal,
                             foregroundColor: Colors.white,
@@ -447,9 +489,14 @@ class _PrescriptionResultScreenState extends State<PrescriptionResultScreen> {
                 Column(
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
-                        color: medicine.isAvailable ? Colors.green : Colors.grey,
+                        color: medicine.isAvailable
+                            ? Colors.green
+                            : Colors.grey,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
@@ -471,7 +518,7 @@ class _PrescriptionResultScreenState extends State<PrescriptionResultScreen> {
                 ),
               ],
             ),
-            
+
             if (medicine.productInfo != null) ...[
               const SizedBox(height: 8),
               Container(
@@ -491,13 +538,20 @@ class _PrescriptionResultScreenState extends State<PrescriptionResultScreen> {
                           style: const TextStyle(fontWeight: FontWeight.w500),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: medicine.productInfo!.inStock ? Colors.green : Colors.red,
+                            color: medicine.productInfo!.inStock
+                                ? Colors.green
+                                : Colors.red,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
-                            medicine.productInfo!.inStock ? 'In Stock' : 'Out of Stock',
+                            medicine.productInfo!.inStock
+                                ? 'In Stock'
+                                : 'Out of Stock',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 10,
@@ -517,7 +571,8 @@ class _PrescriptionResultScreenState extends State<PrescriptionResultScreen> {
                             color: Colors.teal,
                           ),
                         ),
-                        if (medicine.productInfo!.mrp > medicine.productInfo!.price) ...[
+                        if (medicine.productInfo!.mrp >
+                            medicine.productInfo!.price) ...[
                           const SizedBox(width: 8),
                           Text(
                             '₹${medicine.productInfo!.mrp}',
@@ -535,7 +590,7 @@ class _PrescriptionResultScreenState extends State<PrescriptionResultScreen> {
                         ),
                       ],
                     ),
-                    
+
                     if (isSelected) ...[
                       const SizedBox(height: 8),
                       Row(
@@ -546,7 +601,10 @@ class _PrescriptionResultScreenState extends State<PrescriptionResultScreen> {
                             children: [
                               IconButton(
                                 onPressed: selectedQuantity > 1
-                                    ? () => _updateQuantity(medicine.id, selectedQuantity - 1)
+                                    ? () => _updateQuantity(
+                                        medicine.id,
+                                        selectedQuantity - 1,
+                                      )
                                     : null,
                                 icon: const Icon(Icons.remove),
                                 iconSize: 20,
@@ -559,7 +617,10 @@ class _PrescriptionResultScreenState extends State<PrescriptionResultScreen> {
                                 ),
                               ),
                               IconButton(
-                                onPressed: () => _updateQuantity(medicine.id, selectedQuantity + 1),
+                                onPressed: () => _updateQuantity(
+                                  medicine.id,
+                                  selectedQuantity + 1,
+                                ),
                                 icon: const Icon(Icons.add),
                                 iconSize: 20,
                               ),

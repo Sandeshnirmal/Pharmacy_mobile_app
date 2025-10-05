@@ -33,20 +33,27 @@ class OrderModel {
   });
 
   factory OrderModel.fromJson(Map<String, dynamic> json) {
+    print(
+      'OrderModel.fromJson: Called for ID: ${json['id']}',
+    ); // Unique debug print
     return OrderModel(
       id: json['id'] ?? 0,
       orderNumber: json['order_number'] ?? json['id']?.toString() ?? '0',
-      orderDate: json['order_date'] != null 
+      orderDate: json['order_date'] != null
           ? DateTime.parse(json['order_date'])
           : DateTime.now(),
-      status: json['order_status'] ?? json['status'] ?? 'pending',
-      statusDisplayName: _getStatusDisplayName(json['order_status'] ?? json['status'] ?? 'pending'),
+      status: _parseOrderStatus(json['order_status'] ?? json['status']),
+      statusDisplayName: _getStatusDisplayName(
+        _parseOrderStatus(json['order_status'] ?? json['status']),
+      ),
       totalAmount: _parseDouble(json['total_amount']),
-      totalItems: _parseInt(json['total_items']) ?? _calculateItemsFromList(json['items']),
+      totalItems:
+          _parseInt(json['total_items']) ??
+          _calculateItemsFromList(json['items']),
       paymentStatus: json['payment_status'] ?? 'pending',
       paymentMethod: json['payment_method'] ?? 'unknown',
       items: _parseItems(json['items']),
-      shippingAddress: json['address'] != null 
+      shippingAddress: json['address'] != null
           ? AddressModel.fromJson(json['address'])
           : null,
       notes: json['notes'],
@@ -78,6 +85,21 @@ class OrderModel {
     return 0;
   }
 
+  static String _parseOrderStatus(dynamic statusValue) {
+    print(
+      'OrderModel._parseOrderStatus: Received statusValue: $statusValue (Type: ${statusValue.runtimeType})',
+    );
+    String status = (statusValue ?? 'pending').toString().toLowerCase();
+    if (status.isEmpty) {
+      print(
+        'OrderModel._parseOrderStatus: Status was empty, defaulting to "pending"',
+      );
+      return 'pending';
+    }
+    print('OrderModel._parseOrderStatus: Returning status: $status');
+    return status;
+  }
+
   static String _getStatusDisplayName(String status) {
     switch (status.toLowerCase()) {
       case 'pending':
@@ -90,6 +112,8 @@ class OrderModel {
         return 'Delivered';
       case 'cancelled':
         return 'Cancelled';
+      case 'payment_completed': // Map backend status to a displayable status
+        return 'Processing';
       default:
         return status;
     }
@@ -97,9 +121,7 @@ class OrderModel {
 
   static List<OrderItemModel> _parseItems(dynamic items) {
     if (items is List) {
-      return items
-          .map((item) => OrderItemModel.fromJson(item))
-          .toList();
+      return items.map((item) => OrderItemModel.fromJson(item)).toList();
     }
     return [];
   }
@@ -142,11 +164,14 @@ class OrderItemModel {
 
   factory OrderItemModel.fromJson(Map<String, dynamic> json) {
     final quantity = OrderModel._parseInt(json['quantity']) ?? 1;
-    final unitPrice = OrderModel._parseDouble(json['unit_price_at_order'] ?? json['unit_price']);
-    
+    final unitPrice = OrderModel._parseDouble(
+      json['unit_price_at_order'] ?? json['unit_price'],
+    );
+
     return OrderItemModel(
       id: json['id'] ?? 0,
-      productName: json['product']?['name'] ?? json['product_name'] ?? 'Unknown Product',
+      productName:
+          json['product']?['name'] ?? json['product_name'] ?? 'Unknown Product',
       quantity: quantity,
       unitPrice: unitPrice,
       totalPrice: quantity * unitPrice,

@@ -6,10 +6,7 @@ import '../../models/product_model.dart';
 class ProductDetailScreen extends StatefulWidget {
   final ProductModel product;
 
-  const ProductDetailScreen({
-    super.key,
-    required this.product,
-  });
+  const ProductDetailScreen({super.key, required this.product});
 
   @override
   State<ProductDetailScreen> createState() => _ProductDetailScreenState();
@@ -104,7 +101,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ? Image.network(
                       widget.product.imageUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => _buildPlaceholderImage(),
+                      errorBuilder: (context, error, stackTrace) =>
+                          _buildPlaceholderImage(),
                     )
                   : _buildPlaceholderImage(),
             ),
@@ -128,13 +126,20 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                       ),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
                         decoration: BoxDecoration(
-                          color: widget.product.isInStock ? Colors.green : Colors.red,
+                          color: widget.product.isInStock
+                              ? Colors.green
+                              : Colors.red,
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          widget.product.isInStock ? 'In Stock' : 'Out of Stock',
+                          widget.product.isInStock
+                              ? 'In Stock'
+                              : 'Out of Stock',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 12,
@@ -150,10 +155,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   // Manufacturer
                   Text(
                     'By ${widget.product.manufacturer}',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                   ),
 
                   const SizedBox(height: 16),
@@ -181,7 +183,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                         const SizedBox(width: 8),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.green,
                             borderRadius: BorderRadius.circular(4),
@@ -210,9 +215,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     if (widget.product.category != null)
                       _buildDetailRow('Category', widget.product.category!),
                     if (widget.product.genericName != null)
-                      _buildDetailRow('Generic Name', widget.product.genericName!),
-                    _buildDetailRow('Requires Prescription', widget.product.requiresPrescription ? 'Yes' : 'No'),
-                    _buildDetailRow('Stock Quantity', '${widget.product.stockQuantity} units'),
+                      _buildDetailRow(
+                        'Generic Name',
+                        widget.product.genericName!,
+                      ),
+                    _buildDetailRow(
+                      'Requires Prescription',
+                      widget.product.requiresPrescription ? 'Yes' : 'No',
+                    ),
+                    _buildDetailRow(
+                      'Stock Quantity',
+                      '${widget.product.stockQuantity} units',
+                    ),
                   ]),
 
                   const SizedBox(height: 24),
@@ -253,7 +267,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                 color: Colors.teal,
                               ),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                ),
                                 child: Text(
                                   '$_quantity',
                                   style: const TextStyle(
@@ -365,11 +381,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       width: double.infinity,
       height: double.infinity,
       color: Colors.grey[200],
-      child: const Icon(
-        Icons.medical_services,
-        size: 80,
-        color: Colors.grey,
-      ),
+      child: const Icon(Icons.medical_services, size: 80, color: Colors.grey),
     );
   }
 
@@ -379,10 +391,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       children: [
         Text(
           title,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 12),
         ...children,
@@ -400,19 +409,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
             width: 120,
             child: Text(
               '$label:',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
           ),
         ],

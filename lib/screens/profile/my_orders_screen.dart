@@ -12,7 +12,8 @@ class MyOrdersScreen extends StatefulWidget {
   State<MyOrdersScreen> createState() => _MyOrdersScreenState();
 }
 
-class _MyOrdersScreenState extends State<MyOrdersScreen> with SingleTickerProviderStateMixin {
+class _MyOrdersScreenState extends State<MyOrdersScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
   String _selectedFilter = 'all';
 
@@ -58,14 +59,8 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with SingleTickerProvid
               });
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'recent',
-                child: Text('Recent First'),
-              ),
-              const PopupMenuItem(
-                value: 'oldest',
-                child: Text('Oldest First'),
-              ),
+              const PopupMenuItem(value: 'recent', child: Text('Recent First')),
+              const PopupMenuItem(value: 'oldest', child: Text('Oldest First')),
               const PopupMenuItem(
                 value: 'amount_high',
                 child: Text('Amount: High to Low'),
@@ -102,13 +97,17 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with SingleTickerProvid
 
   Widget _buildOrderList(List<Order> allOrders, String status) {
     List<Order> filteredOrders = allOrders;
-    
-    if (status != 'all') {
-      filteredOrders = allOrders.where((order) => 
-        order.status.toLowerCase() == status.toLowerCase()
-      ).toList();
+
+    print('--- Building Order List for status: $status ---');
+    for (var order in allOrders) {
+      print('Order ID: ${order.id}, Status: ${order.status}');
     }
 
+    if (status != 'all') {
+      filteredOrders = allOrders
+          .where((order) => order.status.toLowerCase() == status.toLowerCase())
+          .toList();
+    }
     // Apply sorting
     switch (_selectedFilter) {
       case 'recent':
@@ -143,19 +142,15 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with SingleTickerProvid
   }
 
   Widget _buildEmptyState(String status) {
-    String message = status == 'all' 
+    String message = status == 'all'
         ? 'No orders found'
         : 'No ${status.toLowerCase()} orders';
-    
+
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.shopping_bag_outlined,
-            size: 80,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.shopping_bag_outlined, size: 80, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
             message,
@@ -168,10 +163,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with SingleTickerProvid
           const SizedBox(height: 8),
           Text(
             'Your orders will appear here',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[500],
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey[500]),
           ),
         ],
       ),
@@ -210,20 +202,17 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with SingleTickerProvid
                   _buildStatusChip(order.status),
                 ],
               ),
-              
+
               const SizedBox(height: 8),
-              
+
               // Order Date
               Text(
                 'Ordered on ${DateFormat('MMM dd, yyyy').format(order.createdAt)}',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               ),
-              
+
               const SizedBox(height: 12),
-              
+
               // Order Items Preview
               if (order.items.isNotEmpty) ...[
                 Text(
@@ -235,19 +224,19 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with SingleTickerProvid
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  order.items.take(2).map((item) => item.productName).join(', ') +
-                  (order.items.length > 2 ? '...' : ''),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
+                  order.items
+                          .take(2)
+                          .map((item) => item.productName)
+                          .join(', ') +
+                      (order.items.length > 2 ? '...' : ''),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
-              
+
               const SizedBox(height: 12),
-              
+
               // Order Footer
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -274,7 +263,8 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with SingleTickerProvid
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => OrderDetailScreen(orderId: order.id),
+                              builder: (context) =>
+                                  OrderDetailScreen(orderId: order.id),
                             ),
                           );
                         },
@@ -294,7 +284,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with SingleTickerProvid
   Widget _buildStatusChip(String status) {
     Color backgroundColor;
     Color textColor;
-    
+
     switch (status.toLowerCase()) {
       case 'pending':
         backgroundColor = Colors.orange.shade100;
@@ -343,7 +333,9 @@ class _MyOrdersScreenState extends State<MyOrdersScreen> with SingleTickerProvid
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Reorder Items'),
-        content: Text('Do you want to add all items from Order #${order.id} to your cart?'),
+        content: Text(
+          'Do you want to add all items from Order #${order.id} to your cart?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

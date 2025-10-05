@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:pharmacy/ProductDetailsScreen.dart';
 import 'package:provider/provider.dart';
 import 'package:pharmacy/models/prescription_detail_model.dart';
 import 'package:pharmacy/services/prescription_service.dart';
 import 'package:pharmacy/services/auth_service.dart'; // Import AuthService
 import 'package:pharmacy/providers/cart_provider.dart';
-import 'package:pharmacy/ProductDetailsScreen.dart'; // Assuming this screen exists for product details
+// Import ProductModel
 import 'package:pharmacy/LoginScreen.dart'; // Import LoginScreen
 
 class PrescriptionTrackingScreen extends StatefulWidget {
@@ -484,6 +485,144 @@ class PrescriptionDetailViewScreen extends StatelessWidget {
               icon: Icons.calendar_today,
               color: Colors.blueGrey,
             ),
+            if (prescription.prescriptionNumber != null &&
+                prescription.prescriptionNumber!.isNotEmpty)
+              _buildInfoCard(
+                title: 'Prescription Number',
+                value: prescription.prescriptionNumber!,
+                icon: Icons.confirmation_number,
+                color: Colors.indigo,
+              ),
+            if (prescription.prescriptionDate != null)
+              _buildInfoCard(
+                title: 'Prescription Date',
+                value: DateFormat(
+                  'dd MMM yyyy',
+                ).format(prescription.prescriptionDate!),
+                icon: Icons.date_range,
+                color: Colors.deepOrange,
+              ),
+            if (prescription.processingStatus != null &&
+                prescription.processingStatus!.isNotEmpty)
+              _buildInfoCard(
+                title: 'Processing Status',
+                value: prescription.processingStatus!,
+                icon: Icons.data_usage,
+                color: Colors.purple,
+              ),
+            if (prescription.aiConfidenceScore != null)
+              _buildInfoCard(
+                title: 'AI Confidence Score',
+                value:
+                    '${(prescription.aiConfidenceScore! * 100).toStringAsFixed(1)}%',
+                icon: Icons.psychology,
+                color: Colors.green,
+              ),
+            if (prescription.totalMedicines != null)
+              _buildInfoCard(
+                title: 'Total Medicines',
+                value: prescription.totalMedicines.toString(),
+                icon: Icons.format_list_numbered,
+                color: Colors.brown,
+              ),
+            if (prescription.verifiedMedicines != null)
+              _buildInfoCard(
+                title: 'Verified Medicines',
+                value: prescription.verifiedMedicines.toString(),
+                icon: Icons.check_circle,
+                color: Colors.teal,
+              ),
+            const SizedBox(height: 24),
+            const Text(
+              'User Information',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const Divider(height: 20, thickness: 1),
+            if (prescription.userName != null &&
+                prescription.userName!.isNotEmpty)
+              _buildInfoCard(
+                title: 'User Name',
+                value: prescription.userName!,
+                icon: Icons.person,
+                color: Colors.blueGrey,
+              ),
+            if (prescription.userEmail != null &&
+                prescription.userEmail!.isNotEmpty)
+              _buildInfoCard(
+                title: 'User Email',
+                value: prescription.userEmail!,
+                icon: Icons.email,
+                color: Colors.blueGrey,
+              ),
+            if (prescription.userPhone != null &&
+                prescription.userPhone!.isNotEmpty)
+              _buildInfoCard(
+                title: 'User Phone',
+                value: prescription.userPhone!,
+                icon: Icons.phone,
+                color: Colors.blueGrey,
+              ),
+            const SizedBox(height: 24),
+            const Text(
+              'Patient & Doctor Information',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const Divider(height: 20, thickness: 1),
+            if (prescription.patientName != null &&
+                prescription.patientName!.isNotEmpty)
+              _buildInfoCard(
+                title: 'Patient Name',
+                value: prescription.patientName!,
+                icon: Icons.person_outline,
+                color: Colors.deepPurple,
+              ),
+            if (prescription.patientAge != null)
+              _buildInfoCard(
+                title: 'Patient Age',
+                value: prescription.patientAge.toString(),
+                icon: Icons.cake,
+                color: Colors.deepPurple,
+              ),
+            if (prescription.patientGender != null &&
+                prescription.patientGender!.isNotEmpty)
+              _buildInfoCard(
+                title: 'Patient Gender',
+                value: prescription.patientGender!,
+                icon: Icons.transgender,
+                color: Colors.deepPurple,
+              ),
+            if (prescription.doctorName != null &&
+                prescription.doctorName!.isNotEmpty)
+              _buildInfoCard(
+                title: 'Doctor Name',
+                value: prescription.doctorName!,
+                icon: Icons.local_hospital,
+                color: Colors.indigo,
+              ),
+            if (prescription.doctorLicense != null &&
+                prescription.doctorLicense!.isNotEmpty)
+              _buildInfoCard(
+                title: 'Doctor License',
+                value: prescription.doctorLicense!,
+                icon: Icons.badge,
+                color: Colors.indigo,
+              ),
+            if (prescription.hospitalClinic != null &&
+                prescription.hospitalClinic!.isNotEmpty)
+              _buildInfoCard(
+                title: 'Hospital/Clinic',
+                value: prescription.hospitalClinic!,
+                icon: Icons.apartment,
+                color: Colors.indigo,
+              ),
             // Display extracted medicine details if available
             if (prescription.extractedMedicineName != null &&
                 prescription.extractedMedicineName!.isNotEmpty) ...[
@@ -526,14 +665,6 @@ class PrescriptionDetailViewScreen extends StatelessWidget {
                   value: prescription.extractedFrequency!,
                   icon: Icons.access_time,
                   color: Colors.lightBlue,
-                ),
-              if (prescription.mappingStatus != null &&
-                  prescription.mappingStatus!.isNotEmpty)
-                _buildInfoCard(
-                  title: 'Mapping Status',
-                  value: prescription.mappingStatus!,
-                  icon: Icons.link,
-                  color: Colors.brown,
                 ),
             ],
             const SizedBox(height: 24),
@@ -578,7 +709,7 @@ class PrescriptionDetailViewScreen extends StatelessWidget {
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       subtitle: Text(
-                        'Status: ${medicineDetail.mappingStatusDisplay ?? 'N/A'}',
+                        'Status: ${medicineDetail.verificationStatusDisplay ?? 'N/A'}',
                       ),
                       children: [
                         Padding(
@@ -589,28 +720,143 @@ class PrescriptionDetailViewScreen extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
+                              if (medicineDetail.recognizedTextRaw != null &&
+                                  medicineDetail.recognizedTextRaw!.isNotEmpty)
+                                _buildDetailRow(
+                                  'Raw Text:',
+                                  medicineDetail.recognizedTextRaw!,
+                                ),
+                              if (medicineDetail.extractedMedicineName !=
+                                      null &&
+                                  medicineDetail
+                                      .extractedMedicineName!
+                                      .isNotEmpty)
+                                _buildDetailRow(
+                                  'Extracted Name:',
+                                  medicineDetail.extractedMedicineName!,
+                                ),
                               if (medicineDetail.extractedDosage != null &&
                                   medicineDetail.extractedDosage!.isNotEmpty)
                                 _buildDetailRow(
-                                  'Dosage:',
+                                  'Extracted Dosage:',
                                   medicineDetail.extractedDosage!,
                                 ),
                               if (medicineDetail.extractedFrequency != null &&
                                   medicineDetail.extractedFrequency!.isNotEmpty)
                                 _buildDetailRow(
-                                  'Frequency:',
+                                  'Extracted Frequency:',
                                   medicineDetail.extractedFrequency!,
                                 ),
                               if (medicineDetail.extractedForm != null &&
                                   medicineDetail.extractedForm!.isNotEmpty)
                                 _buildDetailRow(
-                                  'Form:',
+                                  'Extracted Form:',
                                   medicineDetail.extractedForm!,
+                                ),
+                              if (medicineDetail.extractedDuration != null &&
+                                  medicineDetail.extractedDuration!.isNotEmpty)
+                                _buildDetailRow(
+                                  'Extracted Duration:',
+                                  medicineDetail.extractedDuration!,
+                                ),
+                              if (medicineDetail.extractedInstructions !=
+                                      null &&
+                                  medicineDetail
+                                      .extractedInstructions!
+                                      .isNotEmpty)
+                                _buildDetailRow(
+                                  'Extracted Instructions:',
+                                  medicineDetail.extractedInstructions!,
                                 ),
                               if (medicineDetail.aiConfidenceScore != null)
                                 _buildDetailRow(
                                   'AI Confidence:',
                                   '${(medicineDetail.aiConfidenceScore! * 100).toStringAsFixed(1)}%',
+                                ),
+                              if (medicineDetail.verifiedMedicineName != null &&
+                                  medicineDetail
+                                      .verifiedMedicineName!
+                                      .isNotEmpty)
+                                _buildDetailRow(
+                                  'Verified Name:',
+                                  medicineDetail.verifiedMedicineName!,
+                                ),
+                              if (medicineDetail.verifiedDosage != null &&
+                                  medicineDetail.verifiedDosage!.isNotEmpty)
+                                _buildDetailRow(
+                                  'Verified Dosage:',
+                                  medicineDetail.verifiedDosage!,
+                                ),
+                              if (medicineDetail.verifiedFrequency != null &&
+                                  medicineDetail.verifiedFrequency!.isNotEmpty)
+                                _buildDetailRow(
+                                  'Verified Frequency:',
+                                  medicineDetail.verifiedFrequency!,
+                                ),
+                              if (medicineDetail.verifiedDuration != null &&
+                                  medicineDetail.verifiedDuration!.isNotEmpty)
+                                _buildDetailRow(
+                                  'Verified Duration:',
+                                  medicineDetail.verifiedDuration!,
+                                ),
+                              if (medicineDetail.verifiedQuantity != null)
+                                _buildDetailRow(
+                                  'Verified Quantity:',
+                                  medicineDetail.verifiedQuantity.toString(),
+                                ),
+                              if (medicineDetail.verifiedInstructions != null &&
+                                  medicineDetail
+                                      .verifiedInstructions!
+                                      .isNotEmpty)
+                                _buildDetailRow(
+                                  'Verified Instructions:',
+                                  medicineDetail.verifiedInstructions!,
+                                ),
+                              if (medicineDetail.quantityPrescribed != null)
+                                _buildDetailRow(
+                                  'Quantity Prescribed:',
+                                  medicineDetail.quantityPrescribed.toString(),
+                                ),
+                              if (medicineDetail.quantityDispensed != null)
+                                _buildDetailRow(
+                                  'Quantity Dispensed:',
+                                  medicineDetail.quantityDispensed.toString(),
+                                ),
+                              if (medicineDetail.unitPrice != null)
+                                _buildDetailRow(
+                                  'Unit Price:',
+                                  '₹${medicineDetail.unitPrice!.toStringAsFixed(2)}',
+                                ),
+                              if (medicineDetail.totalPrice != null)
+                                _buildDetailRow(
+                                  'Total Price:',
+                                  '₹${medicineDetail.totalPrice!.toStringAsFixed(2)}',
+                                ),
+                              if (medicineDetail.isPrescriptionRequired != null)
+                                _buildDetailRow(
+                                  'Prescription Required:',
+                                  medicineDetail.isPrescriptionRequired!
+                                      ? 'Yes'
+                                      : 'No',
+                                ),
+                              if (medicineDetail.customerApproved != null)
+                                _buildDetailRow(
+                                  'Customer Approved:',
+                                  medicineDetail.customerApproved!
+                                      ? 'Yes'
+                                      : 'No',
+                                ),
+                              if (medicineDetail.pharmacistComment != null &&
+                                  medicineDetail.pharmacistComment!.isNotEmpty)
+                                _buildDetailRow(
+                                  'Pharmacist Comment:',
+                                  medicineDetail.pharmacistComment!,
+                                ),
+                              if (medicineDetail.clarificationNotes != null &&
+                                  medicineDetail.clarificationNotes!.isNotEmpty)
+                                _buildDetailRow(
+                                  'Clarification Notes:',
+                                  medicineDetail.clarificationNotes!,
                                 ),
                               const SizedBox(height: 10),
                               if (medicineDetail.mappedProduct != null) ...[
@@ -850,6 +1096,48 @@ class PrescriptionDetailViewScreen extends StatelessWidget {
                     ),
                   );
                 },
+              ),
+            const SizedBox(height: 24),
+            const Text(
+              'Notes & Reasons',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const Divider(height: 20, thickness: 1),
+            if (prescription.rejectionReason != null &&
+                prescription.rejectionReason!.isNotEmpty)
+              _buildInfoCard(
+                title: 'Rejection Reason',
+                value: prescription.rejectionReason!,
+                icon: Icons.cancel,
+                color: Colors.red,
+              ),
+            if (prescription.clarificationNotes != null &&
+                prescription.clarificationNotes!.isNotEmpty)
+              _buildInfoCard(
+                title: 'Clarification Notes',
+                value: prescription.clarificationNotes!,
+                icon: Icons.note_alt,
+                color: Colors.orange,
+              ),
+            if (prescription.pharmacistNotes != null &&
+                prescription.pharmacistNotes!.isNotEmpty)
+              _buildInfoCard(
+                title: 'Pharmacist Notes',
+                value: prescription.pharmacistNotes!,
+                icon: Icons.local_pharmacy,
+                color: Colors.blue,
+              ),
+            if (prescription.verificationNotes != null &&
+                prescription.verificationNotes!.isNotEmpty)
+              _buildInfoCard(
+                title: 'Verification Notes',
+                value: prescription.verificationNotes!,
+                icon: Icons.verified_user,
+                color: Colors.green,
               ),
           ],
         ),

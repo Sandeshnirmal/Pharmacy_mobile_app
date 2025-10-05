@@ -39,7 +39,14 @@ class Order {
 
   factory Order.fromJson(Map<String, dynamic> json) {
     // Handle potential 'order_status' from Django
-    String orderStatus = json['order_status'] ?? json['status'] ?? 'pending';
+    String orderStatus = (json['order_status'] ?? json['status'] ?? 'pending')
+        .toString();
+    if (orderStatus.isEmpty) {
+      orderStatus = 'pending'; // Default to 'pending' if status is empty
+    }
+    print(
+      'Order.fromJson: Raw status from JSON: ${json['order_status'] ?? json['status']}, Final status: $orderStatus',
+    );
     // Handle potential 'order_date' from Django
     DateTime orderCreatedAt = json['created_at'] != null
         ? DateTime.parse(json['created_at'])

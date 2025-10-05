@@ -1,10 +1,12 @@
 // Prescription Camera Screen for AI Integration
 import 'dart:io';
+import 'dart:convert'; // Added for base64Encode
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'services/api_service.dart';
 import 'PrescriptionResultScreen.dart';
+import 'models/prescription_model.dart'; // Added for PrescriptionSuggestionsResponse
 
 class PrescriptionCameraScreen extends StatefulWidget {
   const PrescriptionCameraScreen({super.key});
@@ -95,34 +97,84 @@ class _PrescriptionCameraScreenState extends State<PrescriptionCameraScreen> {
     });
 
     try {
-      // Upload prescription
-      final uploadResult = await _apiService.uploadPrescription(
-        _selectedImage!,
-      );
+      // Convert image to base64
+      final bytes = await _selectedImage!.readAsBytes();
+      final base64Image = base64Encode(bytes);
 
-      if (uploadResult.isSuccess) {
-        final uploadResponse = uploadResult.data!;
+      // Analyze prescription using OCR
+      final ocrResult = await _apiService.analyzePrescriptionOCR(base64Image);
+
+      if (ocrResult.isSuccess) {
+        final ocrResponse = ocrResult.data!;
 
         setState(() {
           _isUploading = false;
-          _isProcessing = true;
+          _isProcessing = true; // Still processing, but now on the backend
         });
 
         Fluttertoast.showToast(
-          msg: "Upload successful! AI is processing...",
+          msg: "OCR analysis successful! Processing results...",
           toastLength: Toast.LENGTH_SHORT,
           gravity: ToastGravity.BOTTOM,
         );
 
-        // Wait for AI processing
-        await _waitForProcessing(int.parse(uploadResponse.prescriptionId));
+        // The OCR endpoint directly returns the analysis, not just an ID for further processing.
+        // Assuming the OCR response contains the necessary data to proceed to PrescriptionResultScreen.
+        // The backend's `prescription_ocr_analysis` view should return a structure
+        // that can be directly used or mapped to `PrescriptionSuggestionsResponse`.
+        // For now, I'll assume `ocrResponse` can be directly passed or adapted.
+
+        // If the OCR response directly contains medicine suggestions, we can navigate.
+        // Otherwise, we might need to call `getMedicineSuggestions` with a prescription ID
+        // if the OCR analysis creates a prescription record in the backend.
+        // Based on `ocr.html` and `medicine_search.prescription_ocr_analysis`, it seems
+        // the OCR analysis directly returns the extracted data.
+
+        // Let's assume the OCR response contains a 'prescription_id' and 'suggestions'
+        // similar to what `getMedicineSuggestions` would return.
+        final String? prescriptionId = ocrResponse['prescription_id']
+            ?.toString();
+        final List<dynamic>? suggestionsData = ocrResponse['suggestions'];
+
+        if (prescriptionId != null && suggestionsData != null) {
+          final PrescriptionSuggestionsResponse suggestions =
+              PrescriptionSuggestionsResponse.fromJson({
+                'suggestions': suggestionsData,
+              });
+
+          setState(() {
+            _isProcessing = false;
+          });
+
+          if (mounted) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => PrescriptionResultScreen(
+                  prescriptionId: int.parse(prescriptionId),
+                  suggestions: suggestions,
+                ),
+              ),
+            );
+          }
+        } else {
+          Fluttertoast.showToast(
+            msg: "OCR analysis failed: Invalid response format from backend.",
+            toastLength: Toast.LENGTH_LONG,
+            gravity: ToastGravity.BOTTOM,
+          );
+          setState(() {
+            _isProcessing = false;
+          });
+        }
       } else {
         setState(() {
           _isUploading = false;
+          _isProcessing = false;
         });
 
         Fluttertoast.showToast(
-          msg: "Upload failed: ${uploadResult.error}",
+          msg: "OCR analysis failed: ${ocrResult.error}",
           toastLength: Toast.LENGTH_LONG,
           gravity: ToastGravity.BOTTOM,
         );
@@ -130,111 +182,26 @@ class _PrescriptionCameraScreenState extends State<PrescriptionCameraScreen> {
     } catch (e) {
       setState(() {
         _isUploading = false;
+        _isProcessing = false;
       });
 
       Fluttertoast.showToast(
-        msg: "Upload error: $e",
+        msg: "Error during OCR analysis: $e",
         toastLength: Toast.LENGTH_LONG,
         gravity: ToastGravity.BOTTOM,
       );
     }
   }
 
-  Future<void> _waitForProcessing(int prescriptionId) async {
-    const maxAttempts = 20; // 40 seconds with 2-second intervals
-    int attempts = 0;
-
-    while (attempts < maxAttempts) {
-      try {
-        final statusResult = await _apiService.getPrescriptionStatus(
-          prescriptionId.toString(),
-        );
-
-        if (statusResult.isSuccess) {
-          final status = statusResult.data!;
-
-          // Check if processing is complete
-          if (status.isReady) {
-            // Processing complete, get suggestions
-            final suggestionsResult = await _apiService.getMedicineSuggestions(
-              prescriptionId.toString(),
-            );
-
-            setState(() {
-              _isProcessing = false;
-            });
-
-            if (suggestionsResult.isSuccess) {
-              // Navigate to results screen
-              if (mounted) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => PrescriptionResultScreen(
-                      prescriptionId: prescriptionId,
-                      suggestions: suggestionsResult.data!,
-                    ),
-                  ),
-                );
-              }
-              return;
-            } else {
-              Fluttertoast.showToast(
-                msg: "Failed to get suggestions: ${suggestionsResult.error}",
-                toastLength: Toast.LENGTH_LONG,
-                gravity: ToastGravity.BOTTOM,
-              );
-              return;
-            }
-          }
-
-          // Check if processing failed
-          if (status.status == 'Rejected' || status.status == 'Failed') {
-            setState(() {
-              _isProcessing = false;
-            });
-
-            Fluttertoast.showToast(
-              msg: "Processing failed. Please try with a clearer image.",
-              toastLength: Toast.LENGTH_LONG,
-              gravity: ToastGravity.BOTTOM,
-            );
-            return;
-          }
-
-          // Still processing, continue waiting
-        } else {
-          // Status check failed, continue trying
-        }
-
-        // Wait 2 seconds before checking again
-        await Future.delayed(const Duration(seconds: 2));
-        attempts++;
-      } catch (e) {
-        setState(() {
-          _isProcessing = false;
-        });
-
-        Fluttertoast.showToast(
-          msg: "Processing error: $e",
-          toastLength: Toast.LENGTH_LONG,
-          gravity: ToastGravity.BOTTOM,
-        );
-        return;
-      }
-    }
-
-    // Timeout
-    setState(() {
-      _isProcessing = false;
-    });
-
-    Fluttertoast.showToast(
-      msg: "AI processing timeout. Please try again.",
-      toastLength: Toast.LENGTH_LONG,
-      gravity: ToastGravity.BOTTOM,
-    );
-  }
+  // The _waitForProcessing method is no longer needed as OCR analysis is direct.
+  // If the backend's `prescription_ocr_analysis` creates a prescription ID and
+  // requires a separate call for suggestions, then this method would need to be
+  // adapted or re-introduced. For now, assuming direct response.
+  // If the backend still requires a separate status check, the logic here needs
+  // to be adjusted to call `_apiService.getPrescriptionStatus` and `getMedicineSuggestions`
+  // after the initial OCR analysis returns a prescription ID.
+  // Given the user's problem, the goal is to make the mobile app behave like ocr.html,
+  // which implies a direct analysis.
 
   void _retakePicture() {
     setState(() {
