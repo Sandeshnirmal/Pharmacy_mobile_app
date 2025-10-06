@@ -7,8 +7,7 @@ class ProductModel {
   final String? description;
   final String? strength;
   final String? form;
-  final double price;
-  final double mrp;
+  final double currentSellingPrice;
   final String manufacturer;
   final String? category;
   final String? genericName;
@@ -24,8 +23,7 @@ class ProductModel {
     this.description,
     this.strength,
     this.form,
-    required this.price,
-    required this.mrp,
+    required this.currentSellingPrice,
     required this.manufacturer,
     this.category,
     this.genericName,
@@ -73,8 +71,7 @@ class ProductModel {
       description: json['description']?.toString(),
       strength: json['strength']?.toString(),
       form: json['form']?.toString(),
-      price: _parseDouble(json['price']),
-      mrp: _parseDouble(json['mrp']),
+      currentSellingPrice: _parseDouble(json['current_selling_price']),
       manufacturer: _parseString(json['manufacturer']),
       category: _parseCategoryName(json),
       genericName: _parseGenericName(json),
@@ -127,8 +124,7 @@ class ProductModel {
       'description': description,
       'strength': strength,
       'form': form,
-      'price': price,
-      'mrp': mrp,
+      'current_selling_price': currentSellingPrice,
       'manufacturer': manufacturer,
       'category': category,
       'generic_name': genericName,
@@ -141,9 +137,6 @@ class ProductModel {
   }
 
   bool get isInStock => stockQuantity > 0;
-  bool get isOnSale => price < mrp;
-  double get discountPercentage => mrp > 0 ? ((mrp - price) / mrp) * 100 : 0;
-  double get savings => mrp - price;
 
   String get displayName {
     if (strength != null && form != null) {
@@ -151,7 +144,7 @@ class ProductModel {
     } else if (strength != null) {
       return '$name $strength';
     } else if (form != null) {
-      return '$name $form';
+      return '$name $strength';
     }
     return name;
   }
@@ -190,7 +183,9 @@ class OrderModel {
     return OrderModel(
       id: json['id'] ?? 0,
       orderNumber: json['order_number'] ?? '',
-      orderDate: DateTime.parse(json['order_date'] ?? DateTime.now().toIso8601String()),
+      orderDate: DateTime.parse(
+        json['order_date'] ?? DateTime.now().toIso8601String(),
+      ),
       status: json['status'] ?? '',
       totalAmount: ProductModel._parseDouble(json['total_amount']),
       paymentMethod: json['payment_method'] ?? '',
@@ -228,7 +223,7 @@ class OrderModel {
 
   bool get isPrescriptionOrder => prescriptionId != null;
   int get totalItems => items.fold(0, (sum, item) => sum + item.quantity);
-  
+
   String get statusDisplayName {
     switch (status.toLowerCase()) {
       case 'pending':
@@ -251,14 +246,14 @@ class OrderItemModel {
   final int id;
   final ProductModel product;
   final int quantity;
-  final double price;
+  final double currentSellingPrice;
   final double totalPrice;
 
   OrderItemModel({
     required this.id,
     required this.product,
     required this.quantity,
-    required this.price,
+    required this.currentSellingPrice,
     required this.totalPrice,
   });
 
@@ -267,7 +262,9 @@ class OrderItemModel {
       id: json['id'] ?? 0,
       product: ProductModel.fromJson(json['product'] ?? {}),
       quantity: json['quantity'] ?? 0,
-      price: ProductModel._parseDouble(json['price']),
+      currentSellingPrice: ProductModel._parseDouble(
+        json['current_selling_price'],
+      ),
       totalPrice: ProductModel._parseDouble(json['total_price']),
     );
   }
@@ -277,7 +274,7 @@ class OrderItemModel {
       'id': id,
       'product': product.toJson(),
       'quantity': quantity,
-      'price': price,
+      'current_selling_price': currentSellingPrice,
       'total_price': totalPrice,
     };
   }

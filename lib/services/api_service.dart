@@ -695,8 +695,7 @@ class ApiService {
                   id: json['id'],
                   name: json['name'],
                   manufacturer: json['manufacturer'],
-                  price: json['price'].toDouble(),
-                  mrp: json['mrp'].toDouble(),
+                  currentSellingPrice: json['current_selling_price'].toDouble(),
                   imageUrl:
                       json['image_url'] ??
                       'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400',
@@ -750,8 +749,7 @@ class ApiService {
                   id: json['id'],
                   name: json['name'],
                   manufacturer: json['manufacturer'],
-                  price: json['price'].toDouble(),
-                  mrp: json['mrp'].toDouble(),
+                  currentSellingPrice: json['current_selling_price'].toDouble(),
                   imageUrl:
                       'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400',
                   description:

@@ -289,7 +289,8 @@ class PrescriptionService {
   double calculateTotalPrice(List<MedicineModel> selectedMedicines) {
     double subtotal = selectedMedicines.fold(0.0, (total, medicine) {
       return total +
-          (medicine.productInfo?.price ?? 0.0) * medicine.selectedQuantity;
+          (medicine.productInfo?.currentSellingPrice ?? 0.0) *
+              medicine.selectedQuantity;
     });
 
     double shipping = subtotal >= 500 ? 0.0 : 50.0;
@@ -302,7 +303,8 @@ class PrescriptionService {
   PricingModel calculatePricing(List<MedicineModel> selectedMedicines) {
     double subtotal = selectedMedicines.fold(0.0, (total, medicine) {
       return total +
-          (medicine.productInfo?.price ?? 0.0) * medicine.selectedQuantity;
+          (medicine.productInfo?.currentSellingPrice ?? 0.0) *
+              medicine.selectedQuantity;
     });
 
     double shipping = subtotal >= 500 ? 0.0 : 50.0;

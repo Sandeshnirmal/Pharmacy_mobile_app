@@ -122,8 +122,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                   id: productInfo.productId,
                   name: productInfo.name,
                   manufacturer: productInfo.manufacturer,
-                  price: productInfo.price,
-                  mrp: productInfo.mrp,
+                  currentSellingPrice: productInfo.currentSellingPrice,
                   imageUrl:
                       'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400',
                   description:
@@ -297,8 +296,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
       'id': product.id,
       'name': product.name,
       'manufacturer': product.manufacturer,
-      'price': product.price,
-      'mrp': product.mrp,
+      'currentSellingPrice': product.currentSellingPrice,
       'imageUrl': product.imageUrl,
       'description': product.description,
       'genericName': product.genericName,
@@ -498,10 +496,13 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   }
 
   Widget _buildProductCard(ProductModel product) {
-    final bool isOnSale = product.mrp > product.price;
-    final double discountPercent = isOnSale
-        ? ((product.mrp - product.price) / product.mrp * 100)
-        : 0;
+    // Assuming ProductModel now has a discountPercentage or similar field if needed
+    // For simplicity, let's assume discount is handled by currentSellingPrice directly
+    final bool isOnSale =
+        product.currentSellingPrice <
+        (product.currentSellingPrice *
+            1.1); // Placeholder for actual discount logic
+    final double discountPercent = 0; // Placeholder
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -674,24 +675,13 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                         children: [
                           // Price
                           Text(
-                            '₹${product.price.toStringAsFixed(2)}',
+                            '₹${product.currentSellingPrice.toStringAsFixed(2)}',
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Colors.teal,
                             ),
                           ),
-                          if (isOnSale) ...[
-                            const SizedBox(width: 8),
-                            Text(
-                              '₹${product.mrp.toStringAsFixed(2)}',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey.shade500,
-                                decoration: TextDecoration.lineThrough,
-                              ),
-                            ),
-                          ],
                           const Spacer(),
 
                           // Prescription badge

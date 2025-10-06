@@ -127,11 +127,6 @@ class ProductProvider with ChangeNotifier {
     return _products.where((product) => product.isActive).take(10).toList();
   }
 
-  // Get products on sale
-  List<ProductModel> getProductsOnSale() {
-    return _products.where((product) => product.isOnSale).toList();
-  }
-
   // Get products by prescription requirement
   List<ProductModel> getProductsByPrescriptionRequirement(
     bool requiresPrescription,

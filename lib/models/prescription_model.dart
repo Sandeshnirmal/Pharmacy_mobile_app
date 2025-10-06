@@ -200,8 +200,7 @@ class MedicineModel {
 class ProductInfo {
   final int productId;
   final String name;
-  final double price;
-  final double mrp;
+  final double currentSellingPrice;
   final double discountPercentage;
   final bool inStock;
   final String manufacturer;
@@ -210,8 +209,7 @@ class ProductInfo {
   ProductInfo({
     required this.productId,
     required this.name,
-    required this.price,
-    required this.mrp,
+    required this.currentSellingPrice,
     required this.discountPercentage,
     required this.inStock,
     required this.manufacturer,
@@ -222,8 +220,7 @@ class ProductInfo {
     return ProductInfo(
       productId: json['product_id'] ?? 0,
       name: json['name'] ?? '',
-      price: _parseDouble(json['price']),
-      mrp: _parseDouble(json['mrp']),
+      currentSellingPrice: _parseDouble(json['current_selling_price']),
       discountPercentage: _parseDouble(json['discount_percentage']),
       inStock: json['in_stock'] ?? false,
       manufacturer: json['manufacturer'] ?? '',
@@ -235,8 +232,7 @@ class ProductInfo {
     return {
       'product_id': productId,
       'name': name,
-      'price': price,
-      'mrp': mrp,
+      'current_selling_price': currentSellingPrice,
       'discount_percentage': discountPercentage,
       'in_stock': inStock,
       'manufacturer': manufacturer,
@@ -244,8 +240,8 @@ class ProductInfo {
     };
   }
 
-  double get savings => mrp - price;
-  double get savingsPercentage => mrp > 0 ? ((mrp - price) / mrp) * 100 : 0;
+  double get savings => currentSellingPrice * (discountPercentage / 100);
+  double get savingsPercentage => discountPercentage;
 }
 
 class PricingModel {

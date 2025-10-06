@@ -158,8 +158,7 @@ class _PrescriptionProcessingScreenState
           'id': product.productId,
           'name': product.name,
           'brand': product.manufacturer,
-          'price': product.price.toString(),
-          'mrp': product.mrp.toString(),
+          'currentSellingPrice': product.currentSellingPrice.toString(),
           'imageUrl':
               'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400', // Default image
           'inStock': product.inStock,
@@ -210,8 +209,7 @@ class _PrescriptionProcessingScreenState
           id: product['id'],
           name: product['name'],
           manufacturer: product['brand'],
-          price: double.parse(product['price']),
-          mrp: double.parse(product['mrp']),
+          currentSellingPrice: double.parse(product['currentSellingPrice']),
           imageUrl: product['imageUrl'],
           requiresPrescription: product['requiresPrescription'],
           stockQuantity: 100,
@@ -443,7 +441,7 @@ class _PrescriptionProcessingScreenState
                     children: [
                       Text('Brand: ${product['brand']}'),
                       Text(
-                        '₹${product['price']} (MRP: ₹${product['mrp']})',
+                        '₹${product['currentSellingPrice']}',
                         style: const TextStyle(
                           color: Colors.teal,
                           fontWeight: FontWeight.bold,

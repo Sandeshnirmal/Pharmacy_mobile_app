@@ -4,8 +4,7 @@ class CartItem {
   final String manufacturer;
   final String? strength;
   final String? form;
-  final double price;
-  final double mrp;
+  final double currentSellingPrice;
   final String? imageUrl;
   final bool requiresPrescription;
   int quantity;
@@ -16,16 +15,13 @@ class CartItem {
     required this.manufacturer,
     this.strength,
     this.form,
-    required this.price,
-    required this.mrp,
+    required this.currentSellingPrice,
     this.imageUrl,
     required this.requiresPrescription,
     this.quantity = 1,
   });
 
-  double get totalPrice => price * quantity;
-  double get totalMrp => mrp * quantity;
-  double get savings => totalMrp - totalPrice;
+  double get totalPrice => currentSellingPrice * quantity;
 
   Map<String, dynamic> toJson() {
     return {
@@ -34,8 +30,8 @@ class CartItem {
       'manufacturer': manufacturer,
       'strength': strength,
       'form': form,
-      'price': price,
-      'mrp': mrp,
+      'current_selling_price': currentSellingPrice,
+      'price': currentSellingPrice, // Add price for backend compatibility
       'image_url': imageUrl,
       'requires_prescription': requiresPrescription,
       'quantity': quantity,
@@ -49,8 +45,7 @@ class CartItem {
       manufacturer: json['manufacturer'] ?? '',
       strength: json['strength'],
       form: json['form'],
-      price: _parseDouble(json['price']),
-      mrp: _parseDouble(json['mrp']),
+      currentSellingPrice: _parseDouble(json['current_selling_price']),
       imageUrl: json['image_url'],
       requiresPrescription: json['requires_prescription'] ?? false,
       quantity: json['quantity'] ?? 1,

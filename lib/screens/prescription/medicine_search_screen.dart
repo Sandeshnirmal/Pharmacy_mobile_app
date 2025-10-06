@@ -394,22 +394,13 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '₹${match.price.toStringAsFixed(2)}',
+                    '₹${match.currentSellingPrice.toStringAsFixed(2)}',
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: Colors.teal,
                     ),
                   ),
-                  if (match.mrp > match.price)
-                    Text(
-                      '₹${match.mrp.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        decoration: TextDecoration.lineThrough,
-                        color: Colors.grey,
-                      ),
-                    ),
                 ],
               ),
             ],
@@ -521,8 +512,7 @@ class _MedicineSearchScreenState extends State<MedicineSearchScreen> {
       description: match.genericName,
       strength: match.strength,
       form: match.form,
-      price: match.price,
-      mrp: match.mrp,
+      currentSellingPrice: match.currentSellingPrice,
       manufacturer: match.manufacturer,
       category: null,
       genericName: match.genericName,
@@ -581,8 +571,7 @@ class MedicineMatch {
   final String manufacturer;
   final String strength;
   final String form;
-  final double price;
-  final double mrp;
+  final double currentSellingPrice;
   final int stockQuantity;
   final bool isPrescriptionRequired;
   final String? imageUrl;
@@ -597,8 +586,7 @@ class MedicineMatch {
     required this.manufacturer,
     required this.strength,
     required this.form,
-    required this.price,
-    required this.mrp,
+    required this.currentSellingPrice,
     required this.stockQuantity,
     required this.isPrescriptionRequired,
     this.imageUrl,
@@ -615,8 +603,7 @@ class MedicineMatch {
       manufacturer: json['manufacturer'] ?? '',
       strength: json['strength'] ?? '',
       form: json['form'] ?? '',
-      price: (json['price'] ?? 0).toDouble(),
-      mrp: (json['mrp'] ?? 0).toDouble(),
+      currentSellingPrice: (json['current_selling_price'] ?? 0).toDouble(),
       stockQuantity: json['stock_quantity'] ?? 0,
       isPrescriptionRequired: json['is_prescription_required'] ?? false,
       imageUrl: json['image_url'],

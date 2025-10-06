@@ -109,6 +109,7 @@ class _PrescriptionTrackingScreenState
         return Icons.info_outline;
     }
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -119,9 +120,7 @@ class _PrescriptionTrackingScreenState
           onPressed: () {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(
-                builder: (context) => const PharmacyHomePage(),
-              ),
+              MaterialPageRoute(builder: (context) => const PharmacyHomePage()),
             );
           },
         ),
@@ -902,7 +901,7 @@ class PrescriptionDetailViewScreen extends StatelessWidget {
                                     medicineDetail.mappedProduct!.name,
                                   ),
                                   subtitle: Text(
-                                    '₹${medicineDetail.mappedProduct!.price.toStringAsFixed(2)}',
+                                    '₹${medicineDetail.mappedProduct!.currentSellingPrice.toStringAsFixed(2)}',
                                   ),
                                   trailing: IconButton(
                                     icon: const Icon(
@@ -975,7 +974,7 @@ class PrescriptionDetailViewScreen extends StatelessWidget {
                                     ),
                                     title: Text(product.name),
                                     subtitle: Text(
-                                      '₹${product.price.toStringAsFixed(2)}',
+                                      '₹${product.currentSellingPrice.toStringAsFixed(2)}',
                                     ),
                                     trailing: IconButton(
                                       icon: const Icon(
@@ -1078,7 +1077,7 @@ class PrescriptionDetailViewScreen extends StatelessWidget {
                         style: const TextStyle(fontWeight: FontWeight.w600),
                       ),
                       subtitle: Text(
-                        '${medicine.manufacturer ?? 'N/A'} - ₹${medicine.price.toStringAsFixed(2) ?? '0.00'}',
+                        '${medicine.manufacturer ?? 'N/A'} - ₹${medicine.currentSellingPrice.toStringAsFixed(2) ?? '0.00'}',
                       ),
                       trailing: IconButton(
                         icon: const Icon(

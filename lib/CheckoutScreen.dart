@@ -14,6 +14,7 @@ import 'models/user_model.dart'; // Import AddressModel
 import 'services/api_service.dart'; // Import ApiService
 import 'services/payment_service.dart'; // Import PaymentService
 import 'models/payment_result.dart'; // Import PaymentResult
+import 'screens/profile/address_screen.dart'; // Import AddressScreen
 
 class CheckoutScreen extends StatefulWidget {
   final Cart cart;
@@ -1092,20 +1093,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   void _showAddAddressDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Add New Address'),
-        content: const Text(
-          'Address management feature will be implemented with user authentication.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
-      ),
-    );
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const AddressScreen()),
+    ).then((_) => _fetchAddresses()); // Refresh addresses when returning
   }
 }

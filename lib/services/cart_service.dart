@@ -7,7 +7,6 @@ import '../models/product_model.dart';
 import '../models/api_response.dart';
 import 'api_service.dart';
 
-
 class CartService {
   static const String _cartKey = 'pharmacy_cart';
   static const String _couponKey = 'applied_coupon';
@@ -159,8 +158,7 @@ class CartService {
           manufacturer: product.manufacturer,
           strength: product.strength,
           form: product.form,
-          price: product.price,
-          mrp: product.mrp,
+          currentSellingPrice: product.currentSellingPrice,
           imageUrl: product.imageUrl,
           requiresPrescription: product.requiresPrescription,
           quantity: quantity,

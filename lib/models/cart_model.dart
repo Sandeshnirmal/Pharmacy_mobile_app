@@ -17,10 +17,6 @@ class Cart {
   });
 
   double get subtotal => items.fold(0.0, (sum, item) => sum + item.totalPrice);
-  double get totalMrp => items.fold(0.0, (sum, item) => sum + item.totalMrp);
-  double get productSavings => totalMrp - subtotal;
-  double get couponSavings => couponDiscount;
-  double get totalSavings => productSavings + couponSavings;
   double get taxAmount => (subtotal - couponDiscount) * taxRate;
   double get finalShipping => 0.0;
   double get total => subtotal - couponDiscount + taxAmount + finalShipping;
@@ -115,7 +111,7 @@ class OrderRequest {
             (item) => {
               'product_id': item.productId,
               'quantity': item.quantity,
-              'price': item.price,
+              'current_selling_price': item.currentSellingPrice,
             },
           )
           .toList(),

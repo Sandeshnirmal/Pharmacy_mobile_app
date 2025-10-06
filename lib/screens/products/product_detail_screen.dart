@@ -164,43 +164,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   Row(
                     children: [
                       Text(
-                        '₹${widget.product.price.toStringAsFixed(2)}',
+                        '₹${widget.product.currentSellingPrice.toStringAsFixed(2)}',
                         style: const TextStyle(
                           fontSize: 28,
                           fontWeight: FontWeight.bold,
                           color: Colors.teal,
                         ),
                       ),
-                      if (widget.product.isOnSale) ...[
-                        const SizedBox(width: 12),
-                        Text(
-                          '₹${widget.product.mrp.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            decoration: TextDecoration.lineThrough,
-                            color: Colors.grey,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.green,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            '${widget.product.discountPercentage.toStringAsFixed(0)}% OFF',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ],
                     ],
                   ),
 
@@ -288,7 +258,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         ),
                         const SizedBox(width: 16),
                         Text(
-                          'Total: ₹${(widget.product.price * _quantity).toStringAsFixed(2)}',
+                          'Total: ₹${(widget.product.currentSellingPrice * _quantity).toStringAsFixed(2)}',
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,

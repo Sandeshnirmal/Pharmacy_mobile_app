@@ -29,27 +29,34 @@ class OrderProvider with ChangeNotifier {
       final result = await _apiService.getOrders();
 
       if (result.isSuccess && result.data != null) {
-        print('OrderProvider: Successfully fetched ${result.data!.length} orders from API.');
+        print(
+          'OrderProvider: Successfully fetched ${result.data!.length} orders from API.',
+        );
         _orders = result.data!.map((orderModel) {
-          print('OrderProvider: Mapping OrderModel (ID: ${orderModel.id}, Status: ${orderModel.status})');
+          print(
+            'OrderProvider: Mapping OrderModel (ID: ${orderModel.id}, Status: ${orderModel.status})',
+          );
           return Order(
             id: orderModel.id,
             status: orderModel.status,
             createdAt: orderModel.orderDate,
             totalAmount: orderModel.totalAmount,
             items: orderModel.items.map((item) {
-              print('OrderProvider: Mapping OrderItemModel (ID: ${item.id}, Product: ${item.product.name}, Quantity: ${item.quantity})');
+              print(
+                'OrderProvider: Mapping OrderItemModel (ID: ${item.id}, Product: ${item.product.name}, Quantity: ${item.quantity})',
+              );
               return OrderItem(
                 id: item.id,
                 productId: item.product.id,
                 productName: item.product.displayName,
                 productImage: item.product.imageUrl,
                 quantity: item.quantity,
-                unitPrice: item.price,
+                unitPrice: item.currentSellingPrice,
                 totalPrice: item.totalPrice,
               );
             }).toList(),
-            userId: 0, // Default value - consider fetching actual user ID if available
+            userId:
+                0, // Default value - consider fetching actual user ID if available
           );
         }).toList();
         _setLoading(false);
@@ -72,33 +79,42 @@ class OrderProvider with ChangeNotifier {
 
       if (result.isSuccess && result.data != null) {
         final orderModel = result.data!;
-        print('OrderProvider: Successfully fetched OrderDetail for ID: ${orderModel.id}');
+        print(
+          'OrderProvider: Successfully fetched OrderDetail for ID: ${orderModel.id}',
+        );
         return Order(
           id: orderModel.id,
           status: orderModel.status,
           createdAt: orderModel.orderDate,
           totalAmount: orderModel.totalAmount,
           items: orderModel.items.map((item) {
-            print('OrderProvider: Mapping OrderDetailItem (ID: ${item.id}, Product: ${item.product.name}, Quantity: ${item.quantity})');
+            print(
+              'OrderProvider: Mapping OrderDetailItem (ID: ${item.id}, Product: ${item.product.name}, Quantity: ${item.quantity})',
+            );
             return OrderItem(
               id: item.id,
               productId: item.product.id,
               productName: item.product.displayName,
               productImage: item.product.imageUrl,
               quantity: item.quantity,
-              unitPrice: item.price,
+              unitPrice: item.currentSellingPrice,
               totalPrice: item.totalPrice,
             );
           }).toList(),
-          userId: 0, // Default value - consider fetching actual user ID if available
+          userId:
+              0, // Default value - consider fetching actual user ID if available
         );
       } else {
-        print('OrderProvider: Failed to get order details for ID: $orderId. Error: ${result.error}');
+        print(
+          'OrderProvider: Failed to get order details for ID: $orderId. Error: ${result.error}',
+        );
         _setError(result.error ?? 'Failed to get order details');
         return null;
       }
     } catch (e) {
-      print('OrderProvider: Exception during order detail loading for ID: $orderId: $e');
+      print(
+        'OrderProvider: Exception during order detail loading for ID: $orderId: $e',
+      );
       _setError('Failed to get order details: $e');
       return null;
     }
@@ -106,7 +122,9 @@ class OrderProvider with ChangeNotifier {
 
   // Get orders by status
   List<Order> getOrdersByStatus(String status) {
-    return _orders.where((order) => order.status.toLowerCase() == status.toLowerCase()).toList();
+    return _orders
+        .where((order) => order.status.toLowerCase() == status.toLowerCase())
+        .toList();
   }
 
   // Get recent orders
@@ -118,7 +136,9 @@ class OrderProvider with ChangeNotifier {
 
   // Get prescription orders
   List<Order> getPrescriptionOrders() {
-    return _orders.where((order) => order.notes?.contains('prescription') == true).toList();
+    return _orders
+        .where((order) => order.notes?.contains('prescription') == true)
+        .toList();
   }
 
   // Calculate total spent
@@ -129,12 +149,12 @@ class OrderProvider with ChangeNotifier {
   // Get order statistics
   Map<String, int> getOrderStatistics() {
     final stats = <String, int>{};
-    
+
     for (final order in _orders) {
       final status = order.status.toLowerCase();
       stats[status] = (stats[status] ?? 0) + 1;
     }
-    
+
     return stats;
   }
 
@@ -158,5 +178,4 @@ class OrderProvider with ChangeNotifier {
     _error = null;
     notifyListeners();
   }
-
 }

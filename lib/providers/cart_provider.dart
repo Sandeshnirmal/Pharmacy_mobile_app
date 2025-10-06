@@ -23,11 +23,10 @@ class CartProvider with ChangeNotifier {
           productId: product.id,
           name: product.name,
           manufacturer: product.manufacturer ?? 'Unknown',
-          price: product.price ?? 0.0,
-          mrp: product.mrp ?? (product.price ?? 0.0),
+          currentSellingPrice: product.currentSellingPrice,
           quantity: quantity,
           imageUrl: product.imageUrl,
-          requiresPrescription: product.requiresPrescription ?? false,
+          requiresPrescription: product.requiresPrescription,
         ),
       );
     }
@@ -59,7 +58,7 @@ class CartProvider with ChangeNotifier {
   double get totalPrice {
     return _cart.items.fold(
       0.0,
-      (sum, item) => sum + (item.price ?? 0.0) * (item.quantity ?? 0),
+      (sum, item) => sum + item.currentSellingPrice * (item.quantity),
     );
   }
 

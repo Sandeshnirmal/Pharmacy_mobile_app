@@ -307,9 +307,7 @@ class _CartScreenState extends State<CartScreen> {
           onPressed: () {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(
-                builder: (context) => const PharmacyHomePage(),
-              ),
+              MaterialPageRoute(builder: (context) => const PharmacyHomePage()),
             );
           },
         ),
@@ -479,24 +477,13 @@ class _CartScreenState extends State<CartScreen> {
                   Row(
                     children: [
                       Text(
-                        '₹${item.price.toStringAsFixed(2)}',
+                        '₹${item.currentSellingPrice.toStringAsFixed(2)}',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                           color: Colors.teal,
                         ),
                       ),
-                      if (item.mrp > item.price) ...[
-                        const SizedBox(width: 8),
-                        Text(
-                          '₹${item.mrp.toStringAsFixed(2)}',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[500],
-                            decoration: TextDecoration.lineThrough,
-                          ),
-                        ),
-                      ],
                       if (item.requiresPrescription) ...[
                         const SizedBox(width: 8),
                         Container(
@@ -745,12 +732,6 @@ class _CartScreenState extends State<CartScreen> {
         children: [
           _buildPriceRow('Subtotal', '₹${_cart.subtotal.toStringAsFixed(2)}'),
           const SizedBox(height: 8),
-          if (_cart.productSavings > 0)
-            _buildPriceRow(
-              'Product Savings',
-              '-₹${_cart.productSavings.toStringAsFixed(2)}',
-              color: Colors.green,
-            ),
           if (_cart.couponDiscount > 0) ...[
             const SizedBox(height: 8),
             _buildPriceRow(
@@ -769,17 +750,6 @@ class _CartScreenState extends State<CartScreen> {
             '₹${_cart.total.toStringAsFixed(2)}',
             isTotal: true,
           ),
-          if (_cart.totalSavings > 0) ...[
-            const SizedBox(height: 8),
-            Text(
-              'You save ₹${_cart.totalSavings.toStringAsFixed(2)}',
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.green,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
         ],
       ),
     );

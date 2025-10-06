@@ -17,7 +17,8 @@ class ProductDetailsScreen extends StatefulWidget {
 
 class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   final CartService _cartService = CartService();
-  int _selectedTab = 0; // 0: Description, 1: How to Use, 2: Side Effects, 3: Reviews
+  int _selectedTab =
+      0; // 0: Description, 1: How to Use, 2: Side Effects, 3: Reviews
   int _quantity = 1;
   bool _isInWishlist = false;
   bool _isAddingToCart = false;
@@ -37,7 +38,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         {
           'userName': 'Dr. Sarah Johnson',
           'rating': 5,
-          'comment': 'Excellent quality medicine. Very effective for pain relief.',
+          'comment':
+              'Excellent quality medicine. Very effective for pain relief.',
           'date': '2024-01-15',
           'isVerified': true,
         },
@@ -73,8 +75,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
         genericName: widget.product['genericName'],
         strength: widget.product['dosage'],
         form: widget.product['form'],
-        price: double.tryParse(widget.product['price'].toString()) ?? 0.0,
-        mrp: double.tryParse(widget.product['mrp'].toString()) ?? 0.0,
+        currentSellingPrice:
+            double.tryParse(widget.product['currentSellingPrice'].toString()) ??
+            0.0,
         imageUrl: widget.product['imageUrl'] ?? '',
         requiresPrescription: widget.product['requiresPrescription'] ?? false,
         description: widget.product['description'],
@@ -114,9 +117,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     });
 
     Fluttertoast.showToast(
-      msg: _isInWishlist
-          ? 'Added to wishlist'
-          : 'Removed from wishlist',
+      msg: _isInWishlist ? 'Added to wishlist' : 'Removed from wishlist',
       toastLength: Toast.LENGTH_SHORT,
       gravity: ToastGravity.BOTTOM,
       backgroundColor: _isInWishlist ? Colors.green : Colors.orange,
@@ -137,7 +138,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(builder: (context) => const PharmacyHomePage()),
-            );// Go back to the previous screen
+            ); // Go back to the previous screen
           },
         ),
         title: const Text('Medicine Details'),
@@ -165,13 +166,18 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                             product['imageUrl'],
                             fit: BoxFit.contain,
                             height: 250,
-                            errorBuilder: (context, error, stackTrace) => Container(
-                              height: 250,
-                              color: Colors.grey[200],
-                              child: const Center(
-                                child: Icon(Icons.broken_image, color: Colors.grey, size: 60),
-                              ),
-                            ),
+                            errorBuilder: (context, error, stackTrace) =>
+                                Container(
+                                  height: 250,
+                                  color: Colors.grey[200],
+                                  child: const Center(
+                                    child: Icon(
+                                      Icons.broken_image,
+                                      color: Colors.grey,
+                                      size: 60,
+                                    ),
+                                  ),
+                                ),
                           ),
                         ),
                       ),
@@ -194,7 +200,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                           ),
                           child: IconButton(
                             icon: Icon(
-                              _isInWishlist ? Icons.favorite : Icons.favorite_border,
+                              _isInWishlist
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
                               color: _isInWishlist ? Colors.red : Colors.grey,
                             ),
                             onPressed: _toggleWishlist,
@@ -232,7 +240,10 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                             if (product['requiresPrescription'] == true) ...[
                               const SizedBox(width: 12),
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
                                 decoration: BoxDecoration(
                                   color: Colors.red.shade100,
                                   borderRadius: BorderRadius.circular(12),
@@ -260,8 +271,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                   index < _averageRating.floor()
                                       ? Icons.star
                                       : index < _averageRating
-                                          ? Icons.star_half
-                                          : Icons.star_border,
+                                      ? Icons.star_half
+                                      : Icons.star_border,
                                   color: Colors.amber,
                                   size: 20,
                                 );
@@ -283,40 +294,13 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         Row(
                           children: [
                             Text(
-                              '₹${product['price']}',
+                              '₹${product['currentSellingPrice']}',
                               style: const TextStyle(
                                 fontSize: 28,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.teal,
                               ),
                             ),
-                            if (product['mrp'] != null && product['mrp'] != product['price']) ...[
-                              const SizedBox(width: 12),
-                              Text(
-                                '₹${product['mrp']}',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  color: Colors.grey[500],
-                                  decoration: TextDecoration.lineThrough,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: Colors.green.shade100,
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  '${((double.parse(product['mrp']) - double.parse(product['price'])) / double.parse(product['mrp']) * 100).round()}% OFF',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.green.shade700,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
                           ],
                         ),
                         const SizedBox(height: 16),
@@ -347,7 +331,10 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                     color: Colors.teal,
                                   ),
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 8,
+                                    ),
                                     child: Text(
                                       '$_quantity',
                                       style: const TextStyle(
@@ -358,7 +345,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                   ),
                                   IconButton(
                                     icon: const Icon(Icons.add),
-                                    onPressed: () => setState(() => _quantity++),
+                                    onPressed: () =>
+                                        setState(() => _quantity++),
                                     color: Colors.teal,
                                   ),
                                 ],
@@ -386,7 +374,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
 
                         _buildInfoCard(
                           'Active Ingredient',
-                          product['activeIngredient'] ?? product['genericName'] ?? 'Not specified',
+                          product['activeIngredient'] ??
+                              product['genericName'] ??
+                              'Not specified',
                           Icons.science,
                           Colors.purple,
                         ),
@@ -466,7 +456,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          _isInWishlist ? Icons.favorite : Icons.favorite_border,
+                          _isInWishlist
+                              ? Icons.favorite
+                              : Icons.favorite_border,
                           color: _isInWishlist ? Colors.red : Colors.grey[800],
                           size: 18,
                         ),
@@ -499,7 +491,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             IconButton(
               icon: const Icon(Icons.home_outlined),
               onPressed: () {
-    // print('Home tapped'); // Debug print removed
+                // print('Home tapped'); // Debug print removed
                 // Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const HomePage()));
               },
               iconSize: 30.0,
@@ -508,7 +500,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             IconButton(
               icon: const Icon(Icons.category_outlined),
               onPressed: () {
-    // print('Categories tapped'); // Debug print removed
+                // print('Categories tapped'); // Debug print removed
                 // Navigator.push(context, MaterialPageRoute(builder: (context) => const CategoriesPage()));
               },
               iconSize: 30.0,
@@ -529,7 +521,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             IconButton(
               icon: const Icon(Icons.person_outline),
               onPressed: () {
-    // print('Profile tapped'); // Debug print removed
+                // print('Profile tapped'); // Debug print removed
                 // Navigator.push(context, MaterialPageRoute(builder: (context) => const AccountScreen()));
               },
               iconSize: 30.0,
@@ -541,7 +533,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-    // print('Scanner tapped'); // Debug print removed
+          // print('Scanner tapped'); // Debug print removed
           // Navigator.push(context, MaterialPageRoute(builder: (context) => const ScannerScreen()));
         },
         backgroundColor: Colors.teal,
@@ -567,8 +559,12 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             title,
             style: TextStyle(
               fontSize: 16,
-              fontWeight: _selectedTab == index ? FontWeight.bold : FontWeight.normal,
-              color: _selectedTab == index ? Colors.blueAccent : Colors.grey[600],
+              fontWeight: _selectedTab == index
+                  ? FontWeight.bold
+                  : FontWeight.normal,
+              color: _selectedTab == index
+                  ? Colors.blueAccent
+                  : Colors.grey[600],
             ),
           ),
           if (_selectedTab == index)
@@ -605,11 +601,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8.0),
       child: Text(
         content,
-        style: TextStyle(
-          fontSize: 16,
-          color: Colors.grey[700],
-          height: 1.5,
-        ),
+        style: TextStyle(fontSize: 16, color: Colors.grey[700], height: 1.5),
       ),
     );
   }
@@ -618,13 +610,15 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (product['description'] != null && product['description'].isNotEmpty) ...[
+        if (product['description'] != null &&
+            product['description'].isNotEmpty) ...[
           _buildSectionHeader('Description'),
           _buildSectionContent(product['description']),
           const SizedBox(height: 16),
         ],
 
-        if (product['composition'] != null && product['composition'].isNotEmpty) ...[
+        if (product['composition'] != null &&
+            product['composition'].isNotEmpty) ...[
           _buildSectionHeader('Composition'),
           _buildSectionContent(product['composition']),
           const SizedBox(height: 16),
@@ -636,13 +630,16 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           const SizedBox(height: 16),
         ],
 
-        if (product['precautions'] != null && product['precautions'].isNotEmpty) ...[
+        if (product['precautions'] != null &&
+            product['precautions'].isNotEmpty) ...[
           _buildSectionHeader('Precautions'),
           _buildSectionContent(product['precautions']),
         ],
 
-        if (product['description'] == null && product['composition'] == null &&
-            product['uses'] == null && product['precautions'] == null)
+        if (product['description'] == null &&
+            product['composition'] == null &&
+            product['uses'] == null &&
+            product['precautions'] == null)
           _buildTextContent('No detailed description available.'),
       ],
     );
@@ -685,13 +682,15 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (product['sideEffects'] != null && product['sideEffects'].isNotEmpty) ...[
+        if (product['sideEffects'] != null &&
+            product['sideEffects'].isNotEmpty) ...[
           _buildSectionHeader('Possible Side Effects'),
           _buildSectionContent(product['sideEffects']),
           const SizedBox(height: 16),
         ],
 
-        if (product['precautions'] != null && product['precautions'].isNotEmpty) ...[
+        if (product['precautions'] != null &&
+            product['precautions'].isNotEmpty) ...[
           _buildSectionHeader('Important Precautions'),
           _buildSectionContent(product['precautions']),
           const SizedBox(height: 16),
@@ -704,7 +703,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           '• Consult your doctor if symptoms persist\n'
           '• Keep out of reach of children\n'
           '• Do not exceed recommended dose\n'
-          '• Inform your doctor about other medications'
+          '• Inform your doctor about other medications',
         ),
 
         if (product['sideEffects'] == null && product['precautions'] == null)
@@ -737,11 +736,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       ),
       child: Text(
         content,
-        style: TextStyle(
-          fontSize: 14,
-          color: Colors.grey[700],
-          height: 1.4,
-        ),
+        style: TextStyle(fontSize: 14, color: Colors.grey[700], height: 1.4),
       ),
     );
   }
@@ -777,8 +772,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         index < _averageRating.floor()
                             ? Icons.star
                             : index < _averageRating
-                                ? Icons.star_half
-                                : Icons.star_border,
+                            ? Icons.star_half
+                            : Icons.star_border,
                         color: Colors.amber,
                         size: 16,
                       );
@@ -786,10 +781,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                   ),
                   Text(
                     '$_totalReviews reviews',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   ),
                 ],
               ),
@@ -817,10 +809,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               padding: EdgeInsets.all(32.0),
               child: Text(
                 'No reviews yet. Be the first to review!',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.grey),
               ),
             ),
           )
@@ -875,7 +864,10 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         if (review['isVerified'] == true) ...[
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: Colors.green.shade100,
                               borderRadius: BorderRadius.circular(4),
@@ -939,7 +931,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Write a Review'),
-        content: const Text('Review functionality will be implemented with user authentication.'),
+        content: const Text(
+          'Review functionality will be implemented with user authentication.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -950,7 +944,12 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     );
   }
 
-  Widget _buildInfoCard(String title, String content, IconData icon, Color color) {
+  Widget _buildInfoCard(
+    String title,
+    String content,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -975,11 +974,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
               color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
-              icon,
-              color: color,
-              size: 20,
-            ),
+            child: Icon(icon, color: color, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(

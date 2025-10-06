@@ -16,12 +16,13 @@ class OrderConfirmationScreen extends StatefulWidget {
   });
 
   @override
-  State<OrderConfirmationScreen> createState() => _OrderConfirmationScreenState();
+  State<OrderConfirmationScreen> createState() =>
+      _OrderConfirmationScreenState();
 }
 
 class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
   final ApiService _apiService = ApiService();
-  
+
   Map<String, dynamic>? _orderDetails;
   bool _isLoading = true;
   String? _error;
@@ -41,7 +42,7 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
 
       // Get order details
       final response = await _apiService.getOrderDetails(widget.orderId);
-      
+
       if (response.isSuccess && response.data != null) {
         setState(() {
           // Convert OrderModel to Map for compatibility
@@ -52,15 +53,19 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
             'status': order.status,
             'total_amount': order.totalAmount,
             'created_at': order.orderDate.toIso8601String(),
-            'items': order.items.map((item) => {
-              'id': item.id,
-              'product': {
-                'name': item.product.name,
-                'price': item.product.price,
-              },
-              'quantity': item.quantity,
-              'price': item.price,
-            }).toList(),
+            'items': order.items
+                .map(
+                  (item) => {
+                    'id': item.id,
+                    'product': {
+                      'name': item.product.name,
+                      'price': item.product.currentSellingPrice,
+                    },
+                    'quantity': item.quantity,
+                    'price': item.currentSellingPrice,
+                  },
+                )
+                .toList(),
           };
         });
       } else {
@@ -159,11 +164,7 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
                 color: Colors.green,
                 borderRadius: BorderRadius.circular(50),
               ),
-              child: const Icon(
-                Icons.check,
-                color: Colors.white,
-                size: 48,
-              ),
+              child: const Icon(Icons.check, color: Colors.white, size: 48),
             ),
             const SizedBox(height: 16),
             const Text(
@@ -177,10 +178,7 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
             const SizedBox(height: 8),
             Text(
               'Order #${widget.orderNumber}',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
             ),
             const SizedBox(height: 8),
             const Text(
@@ -213,7 +211,10 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
             const SizedBox(height: 16),
             _buildSummaryRow('Order Number', widget.orderNumber),
             _buildSummaryRow('Order ID', '#${widget.orderId}'),
-            _buildSummaryRow('Total Amount', '₹${widget.totalAmount.toStringAsFixed(2)}'),
+            _buildSummaryRow(
+              'Total Amount',
+              '₹${widget.totalAmount.toStringAsFixed(2)}',
+            ),
             _buildSummaryRow('Order Type', 'Prescription Order'),
             _buildSummaryRow('Payment Status', 'Confirmed'),
             _buildSummaryRow('Order Status', 'Confirmed'),
@@ -232,20 +233,14 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
             flex: 2,
             child: Text(
               label,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
           ),
           Expanded(
             flex: 3,
             child: Text(
               value,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
             ),
           ),
         ],
@@ -308,17 +303,42 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            _buildStepItem(1, 'Order Processing', 'Your order is being prepared', true),
-            _buildStepItem(2, 'Quality Check', 'Medicines are being verified', false),
-            _buildStepItem(3, 'Packaging', 'Order is being packed securely', false),
-            _buildStepItem(4, 'Delivery', 'Order will be delivered to your address', false),
+            _buildStepItem(
+              1,
+              'Order Processing',
+              'Your order is being prepared',
+              true,
+            ),
+            _buildStepItem(
+              2,
+              'Quality Check',
+              'Medicines are being verified',
+              false,
+            ),
+            _buildStepItem(
+              3,
+              'Packaging',
+              'Order is being packed securely',
+              false,
+            ),
+            _buildStepItem(
+              4,
+              'Delivery',
+              'Order will be delivered to your address',
+              false,
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStepItem(int step, String title, String description, bool isCompleted) {
+  Widget _buildStepItem(
+    int step,
+    String title,
+    String description,
+    bool isCompleted,
+  ) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -357,10 +377,7 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
                 ),
                 Text(
                   description,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                 ),
               ],
             ),
@@ -411,10 +428,14 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
           Expanded(
             child: ElevatedButton(
               onPressed: () {
-                Navigator.pushNamed(context, '/order-tracking', arguments: {
-                  'orderId': widget.orderId,
-                  'orderNumber': widget.orderNumber,
-                });
+                Navigator.pushNamed(
+                  context,
+                  '/order-tracking',
+                  arguments: {
+                    'orderId': widget.orderId,
+                    'orderNumber': widget.orderNumber,
+                  },
+                );
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.teal,

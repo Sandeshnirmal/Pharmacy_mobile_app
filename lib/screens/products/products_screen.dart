@@ -331,22 +331,13 @@ class _ProductsScreenState extends State<ProductsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '₹${product.price.toStringAsFixed(2)}',
+                              '₹${product.currentSellingPrice.toStringAsFixed(2)}',
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.teal,
                               ),
                             ),
-                            if (product.isOnSale)
-                              Text(
-                                '₹${product.mrp.toStringAsFixed(2)}',
-                                style: const TextStyle(
-                                  fontSize: 12,
-                                  decoration: TextDecoration.lineThrough,
-                                  color: Colors.grey,
-                                ),
-                              ),
                           ],
                         ),
                         Container(

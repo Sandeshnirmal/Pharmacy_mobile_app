@@ -42,7 +42,8 @@ class _PrescriptionResultScreenState extends State<PrescriptionResultScreen> {
   void _calculatePricing() {
     double subtotal = _selectedMedicines.fold(0.0, (total, medicine) {
       return total +
-          (medicine.productInfo?.price ?? 0.0) * medicine.selectedQuantity;
+          (medicine.productInfo?.currentSellingPrice ?? 0.0) *
+              medicine.selectedQuantity;
     });
 
     double shipping = subtotal >= 500 ? 0.0 : 50.0;
@@ -564,22 +565,21 @@ class _PrescriptionResultScreenState extends State<PrescriptionResultScreen> {
                     Row(
                       children: [
                         Text(
-                          '₹${medicine.productInfo!.price}',
+                          '₹${medicine.productInfo!.currentSellingPrice.toStringAsFixed(2)}',
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             color: Colors.teal,
                           ),
                         ),
-                        if (medicine.productInfo!.mrp >
-                            medicine.productInfo!.price) ...[
+                        if (medicine.productInfo!.discountPercentage > 0) ...[
                           const SizedBox(width: 8),
                           Text(
-                            '₹${medicine.productInfo!.mrp}',
+                            '${medicine.productInfo!.discountPercentage.toStringAsFixed(0)}% off',
                             style: const TextStyle(
                               fontSize: 12,
-                              decoration: TextDecoration.lineThrough,
-                              color: Colors.grey,
+                              color: Colors.green,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ],

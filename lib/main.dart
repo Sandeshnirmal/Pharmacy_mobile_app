@@ -353,7 +353,7 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                     return ListTile(
                       title: Text(product.name),
                       subtitle: Text(
-                        '${product.manufacturer} - ₹${product.price}',
+                        '${product.manufacturer} - ₹${product.currentSellingPrice}',
                       ),
                       trailing: product.requiresPrescription
                           ? const Icon(
@@ -484,8 +484,7 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
       'imageUrl':
           product.imageUrl ??
           'https://placehold.co/150x150/F0E6D2/000000?text=${Uri.encodeComponent(product.name)}',
-      'price': product.price.toStringAsFixed(2),
-      'mrp': product.mrp.toStringAsFixed(2),
+      'currentSellingPrice': product.currentSellingPrice.toStringAsFixed(2),
       'inStock': product.stockQuantity > 0,
       'requiresPrescription': product.requiresPrescription,
     };
@@ -845,8 +844,7 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                             imageAsset: product['imageUrl'],
                             productName: product['name'],
                             brandName: product['brand'],
-                            price: product['price'],
-                            mrp: product['mrp'],
+                            currentSellingPrice: product['currentSellingPrice'],
                             // requiresPrescription:
                             //     product['requiresPrescription'],
                             onTap: () {
@@ -943,8 +941,7 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                             imageAsset: product['imageUrl'],
                             productName: product['name'],
                             brandName: product['brand'],
-                            price: product['price'],
-                            mrp: product['mrp'],
+                            currentSellingPrice: product['currentSellingPrice'],
                             // requiresPrescription:
                             //     product['requiresPrescription'],
                             onTap: () {
@@ -997,8 +994,7 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                             imageAsset: product['imageUrl'],
                             productName: product['name'],
                             brandName: product['brand'],
-                            price: product['price'],
-                            mrp: product['mrp'],
+                            currentSellingPrice: product['currentSellingPrice'],
                             // requiresPrescription:
                             //     product['requiresPrescription'],
                             onTap: () {
@@ -1051,8 +1047,7 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                             imageAsset: product['imageUrl'],
                             productName: product['name'],
                             brandName: product['brand'],
-                            price: product['price'],
-                            mrp: product['mrp'],
+                            currentSellingPrice: product['currentSellingPrice'],
                             // requiresPrescription:
                             //     product['requiresPrescription'],
                             onTap: () {
@@ -1207,8 +1202,7 @@ class ProductCard extends StatelessWidget {
   final String imageAsset;
   final String productName;
   final String brandName;
-  final String? price;
-  final String? mrp;
+  final String? currentSellingPrice;
   final bool? requiresPrescription;
   final VoidCallback? onTap;
   final VoidCallback? onAddToCart;
@@ -1218,8 +1212,7 @@ class ProductCard extends StatelessWidget {
     required this.imageAsset,
     required this.productName,
     required this.brandName,
-    this.price,
-    this.mrp,
+    this.currentSellingPrice,
     this.requiresPrescription,
     this.onTap,
     this.onAddToCart,
@@ -1294,28 +1287,17 @@ class ProductCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 8),
-                        if (price != null) ...[
+                        if (currentSellingPrice != null) ...[
                           Row(
                             children: [
                               Text(
-                                '₹$price',
+                                '₹$currentSellingPrice',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
                                   fontSize: 16,
                                   color: Colors.teal,
                                 ),
                               ),
-                              if (mrp != null && mrp != price) ...[
-                                const SizedBox(width: 8),
-                                Text(
-                                  '₹$mrp',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.grey[500],
-                                    decoration: TextDecoration.lineThrough,
-                                  ),
-                                ),
-                              ],
                             ],
                           ),
                           const SizedBox(height: 8),
