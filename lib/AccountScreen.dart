@@ -366,6 +366,25 @@ class _AccountScreenState extends State<AccountScreen> {
                 ),
                 _buildDivider(),
                 _buildOptionTile(
+                  icon: Icons.receipt_long_outlined,
+                  title: 'Invoices',
+                  subtitle: 'View your invoices',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => Scaffold(
+                          appBar: AppBar(title: const Text('Invoices')),
+                          body: const Center(
+                            child: Text('Invoices screen - coming soon!'),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                _buildDivider(),
+                _buildOptionTile(
                   icon: Icons.settings_outlined,
                   title: 'Settings',
                   subtitle: 'App preferences and privacy',

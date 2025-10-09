@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-// import 'package:carousel_slider/carousel_slider.dart' as carousel;
+import 'package:carousel_slider/carousel_slider.dart' as carousel;
 // import 'package:shimmer/shimmer.dart';
-// import 'package:smooth_page_indicator/smooth_page_indicator.dart';
+import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'dart:async'; // Import for StreamSubscription
 // Import for File
 import 'package:http/http.dart' as http; // Import for http requests
@@ -28,6 +28,7 @@ import 'providers/auth_provider.dart';
 import 'providers/order_provider.dart';
 import 'providers/prescription_provider.dart';
 import 'providers/cart_provider.dart';
+import 'dart:ui' as ui;
 
 void main() {
   runApp(const MyApp());
@@ -94,6 +95,35 @@ class SplashScreen extends StatefulWidget {
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
+}
+
+/// Calculates a height that is inversely proportional to the screen height.
+double calculateInverseHeight(BuildContext context) {
+  // --- Define Your Ranges ---
+  // The screen height range you want to design for.
+  const double minScreenHeight = 600.0; // e.g., a small phone
+  const double maxScreenHeight = 1200.0; // e.g., a large tablet
+
+  // The corresponding widget height you want at those screen sizes.
+  const double minWidgetHeight = 175.0; // Height on the largest screen
+  const double maxWidgetHeight = 300.0; // Height on the smallest screen
+  // --------------------------
+
+  final screenHeight = MediaQuery.of(context).size.height;
+
+  // Calculate the percentage of where the current screen height falls within your range.
+  final percentage =
+      (screenHeight - minScreenHeight) / (maxScreenHeight - minScreenHeight);
+
+  // Use the percentage to interpolate between your min and max widget heights.
+  // We use 1.0 - percentage because we want an INVERSE relationship.
+  final newHeight = ui.lerpDouble(
+    minWidgetHeight,
+    maxWidgetHeight,
+    1.0 - percentage.clamp(0.0, 1.0),
+  );
+
+  return newHeight!;
 }
 
 class _SplashScreenState extends State<SplashScreen> {
@@ -170,7 +200,7 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
   bool _isLoadingTrending = false;
   String _error = '';
   int _cartItemCount = 0;
-  // int _currentBannerIndex = 0;
+  int _currentBannerIndex = 0;
 
   @override
   void initState() {
@@ -644,62 +674,91 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
 
               // Banner Section
               if (_bannerImages.isNotEmpty) ...[
-                Container(
-                  height:
-                      MediaQuery.of(context).size.height *
-                      0.25, // Responsive height
-                  margin: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12.0),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withValues(alpha: 0.3),
-                        spreadRadius: 1,
-                        blurRadius: 5,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(12.0),
-                    child: Image.network(
-                      _bannerImages.first,
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      errorBuilder: (context, error, stackTrace) {
+                carousel.CarouselSlider(
+                  items: _bannerImages.map((imageUrl) {
+                    return Builder(
+                      builder: (BuildContext context) {
                         return Container(
-                          color: Colors.teal.shade50,
-                          child: Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.local_pharmacy,
-                                  size: 40,
-                                  color: Colors.teal.shade600,
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  'Health & Wellness',
-                                  style: TextStyle(
-                                    color: Colors.teal.shade700,
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
+                          width: MediaQuery.of(context).size.width,
+                          margin: const EdgeInsets.symmetric(horizontal: 5.0),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(12.0),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.grey.withOpacity(0.3),
+                                spreadRadius: 1,
+                                blurRadius: 5,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12.0),
+                            child: Image.network(
+                              imageUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Colors.teal.shade50,
+                                  child: Center(
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.local_pharmacy,
+                                          size: 40,
+                                          color: Colors.teal.shade600,
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Health & Wellness',
+                                          style: TextStyle(
+                                            color: Colors.teal.shade700,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Your trusted pharmacy partner',
+                                          style: TextStyle(
+                                            color: Colors.teal.shade600,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  'Your trusted pharmacy partner',
-                                  style: TextStyle(
-                                    color: Colors.teal.shade600,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
+                                );
+                              },
                             ),
                           ),
                         );
                       },
+                    );
+                  }).toList(),
+                  options: carousel.CarouselOptions(
+                    height: MediaQuery.of(context).size.height * 0.25,
+                    autoPlay: true,
+                    autoPlayInterval: const Duration(seconds: 3),
+                    enlargeCenterPage: true,
+                    onPageChanged: (index, reason) {
+                      setState(() {
+                        _currentBannerIndex = index;
+                      });
+                    },
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Center(
+                  child: AnimatedSmoothIndicator(
+                    activeIndex: _currentBannerIndex,
+                    count: _bannerImages.length,
+                    effect: WormEffect(
+                      dotHeight: 8,
+                      dotWidth: 8,
+                      activeDotColor: Colors.teal,
+                      dotColor: Colors.grey.shade300,
                     ),
                   ),
                 ),
@@ -726,53 +785,53 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
               const SizedBox(height: 20),
 
               // Promotional Banner
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Container(
-                  height:
-                      MediaQuery.of(context).size.height *
-                      0.25, // Responsive height
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: Colors
-                        .teal
-                        .shade100, // Placeholder color for the banner
-                    borderRadius: BorderRadius.circular(15.0),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.teal.withValues(
-                          alpha: 0.2,
-                        ), // Subtle teal shadow
-                        spreadRadius: 2,
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                    // Removed AssetImage to avoid errors if not present, relying on network/errorBuilder
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(15.0),
-                    child: Image.network(
-                      'https://placehold.co/400x180/ADD8E6/000000?text=Pharmacy+Banner',
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        color: Colors.teal.shade100,
-                        child: const Center(
-                          child: Text(
-                            'Promotional Banner',
-                            style: TextStyle(
-                              color: Colors.teal,
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 15),
+              // Padding(
+              //   padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              //   child: Container(
+              //     height:
+              //         MediaQuery.of(context).size.height *
+              //         0.25, // Responsive height
+              //     width: double.infinity,
+              //     decoration: BoxDecoration(
+              //       color: Colors
+              //           .teal
+              //           .shade100, // Placeholder color for the banner
+              //       borderRadius: BorderRadius.circular(15.0),
+              //       boxShadow: [
+              //         BoxShadow(
+              //           color: Colors.teal.withValues(
+              //             alpha: 0.2,
+              //           ), // Subtle teal shadow
+              //           spreadRadius: 2,
+              //           blurRadius: 8,
+              //           offset: const Offset(0, 4),
+              //         ),
+              //       ],
+              //       // Removed AssetImage to avoid errors if not present, relying on network/errorBuilder
+              //     ),
+              //     child: ClipRRect(
+              //       borderRadius: BorderRadius.circular(15.0),
+              //       child: Image.network(
+              //         'https://placehold.co/400x180/ADD8E6/000000?text=Pharmacy+Banner',
+              //         fit: BoxFit.cover,
+              //         errorBuilder: (context, error, stackTrace) => Container(
+              //           color: Colors.teal.shade100,
+              //           child: const Center(
+              //             child: Text(
+              //               'Promotional Banner',
+              //               style: TextStyle(
+              //                 color: Colors.teal,
+              //                 fontSize: 18,
+              //                 fontWeight: FontWeight.bold,
+              //               ),
+              //             ),
+              //           ),
+              //         ),
+              //       ),
+              //     ),
+              //   ),
+              // ),
+              // const SizedBox(height: 15),
 
               // Offer Text
               const Padding(
@@ -807,11 +866,11 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                   ),
                 ),
               ),
-              const SizedBox(height: 17),
+              const SizedBox(height: 15),
               SizedBox(
-                height:
-                    MediaQuery.of(context).size.height *
-                    0.334, // Responsive height
+                height: calculateInverseHeight(context),
+                // Responsive height
+                // Responsive height
                 child: _isLoading
                     ? const Center(
                         child: CircularProgressIndicator(color: Colors.teal),
@@ -879,7 +938,7 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                       ),
                     ),
                     TextButton(
-                      onPressed: () => _loadTrendingProducts(),
+                      onPressed: _loadTrendingProducts,
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -901,9 +960,7 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
               ),
               const SizedBox(height: 17),
               SizedBox(
-                height:
-                    MediaQuery.of(context).size.height *
-                    0.334, // Responsive height
+                height: calculateInverseHeight(context), // Responsive height
                 child: _isLoadingTrending
                     ? const Center(
                         child: CircularProgressIndicator(color: Colors.teal),
@@ -975,9 +1032,7 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
               ),
               const SizedBox(height: 20),
               SizedBox(
-                height:
-                    MediaQuery.of(context).size.height *
-                    0.334, // Responsive height
+                height: calculateInverseHeight(context), // Responsive height
                 child: _isLoading
                     ? const Center(
                         child: CircularProgressIndicator(color: Colors.teal),
@@ -1028,9 +1083,7 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
               ),
               const SizedBox(height: 17),
               SizedBox(
-                height:
-                    MediaQuery.of(context).size.height *
-                    0.334, // Responsive height
+                height: calculateInverseHeight(context), // Responsive height
                 child: _isLoading
                     ? const Center(
                         child: CircularProgressIndicator(color: Colors.teal),
@@ -1101,7 +1154,7 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
             ),
             IconButton(
               icon: const Icon(
-                Icons.track_changes,
+                Icons.upload_file,
               ), // Icon for Prescription Tracking/Review
               onPressed: () {
                 Navigator.pushReplacement(
@@ -1114,21 +1167,21 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
               iconSize: 30.0, // Increased icon size
               color: Colors.grey[700],
             ),
-            IconButton(
-              icon: const Icon(
-                Icons.upload_file,
-              ), // Icon for Upload Prescription
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const OrderPrescriptionUploadScreen(),
-                  ),
-                );
-              },
-              iconSize: 30.0, // Increased icon size
-              color: Colors.grey[700],
-            ),
+            // IconButton(
+            //   icon: const Icon(
+            //     Icons.upload_file,
+            //   ), // Icon for Upload Prescription
+            //   onPressed: () {
+            //     Navigator.pushReplacement(
+            //       context,
+            //       MaterialPageRoute(
+            //         builder: (context) => const OrderPrescriptionUploadScreen(),
+            //       ),
+            //     );
+            //   },
+            //   iconSize: 30.0, // Increased icon size
+            //   color: Colors.grey[700],
+            // ),
             IconButton(
               icon: const Icon(Icons.shopping_cart_outlined),
               onPressed: () {
