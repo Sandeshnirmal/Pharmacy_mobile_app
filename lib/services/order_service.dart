@@ -1,7 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart'; // Keep this import
 import '../config/api_config.dart';
 import 'api_service.dart'; // Import ApiService
+import 'package:path_provider/path_provider.dart'; // New import for file handling
+import 'dart:io'; // New import for File
 
 class OrderService {
   static String get baseUrl => ApiConfig.apiBaseUrl;
@@ -294,6 +297,55 @@ class OrderService {
       case 'standard':
       default:
         return 25.0;
+    }
+  }
+
+  // New: Get invoice summary
+  Future<Map<String, dynamic>?> getInvoiceSummary(int orderId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/order/invoices/$orderId/summary/'),
+        headers: await _apiService.getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        if (responseData['success'] == true) {
+          return responseData['summary'];
+        }
+      }
+      print(
+        'Error fetching invoice summary: ${response.statusCode} - ${response.body}',
+      );
+      return null;
+    } catch (e) {
+      print('Error fetching invoice summary: $e');
+      return null;
+    }
+  }
+
+  // New: Download invoice PDF
+  Future<String?> downloadInvoicePdf(int orderId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/order/invoices/$orderId/download/'),
+        headers: await _apiService.getHeaders(),
+      );
+
+      if (response.statusCode == 200) {
+        final directory = await getApplicationDocumentsDirectory();
+        final filePath = '${directory.path}/invoice_$orderId.pdf';
+        final file = File(filePath);
+        await file.writeAsBytes(response.bodyBytes);
+        return filePath;
+      }
+      print(
+        'Error downloading invoice PDF: ${response.statusCode} - ${response.body}',
+      );
+      return null;
+    } catch (e) {
+      print('Error downloading invoice PDF: $e');
+      return null;
     }
   }
 }

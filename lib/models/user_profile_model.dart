@@ -1,5 +1,5 @@
 class UserProfile {
-  final int id;
+  final String id;
   final String email;
   final String firstName;
   final String lastName;
@@ -13,21 +13,21 @@ class UserProfile {
   final bool isVerified;
   final DateTime createdAt;
   final DateTime updatedAt;
-  
+
   // Address information
   final String? address;
   final String? city;
   final String? state;
   final String? pincode;
   final String? country;
-  
+
   // Medical information
   final List<String> allergies;
   final List<String> chronicConditions;
   final List<String> currentMedications;
   final String? insuranceProvider;
   final String? insuranceNumber;
-  
+
   // App preferences
   final bool notificationsEnabled;
   final bool emailNotifications;
@@ -66,7 +66,7 @@ class UserProfile {
   });
 
   String get fullName => '$firstName $lastName';
-  
+
   String get displayName {
     if (firstName.isNotEmpty && lastName.isNotEmpty) {
       return '$firstName $lastName';
@@ -92,7 +92,7 @@ class UserProfile {
       final birthDate = DateTime.parse(dateOfBirth!);
       final now = DateTime.now();
       int age = now.year - birthDate.year;
-      if (now.month < birthDate.month || 
+      if (now.month < birthDate.month ||
           (now.month == birthDate.month && now.day < birthDate.day)) {
         age--;
       }
@@ -109,16 +109,16 @@ class UserProfile {
     if (state != null && state!.isNotEmpty) addressParts.add(state!);
     if (pincode != null && pincode!.isNotEmpty) addressParts.add(pincode!);
     if (country != null && country!.isNotEmpty) addressParts.add(country!);
-    
+
     return addressParts.join(', ');
   }
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(
-      id: json['id'] ?? 0,
-      email: json['email'] ?? '',
-      firstName: json['first_name'] ?? '',
-      lastName: json['last_name'] ?? '',
+      id: json['id']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      firstName: json['first_name']?.toString() ?? '',
+      lastName: json['last_name']?.toString() ?? '',
       phone: json['phone'],
       dateOfBirth: json['date_of_birth'],
       gender: json['gender'],
@@ -127,25 +127,25 @@ class UserProfile {
       emergencyContactName: json['emergency_contact_name'],
       profileImage: json['profile_image'],
       isVerified: json['is_verified'] ?? false,
-      createdAt: json['created_at'] != null 
-          ? DateTime.parse(json['created_at']) 
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
           : DateTime.now(),
-      updatedAt: json['updated_at'] != null 
-          ? DateTime.parse(json['updated_at']) 
+      updatedAt: json['updated_at'] != null
+          ? DateTime.parse(json['updated_at'])
           : DateTime.now(),
       address: json['address'],
       city: json['city'],
       state: json['state'],
       pincode: json['pincode'],
       country: json['country'],
-      allergies: json['allergies'] != null 
-          ? List<String>.from(json['allergies']) 
+      allergies: json['allergies'] != null
+          ? List<String>.from(json['allergies'])
           : [],
-      chronicConditions: json['chronic_conditions'] != null 
-          ? List<String>.from(json['chronic_conditions']) 
+      chronicConditions: json['chronic_conditions'] != null
+          ? List<String>.from(json['chronic_conditions'])
           : [],
-      currentMedications: json['current_medications'] != null 
-          ? List<String>.from(json['current_medications']) 
+      currentMedications: json['current_medications'] != null
+          ? List<String>.from(json['current_medications'])
           : [],
       insuranceProvider: json['insurance_provider'],
       insuranceNumber: json['insurance_number'],
@@ -190,7 +190,7 @@ class UserProfile {
   }
 
   UserProfile copyWith({
-    int? id,
+    String? id,
     String? email,
     String? firstName,
     String? lastName,
