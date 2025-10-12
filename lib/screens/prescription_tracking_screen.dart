@@ -9,6 +9,7 @@ import 'package:pharmacy/providers/cart_provider.dart';
 import 'package:pharmacy/main.dart';
 // Import ProductModel
 import 'package:pharmacy/LoginScreen.dart'; // Import LoginScreen
+import 'package:pharmacy/OrderPrescriptionUploadScreen.dart';
 
 class PrescriptionTrackingScreen extends StatefulWidget {
   final String? prescriptionId; // Added optional prescriptionId
@@ -182,15 +183,13 @@ class _PrescriptionTrackingScreenState
                         const SizedBox(height: 20),
                         ElevatedButton.icon(
                           onPressed: () {
-                            // Navigate to upload prescription screen
-                            // Placeholder for now, actual navigation will be added later
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Navigate to Prescription Upload Screen',
-                                ),
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const OrderPrescriptionUploadScreen(),
                               ),
-                            );
+                            ).then((_) => _checkAuthAndFetchPrescriptions());
                           },
                           icon: const Icon(Icons.upload_file),
                           label: const Text('Upload New Prescription'),
@@ -396,6 +395,18 @@ class _PrescriptionTrackingScreenState
                 ),
               ),
             ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => const OrderPrescriptionUploadScreen()),
+          ).then((_) => _checkAuthAndFetchPrescriptions());
+        },
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
+        child: const Icon(Icons.add_a_photo),
+      ),
     );
   }
 }
