@@ -130,17 +130,25 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Navigate to the PharmacyHomePage after 3 seconds
-    // This duration is set to 3 seconds as requested.
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          // Changed navigation target from LoginPage to PharmacyHomePage
-          MaterialPageRoute(builder: (context) => const PharmacyHomePage()),
-        );
-      }
-    });
+    _initializeAuthAndNavigate();
+  }
+
+  Future<void> _initializeAuthAndNavigate() async {
+    // Ensure the AuthProvider is available in the context
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    await authProvider.checkAuthStatus();
+
+    if (mounted) {
+      // Navigate based on authentication status
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => authProvider.isAuthenticated
+              ? const PharmacyHomePage()
+              : const LoginScreen(),
+        ),
+      );
+    }
   }
 
   @override
