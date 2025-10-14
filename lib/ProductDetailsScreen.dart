@@ -301,6 +301,36 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                 color: Colors.teal,
                               ),
                             ),
+                            const SizedBox(width: 16),
+                            if (product['cutoffPrice'] != null)
+                              Text(
+                                '₹${product['cutoffPrice']}',
+                                style: const TextStyle(
+                                  fontSize: 20,
+                                  decoration: TextDecoration.lineThrough,
+                                  color: Colors.grey,
+                                ),
+                              ),
+                            const SizedBox(width: 16),
+                            if (product['discount'] != null)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.green.shade100,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '${product['discount']}% OFF',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.green.shade800,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
                         const SizedBox(height: 16),

@@ -105,7 +105,7 @@ double calculateInverseHeight(BuildContext context) {
   const double maxScreenHeight = 1200.0; // e.g., a large tablet
 
   // The corresponding widget height you want at those screen sizes.
-  const double minWidgetHeight = 175.0; // Height on the largest screen
+  const double minWidgetHeight = 200.0; // Height on the largest screen
   const double maxWidgetHeight = 300.0; // Height on the smallest screen
   // --------------------------
 
@@ -499,6 +499,7 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
 
   // Convert ProductModel to Map for compatibility with existing UI
   Map<String, dynamic> _productToMap(ProductModel product) {
+    final cutoffPrice = product.currentSellingPrice * 1.15;
     return {
       'id': product.id,
       'name': product.name,
@@ -515,6 +516,8 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
           product.imageUrl ??
           'https://placehold.co/150x150/F0E6D2/000000?text=${Uri.encodeComponent(product.name)}',
       'currentSellingPrice': product.currentSellingPrice.toStringAsFixed(2),
+      'cutoffPrice': cutoffPrice.toStringAsFixed(2),
+      'discount': '15',
       'inStock': product.stockQuantity > 0,
       'requiresPrescription': product.requiresPrescription,
     };
@@ -904,6 +907,8 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                             productName: product['name'],
                             brandName: product['brand'],
                             currentSellingPrice: product['currentSellingPrice'],
+                            cutoffPrice: product['cutoffPrice'],
+                            discount: product['discount'],
                             // requiresPrescription:
                             //     product['requiresPrescription'],
                             onTap: () {
@@ -999,6 +1004,8 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                             productName: product['name'],
                             brandName: product['brand'],
                             currentSellingPrice: product['currentSellingPrice'],
+                            cutoffPrice: product['cutoffPrice'],
+                            discount: product['discount'],
                             // requiresPrescription:
                             //     product['requiresPrescription'],
                             onTap: () {
@@ -1050,6 +1057,8 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                             productName: product['name'],
                             brandName: product['brand'],
                             currentSellingPrice: product['currentSellingPrice'],
+                            cutoffPrice: product['cutoffPrice'],
+                            discount: product['discount'],
                             // requiresPrescription:
                             //     product['requiresPrescription'],
                             onTap: () {
@@ -1101,6 +1110,8 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                             productName: product['name'],
                             brandName: product['brand'],
                             currentSellingPrice: product['currentSellingPrice'],
+                            cutoffPrice: product['cutoffPrice'],
+                            discount: product['discount'],
                             // requiresPrescription:
                             //     product['requiresPrescription'],
                             onTap: () {
@@ -1256,6 +1267,8 @@ class ProductCard extends StatelessWidget {
   final String productName;
   final String brandName;
   final String? currentSellingPrice;
+  final String? cutoffPrice;
+  final String? discount;
   final bool? requiresPrescription;
   final VoidCallback? onTap;
   final VoidCallback? onAddToCart;
@@ -1266,6 +1279,8 @@ class ProductCard extends StatelessWidget {
     required this.productName,
     required this.brandName,
     this.currentSellingPrice,
+    this.cutoffPrice,
+    this.discount,
     this.requiresPrescription,
     this.onTap,
     this.onAddToCart,
@@ -1351,8 +1366,28 @@ class ProductCard extends StatelessWidget {
                                   color: Colors.teal,
                                 ),
                               ),
+                              const SizedBox(width: 8),
+                              if (cutoffPrice != null)
+                                Text(
+                                  '₹$cutoffPrice',
+                                  style: const TextStyle(
+                                    decoration: TextDecoration.lineThrough,
+                                    color: Colors.grey,
+                                    fontSize: 14,
+                                  ),
+                                ),
                             ],
                           ),
+                          const SizedBox(height: 4),
+                          if (discount != null)
+                            Text(
+                              '$discount% off',
+                              style: const TextStyle(
+                                color: Colors.green,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
                           const SizedBox(height: 8),
                         ],
                         if (requiresPrescription == true) ...[

@@ -19,13 +19,37 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(_onTabChanged);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<OrderProvider>().loadOrders();
     });
   }
 
+  void _onTabChanged() {
+    if (_tabController.indexIsChanging) {
+      return;
+    }
+
+    final orderProvider = context.read<OrderProvider>();
+    switch (_tabController.index) {
+      case 0:
+        orderProvider.loadOrders();
+        break;
+      case 1:
+        orderProvider.loadOrders(status: 'pending');
+        break;
+      case 2:
+        orderProvider.loadOrders(status: 'shipped');
+        break;
+      case 3:
+        orderProvider.loadOrders(status: 'delivered');
+        break;
+    }
+  }
+
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
     _tabController.dispose();
     super.dispose();
   }
@@ -115,9 +139,9 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
             controller: _tabController,
             children: [
               _buildOrdersList(orderProvider.orders),
-              _buildOrdersList(orderProvider.getOrdersByStatus('pending')),
-              _buildOrdersList(orderProvider.getOrdersByStatus('shipped')),
-              _buildOrdersList(orderProvider.getOrdersByStatus('delivered')),
+              _buildOrdersList(orderProvider.orders),
+              _buildOrdersList(orderProvider.orders),
+              _buildOrdersList(orderProvider.orders),
             ],
           );
         },

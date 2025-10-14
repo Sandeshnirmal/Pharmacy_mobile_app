@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../screens/splash_screen.dart';
 import '../screens/main_navigation.dart';
 import '../screens/auth/login_screen.dart';
-import '../screens/home/home_screen.dart';
+// import '../screens/home/home_screen.dart';
 import '../screens/products/products_screen.dart';
 import '../screens/products/product_detail_screen.dart';
 import '../screens/orders/orders_screen.dart';
@@ -39,8 +39,8 @@ class AppRoutes {
       case login:
         return MaterialPageRoute(builder: (_) => const LoginScreen());
 
-      case home:
-        return MaterialPageRoute(builder: (_) => const HomeScreen());
+      // case home:
+      //   return MaterialPageRoute(builder: (_) => const HomeScreen());
 
       case mainNavigation:
         return MaterialPageRoute(builder: (_) => const MainNavigation());

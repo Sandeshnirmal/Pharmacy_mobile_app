@@ -19,14 +19,14 @@ class OrderProvider with ChangeNotifier {
   bool get hasOrders => _orders.isNotEmpty;
 
   // Load user orders
-  Future<void> loadOrders({bool refresh = false}) async {
+  Future<void> loadOrders({String? status, bool refresh = false}) async {
     if (_isLoading && !refresh) return;
 
     _setLoading(true);
     _clearError();
 
     try {
-      final result = await _apiService.getOrders();
+      final result = await _apiService.getOrders(status: status);
 
       if (result.isSuccess && result.data != null) {
         print(

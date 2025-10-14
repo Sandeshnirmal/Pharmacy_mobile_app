@@ -782,10 +782,17 @@ class ApiService {
   }
 
   // Get orders
-  Future<ApiResponse<List<OrderModel>>> getOrders() async {
+  Future<ApiResponse<List<OrderModel>>> getOrders({String? status}) async {
     try {
+      final queryParams = <String, String>{};
+      if (status != null) {
+        queryParams['status'] = status;
+      }
+
+      final uri = Uri.parse(ApiConfig.ordersUrl).replace(queryParameters: queryParams.isEmpty ? null : queryParams);
+
       final response = await _client
-          .get(Uri.parse(ApiConfig.ordersUrl), headers: await getHeaders())
+          .get(uri, headers: await getHeaders())
           .timeout(Duration(milliseconds: timeoutDuration));
 
       if (response.statusCode >= 200 && response.statusCode < 300) {

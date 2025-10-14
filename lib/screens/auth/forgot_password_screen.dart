@@ -34,14 +34,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         _emailController.text.trim(),
       );
 
-      if (response.data['success']) {
+      if (response.data?['success']) {
         setState(() {
           _emailSent = true;
         });
         _showSuccessMessage('Password reset email sent successfully!');
       } else {
         _showErrorMessage(
-          response.data['error'] ?? 'Failed to send reset email',
+          response.data?['error'] ?? 'Failed to send reset email',
         );
       }
     } catch (e) {

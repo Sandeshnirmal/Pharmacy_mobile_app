@@ -10,6 +10,9 @@ import 'package:open_filex/open_filex.dart'; // For opening files
 import '../../models/order_model.dart';
 import 'order_tracking_screen.dart';
 import '../../services/api_service.dart'; // Import ApiService
+import 'package:pharmacy/providers/auth_provider.dart';
+import 'package:pharmacy/utils/Invoice.dart';
+
 
 class OrderDetailScreen extends StatefulWidget {
   final int orderId;
@@ -36,7 +39,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   Future<void> _loadOrderDetails() async {
     final orderProvider = context.read<OrderProvider>();
     final order = await orderProvider.getOrderById(widget.orderId);
-    
+
     setState(() {
       _order = order;
       _isLoading = false;
@@ -45,6 +48,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final user = authProvider.user;
+    print('User object in OrderDetailScreen: $user'); // Add this line to check the user object
     return Scaffold(
       appBar: AppBar(
         title: Text(_order != null ? 'Order #${_order!.id}' : 'Order Details'),
@@ -52,6 +58,26 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         foregroundColor: Colors.white,
         actions: [
           if (_order != null) ...[
+            IconButton(
+              icon: const Icon(Icons.receipt_long), // <-- ADD THIS ICON BUTTON
+              tooltip: 'View Invoice',
+              onPressed: () {
+                if (user == null) {
+                  Fluttertoast.showToast(msg: 'Could not retrieve user details for invoice.');
+                  return;
+                }
+                if (_order == null) {
+                  Fluttertoast.showToast(msg: 'Could not retrieve order details for invoice.');
+                  return;
+                }
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => InvoiceViewScreen(order: _order!, user: user),
+                  ),
+                );
+              },
+            ),
             IconButton(
               icon: const Icon(Icons.download),
               tooltip: 'Download Invoice',
@@ -130,25 +156,25 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     children: [
                       // Order Status Card
                       _buildOrderStatusCard(),
-                      
+
                       const SizedBox(height: 16),
-                      
+
                       // Order Items
                       _buildOrderItemsCard(),
-                      
+
                       const SizedBox(height: 16),
-                      
+
                       // Delivery Information
                       if (_order!.shippingAddress != null)
                         _buildDeliveryInfoCard(),
-                      
+
                       const SizedBox(height: 16),
-                      
+
                       // Payment Information
                       _buildPaymentInfoCard(),
-                      
+
                       const SizedBox(height: 16),
-                      
+
                       // Order Summary
                       _buildOrderSummaryCard(),
                     ],
@@ -192,9 +218,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 ),
               ],
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             _buildInfoRow('Order Date', _formatDate(_order!.createdAt)),
             if (_order!.estimatedDelivery != null)
               _buildInfoRow('Estimated Delivery', _formatDate(_order!.estimatedDelivery!)),
@@ -223,9 +249,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             ...(_order!.items.map((item) => _buildOrderItem(item)).toList()),
           ],
         ),
@@ -268,9 +294,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     color: Colors.grey,
                   ),
           ),
-          
+
           const SizedBox(width: 12),
-          
+
           // Product Details
           Expanded(
             child: Column(
@@ -285,9 +311,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                
+
                 const SizedBox(height: 4),
-                
+
                 Text(
                   'Qty: ${item.quantity}',
                   style: TextStyle(
@@ -295,9 +321,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     color: Colors.grey[600],
                   ),
                 ),
-                
+
                 const SizedBox(height: 8),
-                
+
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -341,9 +367,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
@@ -389,9 +415,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             _buildInfoRow('Payment Method', _order!.paymentMethod ?? 'Not specified'),
             if (_order!.paymentStatus != null)
               _buildInfoRow('Payment Status', _order!.paymentStatus!),
@@ -416,7 +442,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            
+
             const SizedBox(height: 16),
 
             // Order summary calculations
