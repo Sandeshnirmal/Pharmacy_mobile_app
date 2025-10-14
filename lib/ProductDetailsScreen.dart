@@ -4,10 +4,11 @@ import 'main.dart';
 import 'CartScreen.dart';
 import 'services/cart_service.dart';
 import 'models/product_model.dart';
+import 'models/batch_model.dart'; // Import BatchModel
 
 class ProductDetailsScreen extends StatefulWidget {
   // Now accepts product data via its constructor
-  final Map<String, dynamic> product;
+  final ProductModel product; // Changed to ProductModel
 
   const ProductDetailsScreen({super.key, required this.product});
 
@@ -67,30 +68,15 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     });
 
     try {
-      // Convert product map to ProductModel
-      final productModel = ProductModel(
-        id: widget.product['id'] ?? 0,
-        name: widget.product['name'] ?? '',
-        manufacturer: widget.product['brand'] ?? '',
-        genericName: widget.product['genericName'],
-        strength: widget.product['dosage'],
-        form: widget.product['form'],
-        currentSellingPrice:
-            double.tryParse(widget.product['currentSellingPrice'].toString()) ??
-            0.0,
-        imageUrl: widget.product['imageUrl'] ?? '',
-        requiresPrescription: widget.product['requiresPrescription'] ?? false,
-        description: widget.product['description'],
-        category: widget.product['category'],
-        stockQuantity: widget.product['stockQuantity'] ?? 100,
-        isActive: widget.product['isActive'] ?? true,
-      );
-
       // Add to cart using CartService
-      await _cartService.addToCart(productModel, quantity: _quantity);
+      await _cartService.addToCart(
+        widget.product,
+        quantity: _quantity,
+      ); // Use widget.product directly
 
       Fluttertoast.showToast(
-        msg: '${widget.product['name']} added to cart',
+        msg:
+            '${widget.product.name} added to cart', // Access name from ProductModel
         toastLength: Toast.LENGTH_SHORT,
         gravity: ToastGravity.BOTTOM,
         backgroundColor: Colors.green,
@@ -128,7 +114,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     // Access product data using widget.product
-    final Map<String, dynamic> product = widget.product;
+    final ProductModel product = widget.product;
+    final BatchModel? currentBatch = product.currentBatch;
 
     return Scaffold(
       appBar: AppBar(
@@ -163,7 +150,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         color: const Color(0xFFF9E7D2),
                         child: Center(
                           child: Image.network(
-                            product['imageUrl'],
+                            product.imageUrl ??
+                                '', // Access imageUrl from ProductModel
                             fit: BoxFit.contain,
                             height: 250,
                             errorBuilder: (context, error, stackTrace) =>
@@ -191,7 +179,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.grey.withValues(alpha: 0.3),
+                                color: Colors.grey.withOpacity(0.3),
                                 spreadRadius: 1,
                                 blurRadius: 3,
                                 offset: const Offset(0, 2),
@@ -218,7 +206,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                       children: [
                         // Product Name
                         Text(
-                          product['name'],
+                          product.name, // Access name from ProductModel
                           style: const TextStyle(
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
@@ -231,13 +219,13 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         Row(
                           children: [
                             Text(
-                              'Brand: ${product['brand']}',
+                              'Brand: ${product.manufacturer}', // Access manufacturer from ProductModel
                               style: TextStyle(
                                 fontSize: 16,
                                 color: Colors.grey[600],
                               ),
                             ),
-                            if (product['requiresPrescription'] == true) ...[
+                            if (product.requiresPrescription == true) ...[
                               const SizedBox(width: 12),
                               Container(
                                 padding: const EdgeInsets.symmetric(
@@ -294,7 +282,12 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         Row(
                           children: [
                             Text(
-                              '₹${product['currentSellingPrice']}',
+                              currentBatch?.sellingPrice != null &&
+                                      currentBatch!.sellingPrice > 0
+                                  ? '₹${currentBatch.sellingPrice.toStringAsFixed(2)}'
+                                  : (product.currentSellingPrice > 0
+                                        ? '₹${product.currentSellingPrice.toStringAsFixed(2)}'
+                                        : 'Price N/A'),
                               style: const TextStyle(
                                 fontSize: 28,
                                 fontWeight: FontWeight.bold,
@@ -302,9 +295,14 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                               ),
                             ),
                             const SizedBox(width: 16),
-                            if (product['cutoffPrice'] != null)
+                            if (currentBatch?.mrp != null &&
+                                currentBatch!.mrp >
+                                    (currentBatch.sellingPrice > 0
+                                        ? currentBatch.sellingPrice
+                                        : product
+                                              .currentSellingPrice)) // Use MRP from currentBatch, compare with effective selling price
                               Text(
-                                '₹${product['cutoffPrice']}',
+                                '₹${currentBatch?.mrp}',
                                 style: const TextStyle(
                                   fontSize: 20,
                                   decoration: TextDecoration.lineThrough,
@@ -312,7 +310,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                 ),
                               ),
                             const SizedBox(width: 16),
-                            if (product['discount'] != null)
+                            if (currentBatch?.discountPercentage != null &&
+                                currentBatch!.discountPercentage >
+                                    0) // Use discountPercentage from currentBatch
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8,
@@ -323,7 +323,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
-                                  '${product['discount']}% OFF',
+                                  '${currentBatch?.discountPercentage.toStringAsFixed(0)}% OFF',
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: Colors.green.shade800,
@@ -388,7 +388,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         // Medicine Information Cards
                         _buildInfoCard(
                           'Generic Name',
-                          product['genericName'] ?? 'Not specified',
+                          product.genericName ??
+                              'Not specified', // Access genericName from ProductModel
                           Icons.medical_information,
                           Colors.blue,
                         ),
@@ -396,7 +397,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
 
                         _buildInfoCard(
                           'Strength & Form',
-                          '${product['dosage'] ?? 'Not specified'} • ${product['form'] ?? 'Not specified'}',
+                          '${product.strength ?? 'Not specified'} • ${product.form ?? 'Not specified'}', // Access strength and form from ProductModel
                           Icons.medication,
                           Colors.green,
                         ),
@@ -404,9 +405,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
 
                         _buildInfoCard(
                           'Active Ingredient',
-                          product['activeIngredient'] ??
-                              product['genericName'] ??
-                              'Not specified',
+                          product.genericName ??
+                              'Not specified', // Access genericName from ProductModel
                           Icons.science,
                           Colors.purple,
                         ),
@@ -414,7 +414,8 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
 
                         _buildInfoCard(
                           'Manufacturer',
-                          product['brand'] ?? 'Not specified',
+                          product.manufacturer ??
+                              'Not specified', // Access manufacturer from ProductModel
                           Icons.business,
                           Colors.orange,
                         ),
@@ -457,7 +458,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       elevation: 5,
-                      shadowColor: Colors.blueAccent.withValues(alpha: 0.4),
+                      shadowColor: Colors.blueAccent.withOpacity(0.4),
                     ),
                     child: const Text(
                       'Add to Cart',
@@ -480,7 +481,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       elevation: 2,
-                      shadowColor: Colors.grey.withValues(alpha: 0.2),
+                      shadowColor: Colors.grey.withOpacity(0.2),
                     ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -610,7 +611,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   }
 
   Widget _buildTabContent() {
-    final Map<String, dynamic> product = widget.product;
+    final ProductModel product = widget.product; // Access ProductModel directly
 
     switch (_selectedTab) {
       case 0:
@@ -636,96 +637,51 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
     );
   }
 
-  Widget _buildDescriptionContent(Map<String, dynamic> product) {
+  Widget _buildDescriptionContent(ProductModel product) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (product['description'] != null &&
-            product['description'].isNotEmpty) ...[
+        if (product.description != null && product.description!.isNotEmpty) ...[
           _buildSectionHeader('Description'),
-          _buildSectionContent(product['description']),
+          _buildSectionContent(product.description!),
           const SizedBox(height: 16),
         ],
-
-        if (product['composition'] != null &&
-            product['composition'].isNotEmpty) ...[
-          _buildSectionHeader('Composition'),
-          _buildSectionContent(product['composition']),
-          const SizedBox(height: 16),
-        ],
-
-        if (product['uses'] != null && product['uses'].isNotEmpty) ...[
-          _buildSectionHeader('Medical Uses'),
-          _buildSectionContent(product['uses']),
-          const SizedBox(height: 16),
-        ],
-
-        if (product['precautions'] != null &&
-            product['precautions'].isNotEmpty) ...[
-          _buildSectionHeader('Precautions'),
-          _buildSectionContent(product['precautions']),
-        ],
-
-        if (product['description'] == null &&
-            product['composition'] == null &&
-            product['uses'] == null &&
-            product['precautions'] == null)
-          _buildTextContent('No detailed description available.'),
+        // Removed composition, uses, precautions as they are not in ProductModel
+        _buildTextContent(
+          'No detailed description available for composition, uses, or precautions.',
+        ),
       ],
     );
   }
 
-  Widget _buildUsageContent(Map<String, dynamic> product) {
+  Widget _buildUsageContent(ProductModel product) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (product['howToUse'] != null && product['howToUse'].isNotEmpty) ...[
-          _buildSectionHeader('How to Use'),
-          _buildSectionContent(product['howToUse']),
-          const SizedBox(height: 16),
-        ],
-
-        if (product['dosage'] != null) ...[
+        // Removed howToUse and storage as they are not in ProductModel
+        if (product.strength != null) ...[
           _buildSectionHeader('Dosage Information'),
-          _buildSectionContent('Strength: ${product['dosage']}'),
+          _buildSectionContent('Strength: ${product.strength}'),
           const SizedBox(height: 16),
         ],
 
-        if (product['form'] != null) ...[
+        if (product.form != null) ...[
           _buildSectionHeader('Dosage Form'),
-          _buildSectionContent('Form: ${product['form']}'),
+          _buildSectionContent('Form: ${product.form}'),
           const SizedBox(height: 16),
         ],
-
-        if (product['storage'] != null && product['storage'].isNotEmpty) ...[
-          _buildSectionHeader('Storage Instructions'),
-          _buildSectionContent(product['storage']),
-        ],
-
-        if (product['howToUse'] == null && product['storage'] == null)
-          _buildTextContent('No usage instructions available.'),
+        _buildTextContent(
+          'No usage instructions or storage information available.',
+        ),
       ],
     );
   }
 
-  Widget _buildSideEffectsContent(Map<String, dynamic> product) {
+  Widget _buildSideEffectsContent(ProductModel product) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (product['sideEffects'] != null &&
-            product['sideEffects'].isNotEmpty) ...[
-          _buildSectionHeader('Possible Side Effects'),
-          _buildSectionContent(product['sideEffects']),
-          const SizedBox(height: 16),
-        ],
-
-        if (product['precautions'] != null &&
-            product['precautions'].isNotEmpty) ...[
-          _buildSectionHeader('Important Precautions'),
-          _buildSectionContent(product['precautions']),
-          const SizedBox(height: 16),
-        ],
-
+        // Removed sideEffects and precautions as they are not in ProductModel
         // General safety information
         _buildSectionHeader('General Safety'),
         _buildSectionContent(
@@ -735,9 +691,9 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
           '• Do not exceed recommended dose\n'
           '• Inform your doctor about other medications',
         ),
-
-        if (product['sideEffects'] == null && product['precautions'] == null)
-          _buildTextContent('No side effects information available.'),
+        _buildTextContent(
+          'No side effects or precautions information available.',
+        ),
       ],
     );
   }

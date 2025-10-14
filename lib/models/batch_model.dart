@@ -7,6 +7,8 @@ class BatchModel {
   final int currentQuantity;
   final double costPrice;
   final double sellingPrice;
+  final double mrp; // Added MRP
+  final double discountPercentage; // Added Discount Percentage
   final String? mfgLicenseNumber;
 
   BatchModel({
@@ -18,6 +20,8 @@ class BatchModel {
     required this.currentQuantity,
     required this.costPrice,
     required this.sellingPrice,
+    required this.mrp, // Added MRP
+    required this.discountPercentage, // Added Discount Percentage
     this.mfgLicenseNumber,
   });
 
@@ -35,6 +39,11 @@ class BatchModel {
           double.tryParse(json['cost_price']?.toString() ?? '0.0') ?? 0.0,
       sellingPrice:
           double.tryParse(json['selling_price']?.toString() ?? '0.0') ?? 0.0,
+      mrp:
+          double.tryParse(json['mrp']?.toString() ?? '0.0') ?? 0.0, // Parse MRP
+      discountPercentage:
+          double.tryParse(json['discount_percentage']?.toString() ?? '0.0') ??
+          0.0, // Parse Discount Percentage
       mfgLicenseNumber: json['mfg_license_number']?.toString(),
     );
   }
@@ -49,6 +58,8 @@ class BatchModel {
       'current_quantity': currentQuantity,
       'cost_price': costPrice,
       'selling_price': sellingPrice,
+      'mrp': mrp, // Include MRP
+      'discount_percentage': discountPercentage, // Include Discount Percentage
       'mfg_license_number': mfgLicenseNumber,
     };
   }

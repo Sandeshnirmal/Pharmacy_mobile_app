@@ -789,7 +789,9 @@ class ApiService {
         queryParams['status'] = status;
       }
 
-      final uri = Uri.parse(ApiConfig.ordersUrl).replace(queryParameters: queryParams.isEmpty ? null : queryParams);
+      final uri = Uri.parse(
+        ApiConfig.ordersUrl,
+      ).replace(queryParameters: queryParams.isEmpty ? null : queryParams);
 
       final response = await _client
           .get(uri, headers: await getHeaders())
@@ -1556,11 +1558,27 @@ class ApiService {
             }
           }
           return ApiResponse.success(prescriptions);
+        } else if (decodedData is Map &&
+            decodedData.containsKey('results') &&
+            decodedData['results'] is List) {
+          // Handle cases where the response is a map containing a 'results' list (paginated API)
+          final List<dynamic> prescriptionsList = decodedData['results'];
+          final List<PrescriptionDetailModel> prescriptions = [];
+          for (var item in prescriptionsList) {
+            if (item is Map<String, dynamic>) {
+              prescriptions.add(PrescriptionDetailModel.fromJson(item));
+            } else {
+              ApiLogger.logError(
+                'Unexpected item type in getUserPrescriptions list (nested results): $item (type: ${item.runtimeType})',
+              );
+            }
+          }
+          return ApiResponse.success(prescriptions);
         } else if (decodedData is Map && decodedData.isEmpty) {
           // Handle empty map response as an empty list
           return ApiResponse.success([]);
         } else {
-          // If the response is not a list or a map with a 'prescriptions' list, treat as empty
+          // If the response is not a list or a map with a 'prescriptions' or 'results' list, treat as empty
           ApiLogger.logError(
             'Unexpected response format for getUserPrescriptions: $decodedData (type: ${decodedData.runtimeType})',
           );

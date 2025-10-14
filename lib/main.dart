@@ -383,7 +383,7 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                     return ListTile(
                       title: Text(product.name),
                       subtitle: Text(
-                        '${product.manufacturer} - ₹${product.currentSellingPrice}',
+                        '${product.manufacturer} - ₹${product.currentBatch?.sellingPrice ?? product.currentSellingPrice}',
                       ),
                       trailing: product.requiresPrescription
                           ? const Icon(
@@ -402,7 +402,7 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                           context,
                           MaterialPageRoute(
                             builder: (context) => ProductDetailsScreen(
-                              product: _productToMap(product),
+                              product: product, // Pass ProductModel directly
                             ),
                           ),
                         );
@@ -495,32 +495,6 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
         _isLoadingTrending = false;
       });
     }
-  }
-
-  // Convert ProductModel to Map for compatibility with existing UI
-  Map<String, dynamic> _productToMap(ProductModel product) {
-    final cutoffPrice = product.currentSellingPrice * 1.15;
-    return {
-      'id': product.id,
-      'name': product.name,
-      'brand': product.manufacturer,
-      'genericName': product.genericName ?? product.name,
-      'dosage': product.strength ?? 'N/A',
-      'activeIngredient': product.genericName ?? 'N/A',
-      'uses': product.description ?? 'Medicine for health treatment',
-      'description':
-          product.description ?? 'Quality medicine from trusted manufacturer',
-      'howToUse': 'Follow doctor\'s prescription or package instructions',
-      'sideEffects': 'Consult doctor if any adverse effects occur',
-      'imageUrl':
-          product.imageUrl ??
-          'https://placehold.co/150x150/F0E6D2/000000?text=${Uri.encodeComponent(product.name)}',
-      'currentSellingPrice': product.currentSellingPrice.toStringAsFixed(2),
-      'cutoffPrice': cutoffPrice.toStringAsFixed(2),
-      'discount': '15',
-      'inStock': product.stockQuantity > 0,
-      'requiresPrescription': product.requiresPrescription,
-    };
   }
 
   @override
@@ -705,7 +679,8 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                                   color: Colors.teal.shade50,
                                   child: Center(
                                     child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         Icon(
                                           Icons.local_pharmacy,
@@ -899,18 +874,9 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                         padding: const EdgeInsets.symmetric(horizontal: 16.0),
                         itemCount: _featuredProducts.length,
                         itemBuilder: (context, index) {
-                          final product = _productToMap(
-                            _featuredProducts[index],
-                          );
+                          final product = _featuredProducts[index];
                           return ProductCard(
-                            imageAsset: product['imageUrl'],
-                            productName: product['name'],
-                            brandName: product['brand'],
-                            currentSellingPrice: product['currentSellingPrice'],
-                            cutoffPrice: product['cutoffPrice'],
-                            discount: product['discount'],
-                            // requiresPrescription:
-                            //     product['requiresPrescription'],
+                            product: product, // Pass ProductModel directly
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -920,8 +886,7 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                                 ),
                               );
                             },
-                            // onAddToCart: () =>
-                            //     _addToCart(_featuredProducts[index]),
+                            onAddToCart: () => _addToCart(product),
                           );
                         },
                       ),
@@ -996,18 +961,9 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                         padding: const EdgeInsets.symmetric(horizontal: 16.0),
                         itemCount: _trendingProducts.length,
                         itemBuilder: (context, index) {
-                          final product = _productToMap(
-                            _trendingProducts[index],
-                          );
+                          final product = _trendingProducts[index];
                           return ProductCard(
-                            imageAsset: product['imageUrl'],
-                            productName: product['name'],
-                            brandName: product['brand'],
-                            currentSellingPrice: product['currentSellingPrice'],
-                            cutoffPrice: product['cutoffPrice'],
-                            discount: product['discount'],
-                            // requiresPrescription:
-                            //     product['requiresPrescription'],
+                            product: product, // Pass ProductModel directly
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -1017,8 +973,7 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                                 ),
                               );
                             },
-                            // onAddToCart: () =>
-                            //     _addToCart(_trendingProducts[index]),
+                            onAddToCart: () => _addToCart(product),
                           );
                         },
                       ),
@@ -1049,18 +1004,9 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                         padding: const EdgeInsets.symmetric(horizontal: 16.0),
                         itemCount: _everydayProducts.length,
                         itemBuilder: (context, index) {
-                          final product = _productToMap(
-                            _everydayProducts[index],
-                          );
+                          final product = _everydayProducts[index];
                           return ProductCard(
-                            imageAsset: product['imageUrl'],
-                            productName: product['name'],
-                            brandName: product['brand'],
-                            currentSellingPrice: product['currentSellingPrice'],
-                            cutoffPrice: product['cutoffPrice'],
-                            discount: product['discount'],
-                            // requiresPrescription:
-                            //     product['requiresPrescription'],
+                            product: product, // Pass ProductModel directly
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -1070,8 +1016,7 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                                 ),
                               );
                             },
-                            // onAddToCart: () =>
-                            //     _addToCart(_everydayProducts[index]),
+                            onAddToCart: () => _addToCart(product),
                           );
                         },
                       ),
@@ -1102,18 +1047,9 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                         padding: const EdgeInsets.symmetric(horizontal: 16.0),
                         itemCount: _coldCoughProducts.length,
                         itemBuilder: (context, index) {
-                          final product = _productToMap(
-                            _coldCoughProducts[index],
-                          );
+                          final product = _coldCoughProducts[index];
                           return ProductCard(
-                            imageAsset: product['imageUrl'],
-                            productName: product['name'],
-                            brandName: product['brand'],
-                            currentSellingPrice: product['currentSellingPrice'],
-                            cutoffPrice: product['cutoffPrice'],
-                            discount: product['discount'],
-                            // requiresPrescription:
-                            //     product['requiresPrescription'],
+                            product: product, // Pass ProductModel directly
                             onTap: () {
                               Navigator.push(
                                 context,
@@ -1123,8 +1059,7 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
                                 ),
                               );
                             },
-                            // onAddToCart: () =>
-                            //     _addToCart(_coldCoughProducts[index]),
+                            onAddToCart: () => _addToCart(product),
                           );
                         },
                       ),
@@ -1263,25 +1198,13 @@ class CategoryChip extends StatelessWidget {
 
 // Custom Widget for Product Cards
 class ProductCard extends StatelessWidget {
-  final String imageAsset;
-  final String productName;
-  final String brandName;
-  final String? currentSellingPrice;
-  final String? cutoffPrice;
-  final String? discount;
-  final bool? requiresPrescription;
+  final ProductModel product; // Changed to ProductModel
   final VoidCallback? onTap;
   final VoidCallback? onAddToCart;
 
   const ProductCard({
     super.key,
-    required this.imageAsset,
-    required this.productName,
-    required this.brandName,
-    this.currentSellingPrice,
-    this.cutoffPrice,
-    this.discount,
-    this.requiresPrescription,
+    required this.product, // Changed to ProductModel
     this.onTap,
     this.onAddToCart,
   });
@@ -1314,7 +1237,8 @@ class ProductCard extends StatelessWidget {
                 top: Radius.circular(15.0),
               ),
               child: Image.network(
-                imageAsset,
+                product.imageUrl ??
+                    'https://placehold.co/150x150/F0E6D2/000000?text=${Uri.encodeComponent(product.name)}',
                 height: 120,
                 width: double.infinity,
                 fit: BoxFit.cover,
@@ -1336,7 +1260,7 @@ class ProductCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          productName,
+                          product.name,
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 15,
@@ -1346,7 +1270,7 @@ class ProductCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          brandName,
+                          product.manufacturer,
                           style: TextStyle(
                             color: Colors.grey[600],
                             fontSize: 13,
@@ -1355,42 +1279,43 @@ class ProductCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                         const SizedBox(height: 8),
-                        if (currentSellingPrice != null) ...[
-                          Row(
-                            children: [
-                              Text(
-                                '₹$currentSellingPrice',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 16,
-                                  color: Colors.teal,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              if (cutoffPrice != null)
-                                Text(
-                                  '₹$cutoffPrice',
-                                  style: const TextStyle(
-                                    decoration: TextDecoration.lineThrough,
-                                    color: Colors.grey,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          if (discount != null)
+                        Row(
+                          children: [
                             Text(
-                              '$discount% off',
+                              '₹${product.currentBatch?.sellingPrice.toStringAsFixed(2) ?? product.currentSellingPrice.toStringAsFixed(2)}',
                               style: const TextStyle(
-                                color: Colors.green,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 14,
+                                fontSize: 16,
+                                color: Colors.teal,
                               ),
                             ),
-                          const SizedBox(height: 8),
-                        ],
-                        if (requiresPrescription == true) ...[
+                            const SizedBox(width: 8),
+                            if (product.currentBatch?.mrp != null &&
+                                product.currentBatch!.mrp >
+                                    product.currentBatch!.sellingPrice)
+                              Text(
+                                '₹${product.currentBatch?.mrp.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  decoration: TextDecoration.lineThrough,
+                                  color: Colors.grey,
+                                  fontSize: 14,
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        if (product.currentBatch?.discountPercentage != null &&
+                            product.currentBatch!.discountPercentage > 0)
+                          Text(
+                            '${product.currentBatch?.discountPercentage.toStringAsFixed(0)}% off',
+                            style: const TextStyle(
+                              color: Colors.green,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        const SizedBox(height: 8),
+                        if (product.requiresPrescription == true) ...[
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 6,
