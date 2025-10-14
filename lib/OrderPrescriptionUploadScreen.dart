@@ -143,7 +143,7 @@ class _OrderPrescriptionUploadScreenState
             context,
             MaterialPageRoute(
               builder: (context) => PrescriptionTrackingScreen(
-                prescriptionId: _uploadedPrescriptionId,
+
               ),
             ),
           );
@@ -250,6 +250,7 @@ class _OrderPrescriptionUploadScreenState
         ],
       ),
     );
+
   }
 
   Widget _buildPrescriptionItems() {
@@ -270,68 +271,19 @@ class _OrderPrescriptionUploadScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(Icons.medication, color: Colors.red.shade600),
-              const SizedBox(width: 8),
-              const Text(
-                'Prescription Items',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          if (widget.prescriptionItems == null ||
-              widget.prescriptionItems!.isEmpty)
-            const Text(
-              'No prescription items found.',
-              style: TextStyle(color: Colors.grey),
-            )
-          else
-            ...widget.prescriptionItems!.map(
-              (item) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 6,
-                        vertical: 2,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade100,
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        'Rx',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: Colors.red.shade700,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        item.name ?? 'Unknown Medicine',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      'Qty: ${item.quantity ?? 1}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey.shade600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+
+          Container(
+            padding: const EdgeInsets.all(12.0),
+            decoration: BoxDecoration(
+              color: Colors.yellow.shade100,
+              borderRadius: BorderRadius.circular(8.0),
             ),
+            child: const Text(
+              'Disclaimer: The information provided is based on AI-powered extraction and is for informational purposes only. It is not a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.',
+              style: TextStyle(fontSize: 12, color: Colors.black87),
+              textAlign: TextAlign.center,
+            ),
+          ),
         ],
       ),
     );

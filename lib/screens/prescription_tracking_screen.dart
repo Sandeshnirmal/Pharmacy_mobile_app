@@ -462,18 +462,18 @@ class PrescriptionDetailViewScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.all(12.0),
-              decoration: BoxDecoration(
-                color: Colors.yellow.shade100,
-                borderRadius: BorderRadius.circular(8.0),
-              ),
-              child: const Text(
-                'Disclaimer: The information provided is based on AI-powered extraction and is for informational purposes only. It is not a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.',
-                style: TextStyle(fontSize: 12, color: Colors.black87),
-                textAlign: TextAlign.center,
-              ),
-            ),
+            // Container(
+              // padding: const EdgeInsets.all(12.0),
+              // decoration: BoxDecoration(
+              //   color: Colors.yellow.shade100,
+              //   borderRadius: BorderRadius.circular(8.0),
+              // ),
+              // child: const Text(
+              //   'Disclaimer: The information provided is based on AI-powered extraction and is for informational purposes only. It is not a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.',
+              //   style: TextStyle(fontSize: 12, color: Colors.black87),
+              //   textAlign: TextAlign.center,
+              // ),
+            // ),
             const SizedBox(height: 16),
             Center(
               child: ClipRRect(
@@ -955,9 +955,7 @@ class PrescriptionDetailViewScreen extends StatelessWidget {
                                       MaterialPageRoute(
                                         builder: (context) =>
                                             ProductDetailsScreen(
-                                              product: medicineDetail
-                                                  .mappedProduct!
-                                                  .toJson(),
+                                              product: id
                                             ),
                                       ),
                                     );
