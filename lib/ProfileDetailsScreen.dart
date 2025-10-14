@@ -3,6 +3,7 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'services/auth_service.dart';
 import 'models/user_profile_model.dart';
 import 'EditProfileScreen.dart';
+import 'utils/logger.dart';
 
 class ProfileDetailsScreen extends StatefulWidget {
   const ProfileDetailsScreen({super.key});
@@ -28,18 +29,38 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
     });
 
     try {
+      final isAuthenticated = await _authService.isAuthenticated();
+      if (!isAuthenticated) {
+        Navigator.pop(context);
+        return;
+      }
+
       final userData = await _authService.getCurrentUser();
       if (userData != null) {
-        setState(() {
-          _userProfile = UserProfile.fromJson(userData);
-        });
+        try {
+          setState(() {
+            _userProfile = UserProfile.fromJson(userData);
+          });
+        } catch (parseError) {
+          Logger.error('Profile parsing error: $parseError');
+          Fluttertoast.showToast(
+            msg: 'Error parsing profile data. Please try again.',
+            backgroundColor: Colors.red,
+            textColor: Colors.white,
+          );
+          Navigator.pop(context);
+        }
+      } else {
+        throw Exception('Failed to load user profile');
       }
     } catch (e) {
+      Logger.error('Profile loading error: $e');
       Fluttertoast.showToast(
-        msg: 'Error loading profile: $e',
+        msg: 'Error loading profile. Please try again.',
         backgroundColor: Colors.red,
         textColor: Colors.white,
       );
+      Navigator.pop(context);
     } finally {
       setState(() {
         _isLoading = false;
@@ -64,7 +85,8 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                 final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => EditProfileScreen(userProfile: _userProfile!),
+                    builder: (context) =>
+                        EditProfileScreen(userProfile: _userProfile!),
                   ),
                 );
                 if (result == true) {
@@ -81,8 +103,8 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
               ),
             )
           : _userProfile == null
-              ? _buildErrorState()
-              : _buildProfileContent(),
+          ? _buildErrorState()
+          : _buildProfileContent(),
     );
   }
 
@@ -91,18 +113,11 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.error_outline,
-            size: 64,
-            color: Colors.grey.shade400,
-          ),
+          Icon(Icons.error_outline, size: 64, color: Colors.grey.shade400),
           const SizedBox(height: 16),
           Text(
             'Unable to load profile',
-            style: TextStyle(
-              fontSize: 18,
-              color: Colors.grey.shade600,
-            ),
+            style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
           ),
           const SizedBox(height: 16),
           ElevatedButton(
@@ -135,9 +150,15 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
               _buildInfoRow('Full Name', _userProfile!.fullName),
               _buildInfoRow('Email', _userProfile!.email),
               _buildInfoRow('Phone', _userProfile!.phone ?? 'Not provided'),
-              _buildInfoRow('Date of Birth', _userProfile!.dateOfBirth ?? 'Not provided'),
+              _buildInfoRow(
+                'Date of Birth',
+                _userProfile!.dateOfBirth ?? 'Not provided',
+              ),
               _buildInfoRow('Gender', _userProfile!.gender ?? 'Not provided'),
-              _buildInfoRow('Blood Group', _userProfile!.bloodGroup ?? 'Not provided'),
+              _buildInfoRow(
+                'Blood Group',
+                _userProfile!.bloodGroup ?? 'Not provided',
+              ),
             ],
           ),
 
@@ -151,7 +172,10 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
               _buildInfoRow('Address', _userProfile!.address ?? 'Not provided'),
               _buildInfoRow('City', _userProfile!.city ?? 'Not provided'),
               _buildInfoRow('State', _userProfile!.state ?? 'Not provided'),
-              _buildInfoRow('PIN Code', _userProfile!.pincode ?? 'Not provided'),
+              _buildInfoRow(
+                'PIN Code',
+                _userProfile!.pincode ?? 'Not provided',
+              ),
               _buildInfoRow('Country', _userProfile!.country ?? 'Not provided'),
             ],
           ),
@@ -163,8 +187,14 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
             title: 'Emergency Contact',
             icon: Icons.emergency_outlined,
             children: [
-              _buildInfoRow('Contact Name', _userProfile!.emergencyContactName ?? 'Not provided'),
-              _buildInfoRow('Contact Number', _userProfile!.emergencyContact ?? 'Not provided'),
+              _buildInfoRow(
+                'Contact Name',
+                _userProfile!.emergencyContactName ?? 'Not provided',
+              ),
+              _buildInfoRow(
+                'Contact Number',
+                _userProfile!.emergencyContact ?? 'Not provided',
+              ),
             ],
           ),
 
@@ -176,10 +206,22 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
             icon: Icons.medical_information_outlined,
             children: [
               _buildListRow('Allergies', _userProfile!.allergies),
-              _buildListRow('Chronic Conditions', _userProfile!.chronicConditions),
-              _buildListRow('Current Medications', _userProfile!.currentMedications),
-              _buildInfoRow('Insurance Provider', _userProfile!.insuranceProvider ?? 'Not provided'),
-              _buildInfoRow('Insurance Number', _userProfile!.insuranceNumber ?? 'Not provided'),
+              _buildListRow(
+                'Chronic Conditions',
+                _userProfile!.chronicConditions,
+              ),
+              _buildListRow(
+                'Current Medications',
+                _userProfile!.currentMedications,
+              ),
+              _buildInfoRow(
+                'Insurance Provider',
+                _userProfile!.insuranceProvider ?? 'Not provided',
+              ),
+              _buildInfoRow(
+                'Insurance Number',
+                _userProfile!.insuranceNumber ?? 'Not provided',
+              ),
             ],
           ),
 
@@ -190,10 +232,22 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
             title: 'Account Information',
             icon: Icons.account_circle_outlined,
             children: [
-              _buildInfoRow('Account Status', _userProfile!.isVerified ? 'Verified' : 'Unverified'),
-              _buildInfoRow('Member Since', _formatDate(_userProfile!.createdAt)),
-              _buildInfoRow('Last Updated', _formatDate(_userProfile!.updatedAt)),
-              _buildInfoRow('Preferred Language', _userProfile!.preferredLanguage),
+              _buildInfoRow(
+                'Account Status',
+                _userProfile!.isVerified ? 'Verified' : 'Unverified',
+              ),
+              _buildInfoRow(
+                'Member Since',
+                _formatDate(_userProfile!.createdAt),
+              ),
+              _buildInfoRow(
+                'Last Updated',
+                _formatDate(_userProfile!.updatedAt),
+              ),
+              _buildInfoRow(
+                'Preferred Language',
+                _userProfile!.preferredLanguage,
+              ),
             ],
           ),
 
@@ -271,10 +325,7 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
           const SizedBox(height: 4),
           Text(
             _userProfile!.email,
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[600],
-            ),
+            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
           ),
           if (_userProfile!.age > 0) ...[
             const SizedBox(height: 8),
@@ -363,10 +414,7 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.black87,
-              ),
+              style: const TextStyle(fontSize: 14, color: Colors.black87),
             ),
           ),
         ],
@@ -404,21 +452,28 @@ class _ProfileDetailsScreenState extends State<ProfileDetailsScreen> {
                 : Wrap(
                     spacing: 8,
                     runSpacing: 4,
-                    children: items.map((item) => Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.teal.shade50,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.teal.shade200),
-                      ),
-                      child: Text(
-                        item,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.teal.shade700,
-                        ),
-                      ),
-                    )).toList(),
+                    children: items
+                        .map(
+                          (item) => Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.teal.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.teal.shade200),
+                            ),
+                            child: Text(
+                              item,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.teal.shade700,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
                   ),
           ),
         ],

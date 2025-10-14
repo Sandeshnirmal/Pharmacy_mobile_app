@@ -62,9 +62,16 @@ class AuthService {
               'Content-Type': 'application/json',
             },
           )
-          .timeout(Duration(seconds: 10));
+          .timeout(const Duration(seconds: 10));
 
       final isAuth = response.statusCode == 200;
+      if (isAuth) {
+        // Update token timestamp on successful auth
+        await _secureStorage.write(
+          key: 'token_timestamp',
+          value: DateTime.now().toIso8601String(),
+        );
+      }
       _cachedAuthState = isAuth;
       _lastAuthCheck = DateTime.now();
 
@@ -96,7 +103,7 @@ class AuthService {
       if (token == null) return null;
 
       final response = await http.get(
-        Uri.parse(ApiConfig.userProfileUrl),
+        Uri.parse('${ApiConfig.baseUrl}/api/users/auth-me/'),
         headers: {
           'Authorization': 'Bearer $token', // Use Bearer for JWT authentication
           'Content-Type': 'application/json',
