@@ -8,7 +8,7 @@ library;
 class ApiConfig {
   // Base URL Configuration
   // Update this IP address when your backend server IP changes
-  static const String _baseIP = '192.168.1.4'; // Android emulator localhost
+  static const String _baseIP = '192.168.29.197'; // Android emulator localhost
   static const String _basePort = '8000';
 
   // Main API Base URLs
@@ -106,9 +106,9 @@ class ApiConfig {
 
   // Razorpay Configuration (Update these with your actual keys)
   static const String razorpayKeyId =
-      'rzp_test_u32HLv2OyCBfAN'; // Replace with your key
+      'rzp_live_46E992FtnTVX2O'; // Replace with your key
   static const String razorpayKeySecret =
-      'Owlg61rwtT7V3RQKoYGKhsUC'; // Replace with your secret
+      '1qR4WgCT2k6K2Ud6r5cCoqtT'; // Replace with your secret
 
   // API Configuration
   static const int timeoutDuration = 30000; // milliseconds
