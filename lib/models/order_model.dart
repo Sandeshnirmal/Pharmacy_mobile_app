@@ -34,18 +34,38 @@ class OrderModel {
 
   factory OrderModel.fromJson(Map<String, dynamic> json) {
     print(
-      'OrderModel.fromJson: Called for ID: ${json['id']}',
-    ); // Unique debug print
+      'OrderModel.fromJson: Raw JSON for ID ${json['id']}: ${json.toString()}',
+    ); // Added for extreme debugging
+    print(
+      'OrderModel.fromJson: Value of json[\'order_status\'] for ID ${json['id']}: ${json['order_status']}',
+    ); // Added for extreme debugging
+
+    String orderStatus;
+    dynamic rawOrderStatus = json['order_status'];
+    dynamic rawStatus = json['status'];
+
+    if (rawOrderStatus is String && rawOrderStatus.trim().isNotEmpty) {
+      orderStatus = rawOrderStatus.trim().toLowerCase();
+    } else if (rawStatus is String && rawStatus.trim().isNotEmpty) {
+      orderStatus = rawStatus.trim().toLowerCase();
+    } else {
+      orderStatus = 'pending';
+    }
+
+    print(
+      'OrderModel.fromJson: Final determined status for ID ${json['id']}: $orderStatus',
+    ); // Added for extreme debugging
+
     return OrderModel(
       id: json['id'] ?? 0,
       orderNumber: json['order_number'] ?? json['id']?.toString() ?? '0',
       orderDate: json['order_date'] != null
           ? DateTime.parse(json['order_date'])
           : DateTime.now(),
-      status: _parseOrderStatus(json['order_status'] ?? json['status']),
+      status: orderStatus,
       statusDisplayName: _getStatusDisplayName(
-        _parseOrderStatus(json['order_status'] ?? json['status']),
-      ),
+        orderStatus,
+      ), // Use the parsed status
       totalAmount: _parseDouble(json['total_amount']),
       totalItems:
           _parseInt(json['total_items']) ??
@@ -83,21 +103,6 @@ class OrderModel {
   static int _calculateItemsFromList(dynamic items) {
     if (items is List) return items.length;
     return 0;
-  }
-
-  static String _parseOrderStatus(dynamic statusValue) {
-    print(
-      'OrderModel._parseOrderStatus: Received statusValue: $statusValue (Type: ${statusValue.runtimeType})',
-    );
-    String status = (statusValue ?? 'pending').toString().toLowerCase();
-    if (status.isEmpty) {
-      print(
-        'OrderModel._parseOrderStatus: Status was empty, defaulting to "pending"',
-      );
-      return 'pending';
-    }
-    print('OrderModel._parseOrderStatus: Returning status: $status');
-    return status;
   }
 
   static String _getStatusDisplayName(String status) {

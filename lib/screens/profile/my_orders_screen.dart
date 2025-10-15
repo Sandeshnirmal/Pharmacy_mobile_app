@@ -21,6 +21,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(_onTabChanged); // Add listener
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<OrderProvider>().loadOrders();
     });
@@ -28,8 +29,17 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
 
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged); // Remove listener
     _tabController.dispose();
     super.dispose();
+  }
+
+  void _onTabChanged() {
+    if (_tabController.indexIsChanging) {
+      return;
+    }
+    // Trigger a rebuild when the tab changes to apply filtering
+    setState(() {});
   }
 
   @override
@@ -97,11 +107,6 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
 
   Widget _buildOrderList(List<Order> allOrders, String status) {
     List<Order> filteredOrders = allOrders;
-
-    print('--- Building Order List for status: $status ---');
-    for (var order in allOrders) {
-      print('Order ID: ${order.id}, Status: ${order.status}');
-    }
 
     if (status != 'all') {
       filteredOrders = allOrders

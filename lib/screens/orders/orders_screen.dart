@@ -12,7 +12,8 @@ class OrdersScreen extends StatefulWidget {
   State<OrdersScreen> createState() => _OrdersScreenState();
 }
 
-class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderStateMixin {
+class _OrdersScreenState extends State<OrdersScreen>
+    with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
@@ -31,20 +32,9 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
     }
 
     final orderProvider = context.read<OrderProvider>();
-    switch (_tabController.index) {
-      case 0:
-        orderProvider.loadOrders();
-        break;
-      case 1:
-        orderProvider.loadOrders(status: 'pending');
-        break;
-      case 2:
-        orderProvider.loadOrders(status: 'shipped');
-        break;
-      case 3:
-        orderProvider.loadOrders(status: 'delivered');
-        break;
-    }
+    // When a tab changes, simply reload all orders.
+    // The TabBarView will then use getOrdersByStatus to filter the displayed list.
+    orderProvider.loadOrders();
   }
 
   @override
@@ -87,11 +77,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    Icons.error_outline,
-                    size: 64,
-                    color: Colors.grey[400],
-                  ),
+                  Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
                   const SizedBox(height: 16),
                   Text(
                     'Error: ${orderProvider.error}',
@@ -138,10 +124,16 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
           return TabBarView(
             controller: _tabController,
             children: [
-              _buildOrdersList(orderProvider.orders),
-              _buildOrdersList(orderProvider.orders),
-              _buildOrdersList(orderProvider.orders),
-              _buildOrdersList(orderProvider.orders),
+              _buildOrdersList(orderProvider.orders), // All orders
+              _buildOrdersList(
+                orderProvider.getOrdersByStatus('pending'),
+              ), // Pending orders
+              _buildOrdersList(
+                orderProvider.getOrdersByStatus('shipped'),
+              ), // Shipped orders
+              _buildOrdersList(
+                orderProvider.getOrdersByStatus('delivered'),
+              ), // Delivered orders
             ],
           );
         },
@@ -176,9 +168,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
     return Card(
       elevation: 4,
       margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         onTap: () {
           Navigator.push(
@@ -206,7 +196,10 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: _getStatusColor(order.status),
                       borderRadius: BorderRadius.circular(12),
@@ -228,10 +221,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
               // Order Date
               Text(
                 'Ordered on ${_formatDate(order.createdAt)}',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               ),
 
               const SizedBox(height: 12),
@@ -266,10 +256,11 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                                 child: Image.network(
                                   item.productImage!,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) => const Icon(
-                                    Icons.medical_services,
-                                    color: Colors.grey,
-                                  ),
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      const Icon(
+                                        Icons.medical_services,
+                                        color: Colors.grey,
+                                      ),
                                 ),
                               )
                             : const Icon(
@@ -283,10 +274,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                 if (order.items.length > 3)
                   Text(
                     '+${order.items.length - 3} more items',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                   ),
               ],
 
@@ -301,10 +289,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                     children: [
                       const Text(
                         'Total Amount',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                       Text(
                         '₹${order.totalAmount.toStringAsFixed(2)}',
@@ -320,7 +305,10 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                     children: [
                       if (order.notes?.contains('prescription') == true)
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
                           decoration: BoxDecoration(
                             color: Colors.blue.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
@@ -328,11 +316,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                           child: const Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              Icon(
-                                Icons.receipt,
-                                size: 16,
-                                color: Colors.blue,
-                              ),
+                              Icon(Icons.receipt, size: 16, color: Colors.blue),
                               SizedBox(width: 4),
                               Text(
                                 'Prescription',

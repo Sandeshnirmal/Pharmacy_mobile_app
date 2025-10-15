@@ -117,40 +117,42 @@ class InvoiceViewScreen extends StatelessWidget {
       return Scaffold(
         appBar: AppBar(title: const Text('Invoice Preview')),
         backgroundColor: Colors.grey[100],
-        body: Center(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 800),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12.0),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 25,
-                      offset: const Offset(0, 10),
+        body: Column( // Changed to Column to use Expanded
+          children: [
+            Expanded( // Make the main content scrollable and take available space
+              child: SingleChildScrollView(
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 800),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12.0),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 25,
+                            offset: const Offset(0, 10),
+                          ),
+                        ],
+                      ),
+                      child: Stack( // Removed the inner Column here
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.all(24.0),
+                            child: _buildInvoiceContent(_invoice, user, order, isPaid, context),
+                          ),
+                          if (isPaid) _buildPaidStamp(),
+                        ],
+                      ),
                     ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    Stack(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(24.0), // Reduced padding for mobile
-                          child: _buildInvoiceContent(_invoice, user, order, isPaid, context),
-                        ),
-                        if (isPaid) _buildPaidStamp(),
-                      ],
-                    ),
-                    _buildActionBar(context),
-                  ],
+                  ),
                 ),
               ),
             ),
-          ),
+            _buildActionBar(context), // This will now be at the bottom
+          ],
         ),
       );
     }
@@ -533,4 +535,3 @@ class InvoiceViewScreen extends StatelessWidget {
     );
   }
 }
-

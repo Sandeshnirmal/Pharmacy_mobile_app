@@ -1,5 +1,6 @@
 // Product Model for Flutter Pharmacy App
 import 'user_model.dart';
+import 'batch_model.dart'; // Import BatchModel
 
 class ProductModel {
   final int id;
@@ -16,6 +17,7 @@ class ProductModel {
   final bool isActive;
   final String? imageUrl;
   final DateTime? expiryDate;
+  final BatchModel? currentBatch; // Added currentBatch
 
   ProductModel({
     required this.id,
@@ -32,6 +34,7 @@ class ProductModel {
     required this.isActive,
     this.imageUrl,
     this.expiryDate,
+    this.currentBatch, // Added currentBatch
   });
 
   // Helper method to safely parse double from various types
@@ -82,6 +85,9 @@ class ProductModel {
       expiryDate: json['expiry_date'] != null
           ? DateTime.tryParse(json['expiry_date'].toString())
           : null,
+      currentBatch: json['current_batch'] != null
+          ? BatchModel.fromJson(json['current_batch'])
+          : null, // Parse current_batch
     );
   }
 
@@ -133,6 +139,7 @@ class ProductModel {
       'is_active': isActive,
       'image_url': imageUrl,
       'expiry_date': expiryDate?.toIso8601String(),
+      'current_batch': currentBatch?.toJson(), // Include current_batch
     };
   }
 

@@ -271,7 +271,6 @@ class _OrderPrescriptionUploadScreenState
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
           Container(
             padding: const EdgeInsets.all(12.0),
             decoration: BoxDecoration(

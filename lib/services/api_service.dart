@@ -789,7 +789,9 @@ class ApiService {
         queryParams['status'] = status;
       }
 
-      final uri = Uri.parse(ApiConfig.ordersUrl).replace(queryParameters: queryParams.isEmpty ? null : queryParams);
+      final uri = Uri.parse(
+        ApiConfig.ordersUrl,
+      ).replace(queryParameters: queryParams.isEmpty ? null : queryParams);
 
       final response = await _client
           .get(uri, headers: await getHeaders())
@@ -1512,71 +1514,74 @@ class ApiService {
 
   // Prescription Management
   Future<ApiResponse<List<PrescriptionDetailModel>>>
-  getUserPrescriptions() async {
+      getUserPrescriptions() async {
+    final List<PrescriptionDetailModel> allPrescriptions = [];
+    String? nextUrl = '${ApiConfig.prescriptionEndpoint}/mobile/list/';
+
     try {
-      final url = '${ApiConfig.prescriptionEndpoint}/mobile/list/';
-      ApiLogger.logRequest('GET', url);
+      while (nextUrl != null) {
+        ApiLogger.logRequest('GET', nextUrl);
 
-      final response = await _client
-          .get(Uri.parse(url), headers: await getHeaders())
-          .timeout(Duration(milliseconds: timeoutDuration));
+        final response = await _client
+            .get(Uri.parse(nextUrl), headers: await getHeaders())
+            .timeout(Duration(milliseconds: timeoutDuration));
 
-      if (response.statusCode == 200) {
-        ApiLogger.log(
-          'Raw response body for getUserPrescriptions: ${response.body}',
-        );
-        final dynamic decodedData = json.decode(response.body);
-        if (decodedData is List) {
-          final List<PrescriptionDetailModel> prescriptions = [];
-          for (var item in decodedData) {
-            if (item is Map<String, dynamic>) {
-              prescriptions.add(PrescriptionDetailModel.fromJson(item));
+        if (response.statusCode == 200) {
+          ApiLogger.log(
+            'Raw response body for getUserPrescriptions: ${response.body}',
+          );
+          final dynamic decodedData = json.decode(response.body);
+
+          List<dynamic> prescriptionsList = [];
+          if (decodedData is List) {
+            prescriptionsList = decodedData;
+            nextUrl = null; // No more pages if it's a simple list
+          } else if (decodedData is Map<String, dynamic>) {
+            if (decodedData.containsKey('results') &&
+                decodedData['results'] is List) {
+              prescriptionsList = decodedData['results'];
+              nextUrl = decodedData['next'];
+            } else if (decodedData.containsKey('prescriptions') &&
+                decodedData['prescriptions'] is List) {
+              prescriptionsList = decodedData['prescriptions'];
+              nextUrl = null; // Assume no pagination for this format
+            } else if (decodedData.isEmpty) {
+              nextUrl = null;
             } else {
               ApiLogger.logError(
-                'Unexpected item type in getUserPrescriptions list: $item (type: ${item.runtimeType})',
+                'Unexpected map format for getUserPrescriptions: $decodedData',
               );
-              // Optionally, you could skip this item or throw a more specific error
+              nextUrl = null;
             }
+          } else {
+            ApiLogger.logError(
+              'Unexpected response format for getUserPrescriptions: $decodedData (type: ${decodedData.runtimeType})',
+            );
+            nextUrl = null;
           }
-          return ApiResponse.success(prescriptions);
-        } else if (decodedData is Map &&
-            decodedData.containsKey('prescriptions') &&
-            decodedData['prescriptions'] is List) {
-          // Handle cases where the response is a map containing a 'prescriptions' list
-          final List<dynamic> prescriptionsList = decodedData['prescriptions'];
-          final List<PrescriptionDetailModel> prescriptions = [];
+
           for (var item in prescriptionsList) {
             if (item is Map<String, dynamic>) {
-              prescriptions.add(PrescriptionDetailModel.fromJson(item));
+              allPrescriptions.add(PrescriptionDetailModel.fromJson(item));
             } else {
               ApiLogger.logError(
-                'Unexpected item type in getUserPrescriptions list (nested): $item (type: ${item.runtimeType})',
+                'Unexpected item type in prescriptions list: $item (type: ${item.runtimeType})',
               );
-              // Optionally, you could skip this item or throw a more specific error
             }
           }
-          return ApiResponse.success(prescriptions);
-        } else if (decodedData is Map && decodedData.isEmpty) {
-          // Handle empty map response as an empty list
-          return ApiResponse.success([]);
         } else {
-          // If the response is not a list or a map with a 'prescriptions' list, treat as empty
-          ApiLogger.logError(
-            'Unexpected response format for getUserPrescriptions: $decodedData (type: ${decodedData.runtimeType})',
-          );
-          return ApiResponse.success([]);
+          String errorMessage = 'Failed to load prescriptions';
+          try {
+            final errorData = json.decode(response.body);
+            errorMessage =
+                errorData['error'] ?? errorData['detail'] ?? errorMessage;
+          } catch (e) {
+            // If error body is not JSON, use generic message
+          }
+          return ApiResponse.error(errorMessage, response.statusCode);
         }
-      } else {
-        String errorMessage = 'Failed to load prescriptions';
-        try {
-          final errorData = json.decode(response.body);
-          errorMessage =
-              errorData['error'] ?? errorData['detail'] ?? errorMessage;
-        } catch (e) {
-          // If error body is not JSON, use generic message
-        }
-        return ApiResponse.error(errorMessage, response.statusCode);
       }
+      return ApiResponse.success(allPrescriptions);
     } catch (e) {
       ApiLogger.logError('Get user prescriptions error: $e');
       return ApiResponse.error('Network error: $e', 0);

@@ -291,21 +291,6 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     }
   }
 
-  Map<String, dynamic> _productToMap(ProductModel product) {
-    return {
-      'id': product.id,
-      'name': product.name,
-      'manufacturer': product.manufacturer,
-      'currentSellingPrice': product.currentSellingPrice,
-      'imageUrl': product.imageUrl,
-      'description': product.description,
-      'genericName': product.genericName,
-      'requiresPrescription': product.requiresPrescription,
-      'stockQuantity': product.stockQuantity,
-      'isActive': product.isActive,
-    };
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -496,13 +481,11 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   }
 
   Widget _buildProductCard(ProductModel product) {
-    // Assuming ProductModel now has a discountPercentage or similar field if needed
-    // For simplicity, let's assume discount is handled by currentSellingPrice directly
     final bool isOnSale =
-        product.currentSellingPrice <
-        (product.currentSellingPrice *
-            1.1); // Placeholder for actual discount logic
-    final double discountPercent = 0; // Placeholder
+        product.currentBatch != null &&
+        product.currentBatch!.mrp > product.currentBatch!.sellingPrice;
+    final double discountPercent =
+        product.currentBatch?.discountPercentage ?? 0;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -513,8 +496,9 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) =>
-                  ProductDetailsScreen(product: _productToMap(product)),
+              builder: (context) => ProductDetailsScreen(
+                product: product,
+              ), // Pass ProductModel directly
             ),
           );
         },
@@ -525,7 +509,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Colors.white, Colors.grey.withValues(alpha: 0.05)],
+              colors: [Colors.white, Colors.grey.withOpacity(0.05)],
             ),
           ),
           child: Padding(
@@ -543,7 +527,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                         color: Colors.grey.shade100,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.grey.withValues(alpha: 0.2),
+                            color: Colors.grey.withOpacity(0.2),
                             spreadRadius: 1,
                             blurRadius: 4,
                             offset: const Offset(0, 2),
@@ -560,8 +544,8 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: [
-                                    Colors.teal.withValues(alpha: 0.1),
-                                    Colors.teal.withValues(alpha: 0.3),
+                                    Colors.teal.withOpacity(0.1),
+                                    Colors.teal.withOpacity(0.3),
                                   ],
                                 ),
                               ),
@@ -575,7 +559,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                         ),
                       ),
                     ),
-                    if (isOnSale)
+                    if (isOnSale && discountPercent > 0)
                       Positioned(
                         top: -2,
                         right: -2,
@@ -675,13 +659,26 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                         children: [
                           // Price
                           Text(
-                            '₹${product.currentSellingPrice.toStringAsFixed(2)}',
+                            '₹${product.currentBatch?.sellingPrice.toStringAsFixed(2) ?? product.currentSellingPrice.toStringAsFixed(2)}',
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
                               color: Colors.teal,
                             ),
                           ),
+                          const SizedBox(width: 8),
+                          if (product.currentBatch?.mrp != null &&
+                              product.currentBatch!.mrp >
+                                  (product.currentBatch?.sellingPrice ??
+                                      product.currentSellingPrice))
+                            Text(
+                              '₹${product.currentBatch?.mrp.toStringAsFixed(2)}',
+                              style: const TextStyle(
+                                decoration: TextDecoration.lineThrough,
+                                color: Colors.grey,
+                                fontSize: 14,
+                              ),
+                            ),
                           const Spacer(),
 
                           // Prescription badge
@@ -692,7 +689,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.orange.withValues(alpha: 0.1),
+                                color: Colors.orange.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
                                   color: Colors.orange,
@@ -735,8 +732,8 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                             ),
                             decoration: BoxDecoration(
                               color: product.isActive
-                                  ? Colors.green.withValues(alpha: 0.1)
-                                  : Colors.red.withValues(alpha: 0.1),
+                                  ? Colors.green.withOpacity(0.1)
+                                  : Colors.red.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
                                 color: product.isActive
@@ -784,7 +781,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.blue.withValues(alpha: 0.1),
+                                color: Colors.blue.withOpacity(0.1),
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
                                   color: Colors.blue,
@@ -822,12 +819,12 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                   decoration: BoxDecoration(
                     color: product.isActive
                         ? Colors.teal
-                        : Colors.grey.withValues(alpha: 0.3),
+                        : Colors.grey.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: product.isActive
                         ? [
                             BoxShadow(
-                              color: Colors.teal.withValues(alpha: 0.3),
+                              color: Colors.teal.withOpacity(0.3),
                               spreadRadius: 1,
                               blurRadius: 4,
                               offset: const Offset(0, 2),
