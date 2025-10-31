@@ -282,12 +282,15 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                         Row(
                           children: [
                             Text(
-                              currentBatch?.sellingPrice != null &&
-                                      currentBatch!.sellingPrice > 0
-                                  ? '₹${currentBatch.sellingPrice.toStringAsFixed(2)}'
-                                  : (product.currentSellingPrice > 0
-                                        ? '₹${product.currentSellingPrice.toStringAsFixed(2)}'
-                                        : 'Price N/A'),
+                              currentBatch?.onlineSellingPrice != null &&
+                                      currentBatch!.onlineSellingPrice > 0
+                                  ? '₹${currentBatch.onlineSellingPrice.toStringAsFixed(2)}'
+                                  : (currentBatch?.sellingPrice != null &&
+                                            currentBatch!.sellingPrice > 0
+                                        ? '₹${currentBatch.sellingPrice.toStringAsFixed(2)}'
+                                        : (product.currentSellingPrice > 0
+                                              ? '₹${product.currentSellingPrice.toStringAsFixed(2)}'
+                                              : 'Price N/A')),
                               style: const TextStyle(
                                 fontSize: 28,
                                 fontWeight: FontWeight.bold,
@@ -295,14 +298,24 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                               ),
                             ),
                             const SizedBox(width: 16),
-                            if (currentBatch?.mrp != null &&
-                                currentBatch!.mrp >
-                                    (currentBatch.sellingPrice > 0
-                                        ? currentBatch.sellingPrice
-                                        : product
-                                              .currentSellingPrice)) // Use MRP from currentBatch, compare with effective selling price
+                            if ((currentBatch?.onlineMrpPrice != null &&
+                                    currentBatch!.onlineMrpPrice >
+                                        (currentBatch.onlineSellingPrice > 0
+                                            ? currentBatch.onlineSellingPrice
+                                            : (currentBatch.sellingPrice > 0
+                                                  ? currentBatch.sellingPrice
+                                                  : product
+                                                        .currentSellingPrice))) ||
+                                (currentBatch?.mrp != null &&
+                                    currentBatch!.mrp >
+                                        (currentBatch.onlineSellingPrice > 0
+                                            ? currentBatch.onlineSellingPrice
+                                            : (currentBatch.sellingPrice > 0
+                                                  ? currentBatch.sellingPrice
+                                                  : product
+                                                        .currentSellingPrice))))
                               Text(
-                                '₹${currentBatch?.mrp}',
+                                '₹${currentBatch?.onlineMrpPrice != null && currentBatch!.onlineMrpPrice > 0 ? currentBatch.onlineMrpPrice.toStringAsFixed(2) : currentBatch?.mrp.toStringAsFixed(2)}',
                                 style: const TextStyle(
                                   fontSize: 20,
                                   decoration: TextDecoration.lineThrough,
@@ -310,9 +323,12 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                 ),
                               ),
                             const SizedBox(width: 16),
-                            if (currentBatch?.discountPercentage != null &&
-                                currentBatch!.discountPercentage >
-                                    0) // Use discountPercentage from currentBatch
+                            if ((currentBatch?.onlineDiscountPercentage !=
+                                        null &&
+                                    currentBatch!.onlineDiscountPercentage >
+                                        0) ||
+                                (currentBatch?.discountPercentage != null &&
+                                    currentBatch!.discountPercentage > 0))
                               Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 8,
@@ -323,7 +339,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
-                                  '${currentBatch?.discountPercentage.toStringAsFixed(0)}% OFF',
+                                  '${(currentBatch?.onlineDiscountPercentage != null && currentBatch!.onlineDiscountPercentage > 0 ? currentBatch.onlineDiscountPercentage : currentBatch?.discountPercentage)?.toStringAsFixed(0)}% OFF',
                                   style: TextStyle(
                                     fontSize: 14,
                                     color: Colors.green.shade800,

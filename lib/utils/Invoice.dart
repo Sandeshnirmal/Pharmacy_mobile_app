@@ -18,7 +18,13 @@ class _InvoiceOrderItem {
   final int quantity;
   final double unitPrice;
   final double totalPrice;
-  _InvoiceOrderItem({required this.name, this.description, required this.quantity, required this.unitPrice, required this.totalPrice});
+  _InvoiceOrderItem({
+    required this.name,
+    this.description,
+    required this.quantity,
+    required this.unitPrice,
+    required this.totalPrice,
+  });
 }
 
 class _PaymentDetails {
@@ -34,7 +40,14 @@ class _FinancialDetails {
   final double totalPrice;
   final double amountPaid;
   final double balanceDue;
-  _FinancialDetails({required this.subtotal, required this.taxAmount, required this.discountAmount, required this.totalPrice, required this.amountPaid, required this.balanceDue});
+  _FinancialDetails({
+    required this.subtotal,
+    required this.taxAmount,
+    required this.discountAmount,
+    required this.totalPrice,
+    required this.amountPaid,
+    required this.balanceDue,
+  });
 }
 
 class _Invoice {
@@ -46,7 +59,16 @@ class _Invoice {
   final _PaymentDetails? paymentDetails;
   final String? termsAndConditions;
   final _FinancialDetails financial;
-  _Invoice({required this.vendor, required this.invoiceNumber, required this.invoiceDate, required this.paymentDate, required this.items, this.paymentDetails, this.termsAndConditions, required this.financial});
+  _Invoice({
+    required this.vendor,
+    required this.invoiceNumber,
+    required this.invoiceDate,
+    required this.paymentDate,
+    required this.items,
+    this.paymentDetails,
+    this.termsAndConditions,
+    required this.financial,
+  });
 }
 
 // --- Invoice Screen Widget ---
@@ -65,98 +87,125 @@ class InvoiceViewScreen extends StatelessWidget {
   void _handlePrint(BuildContext context) {
     // In a real app, use a package like 'printing' to generate and print a PDF.
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Printing feature would be implemented here.")),
+      const SnackBar(
+        content: Text("Printing feature would be implemented here."),
+      ),
     );
   }
 
-    @override
-    Widget build(BuildContext context) {
-      // --- Data Mapping: Convert your Order object to the Invoice template's data models ---
-  
-      final List<_InvoiceOrderItem> _invoiceItems = order.items.map((item) {
-        double unitPrice = (item.quantity > 0) ? item.totalPrice / item.quantity : 0.0;
-        return _InvoiceOrderItem(
-          name: item.productName,
-          description: null,
-          quantity: item.quantity,
-          unitPrice: unitPrice,
-          totalPrice: item.totalPrice,
-        );
-      }).toList();
-  
-      final double subtotal = _invoiceItems.fold(0.0, (sum, item) => sum + item.totalPrice);
-      final isPaid = order.paymentStatus?.toLowerCase() == 'paid';
-  
-      final _financial = _FinancialDetails(
-        subtotal: subtotal,
-        taxAmount: 0.0,
-        discountAmount: 0.0,
-        totalPrice: order.totalAmount,
-        amountPaid: isPaid ? order.totalAmount : 0.0,
-        balanceDue: isPaid ? 0.0 : order.totalAmount,
+  @override
+  Widget build(BuildContext context) {
+    // --- Data Mapping: Convert your Order object to the Invoice template's data models ---
+
+    final List<_InvoiceOrderItem> _invoiceItems = order.items.map((item) {
+      final int quantity = item.quantity ?? 0;
+      final double totalPrice = item.totalPrice ?? 0.0;
+      double unitPrice = (quantity > 0) ? totalPrice / quantity : 0.0;
+      return _InvoiceOrderItem(
+        name: item.productName ?? 'Unknown Product',
+        description: null,
+        quantity: quantity,
+        unitPrice: unitPrice,
+        totalPrice: totalPrice,
       );
-  
-      final _invoice = _Invoice(
-        vendor: _Vendor(
-          name: "Infixmart",
-          address: "123 Health St, Wellness City, 12345",
-        ),
-        invoiceNumber: "INV-${order.id}",
-        invoiceDate: order.createdAt,
-        paymentDate: order.createdAt,
-        items: _invoiceItems,
-        paymentDetails: _PaymentDetails(
-          paymentMethod: order.paymentMethod ?? "N/A",
-          transactionId: "N/A",
-        ),
-        termsAndConditions: "Payment is due within 30 days. Late payments are subject to a fee.",
-        financial: _financial,
-      );
-  
-      // --- UI Build ---
-      return Scaffold(
-        appBar: AppBar(title: const Text('Invoice Preview')),
-        backgroundColor: Colors.grey[100],
-        body: Column( // Changed to Column to use Expanded
-          children: [
-            Expanded( // Make the main content scrollable and take available space
-              child: SingleChildScrollView(
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24.0, horizontal: 16.0),
-                    child: Container(
-                      constraints: const BoxConstraints(maxWidth: 800),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12.0),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 25,
-                            offset: const Offset(0, 10),
+    }).toList();
+
+    final double subtotal = _invoiceItems.fold(
+      0.0,
+      (sum, item) => sum + item.totalPrice,
+    );
+    final isPaid = order.paymentStatus?.toLowerCase() == 'paid';
+
+    final _financial = _FinancialDetails(
+      subtotal: subtotal,
+      taxAmount: 0.0,
+      discountAmount: 0.0,
+      totalPrice: order.totalAmount,
+      amountPaid: isPaid ? order.totalAmount : 0.0,
+      balanceDue: isPaid ? 0.0 : order.totalAmount,
+    );
+
+    final _invoice = _Invoice(
+      vendor: _Vendor(
+        name: "Infixmart",
+        address: "123 Health St, Wellness City, 12345",
+      ),
+      invoiceNumber: "INV-${order.id}",
+      invoiceDate: order.orderDate, // Use orderDate
+      paymentDate: order.orderDate, // Use orderDate
+      items: _invoiceItems,
+      paymentDetails: _PaymentDetails(
+        paymentMethod: order.paymentMethod ?? "N/A",
+        transactionId: "N/A",
+      ),
+      termsAndConditions:
+          "Payment is due within 30 days. Late payments are subject to a fee.",
+      financial: _financial,
+    );
+
+    // --- UI Build ---
+    return Scaffold(
+      appBar: AppBar(title: const Text('Invoice Preview')),
+      backgroundColor: Colors.grey[100],
+      body: Column(
+        // Changed to Column to use Expanded
+        children: [
+          Expanded(
+            // Make the main content scrollable and take available space
+            child: SingleChildScrollView(
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 24.0,
+                    horizontal: 16.0,
+                  ),
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12.0),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 25,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    child: Stack(
+                      // Removed the inner Column here
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(24.0),
+                          child: _buildInvoiceContent(
+                            _invoice,
+                            user,
+                            order,
+                            isPaid,
+                            context,
                           ),
-                        ],
-                      ),
-                      child: Stack( // Removed the inner Column here
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.all(24.0),
-                            child: _buildInvoiceContent(_invoice, user, order, isPaid, context),
-                          ),
-                          if (isPaid) _buildPaidStamp(),
-                        ],
-                      ),
+                        ),
+                        if (isPaid) _buildPaidStamp(),
+                      ],
                     ),
                   ),
                 ),
               ),
             ),
-            _buildActionBar(context), // This will now be at the bottom
-          ],
-        ),
-      );
-    }
-  Widget _buildInvoiceContent(_Invoice invoice, UserModel user, Order orderData, bool isPaid, BuildContext context) {
+          ),
+          _buildActionBar(context), // This will now be at the bottom
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInvoiceContent(
+    _Invoice invoice,
+    UserModel user,
+    Order orderData,
+    bool isPaid,
+    BuildContext context,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -211,7 +260,11 @@ class InvoiceViewScreen extends StatelessWidget {
           children: [
             Text(
               invoice.vendor.name,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF1F2937)),
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1F2937),
+              ),
             ),
             Text(
               invoice.vendor.address,
@@ -223,11 +276,18 @@ class InvoiceViewScreen extends StatelessWidget {
     );
 
     Widget invoiceTitle = Column(
-      crossAxisAlignment: isMobile ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+      crossAxisAlignment: isMobile
+          ? CrossAxisAlignment.start
+          : CrossAxisAlignment.end,
       children: [
         const Text(
           "INVOICE",
-          style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: Color(0xFF374151), letterSpacing: 1.2),
+          style: TextStyle(
+            fontSize: 30,
+            fontWeight: FontWeight.w900,
+            color: Color(0xFF374151),
+            letterSpacing: 1.2,
+          ),
         ),
         const SizedBox(height: 4),
         Row(
@@ -235,7 +295,11 @@ class InvoiceViewScreen extends StatelessWidget {
           children: [
             const Text(
               "Invoice # ",
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF4B5563)),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF4B5563),
+              ),
             ),
             Text(
               invoice.invoiceNumber,
@@ -250,75 +314,115 @@ class InvoiceViewScreen extends StatelessWidget {
       children: [
         isMobile
             ? Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            vendorInfo,
-            const SizedBox(height: 24),
-            invoiceTitle,
-          ],
-        )
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  vendorInfo,
+                  const SizedBox(height: 24),
+                  invoiceTitle,
+                ],
+              )
             : Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            vendorInfo,
-            invoiceTitle,
-          ],
-        ),
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [vendorInfo, invoiceTitle],
+              ),
         const SizedBox(height: 32),
         const Divider(),
       ],
     );
   }
 
-  Widget _buildBillToAndDates(_Invoice invoice, UserModel user, Order orderData, BuildContext context) {
+  Widget _buildBillToAndDates(
+    _Invoice invoice,
+    UserModel user,
+    Order orderData,
+    BuildContext context,
+  ) {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     Widget billToSection = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text("Bill To:", style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF374151))),
+        const Text(
+          "Bill To:",
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF374151),
+          ),
+        ),
         const SizedBox(height: 8),
-        Text("${user.firstName} ${user.lastName}", style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF1F2937))),
-        Text(orderData.shippingAddress?.fullAddress ?? (user.addresses?.isNotEmpty == true ? user.addresses!.first.fullAddress : 'N/A'), style: const TextStyle(fontSize: 12, color: Color(0xFF4B5563))),
-        Text(user.email, style: const TextStyle(fontSize: 12, color: Color(0xFF4B5563))),
-        Text(user.phoneNumber ?? "N/A", style: const TextStyle(fontSize: 12, color: Color(0xFF4B5563))),
+        Text(
+          "${user.firstName} ${user.lastName}",
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF1F2937),
+          ),
+        ),
+        Text(
+          _formatDeliveryAddress(orderData.deliveryAddress) ??
+              (user.addresses?.isNotEmpty == true
+                  ? user.addresses!.first.fullAddress
+                  : 'N/A'),
+          style: const TextStyle(fontSize: 12, color: Color(0xFF4B5563)),
+        ),
+        Text(
+          user.email,
+          style: const TextStyle(fontSize: 12, color: Color(0xFF4B5563)),
+        ),
+        Text(
+          user.phoneNumber ?? "N/A",
+          style: const TextStyle(fontSize: 12, color: Color(0xFF4B5563)),
+        ),
       ],
     );
 
     Widget datesSection = Column(
-      crossAxisAlignment: isMobile ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+      crossAxisAlignment: isMobile
+          ? CrossAxisAlignment.start
+          : CrossAxisAlignment.end,
       children: [
-        _buildDateRow("Invoice Date:", _displayFormatDate(invoice.invoiceDate), isMobile: isMobile),
+        _buildDateRow(
+          "Invoice Date:",
+          _displayFormatDate(invoice.invoiceDate),
+          isMobile: isMobile,
+        ),
         const SizedBox(height: 4),
-        _buildDateRow("Payment Date:", _displayFormatDate(invoice.paymentDate), isMobile: isMobile),
+        _buildDateRow(
+          "Payment Date:",
+          _displayFormatDate(invoice.paymentDate),
+          isMobile: isMobile,
+        ),
       ],
     );
 
     return isMobile
         ? Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        billToSection,
-        const SizedBox(height: 24),
-        datesSection,
-      ],
-    )
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [billToSection, const SizedBox(height: 24), datesSection],
+          )
         : Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(child: billToSection),
-        const SizedBox(width: 32),
-        Expanded(child: datesSection),
-      ],
-    );
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: billToSection),
+              const SizedBox(width: 32),
+              Expanded(child: datesSection),
+            ],
+          );
   }
 
   Widget _buildDateRow(String title, String value, {required bool isMobile}) {
     return Row(
-      mainAxisAlignment: isMobile ? MainAxisAlignment.start : MainAxisAlignment.end,
+      mainAxisAlignment: isMobile
+          ? MainAxisAlignment.start
+          : MainAxisAlignment.end,
       children: [
-        Text(title, style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF374151))),
+        Text(
+          title,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF374151),
+          ),
+        ),
         const SizedBox(width: 12),
         Text(value, style: const TextStyle(color: Color(0xFF1F2937))),
       ],
@@ -333,85 +437,224 @@ class InvoiceViewScreen extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           child: Row(
             children: [
-              const Expanded(flex: 4, child: Text("Description", style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF4B5563)))),
-              const Expanded(flex: 1, child: Center(child: Text("Qty", style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF4B5563))))),
-              Expanded(flex: 2, child: Align(alignment: Alignment.centerRight, child: Text("Price", style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF4B5563))))),
-              Expanded(flex: 2, child: Align(alignment: Alignment.centerRight, child: Text("Total", style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF4B5563))))),
+              const Expanded(
+                flex: 4,
+                child: Text(
+                  "Description",
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF4B5563),
+                  ),
+                ),
+              ),
+              const Expanded(
+                flex: 1,
+                child: Center(
+                  child: Text(
+                    "Qty",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF4B5563),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    "Price",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF4B5563),
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(
+                    "Total",
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF4B5563),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
-        ...invoice.items.map((item) => Container(
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-          decoration: BoxDecoration(
-              border: Border(bottom: BorderSide(color: Colors.grey[100]!))
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 4,
-                child: Column(
+        ...invoice.items
+            .map(
+              (item) => Container(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 12,
+                ),
+                decoration: BoxDecoration(
+                  border: Border(bottom: BorderSide(color: Colors.grey[100]!)),
+                ),
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(item.name, style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF1F2937))),
-                    if (item.description != null)
-                      Text(item.description!, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                    Expanded(
+                      flex: 4,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1F2937),
+                            ),
+                          ),
+                          if (item.description != null)
+                            Text(
+                              item.description!,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      flex: 1,
+                      child: Center(child: Text(item.quantity.toString())),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Text("₹${item.unitPrice.toStringAsFixed(2)}"),
+                      ),
+                    ),
+                    Expanded(
+                      flex: 2,
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: Text(
+                          "₹${item.totalPrice.toStringAsFixed(2)}",
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF1F2937),
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
-              Expanded(flex: 1, child: Center(child: Text(item.quantity.toString()))),
-              Expanded(flex: 2, child: Align(alignment: Alignment.centerRight, child: Text("₹${item.unitPrice.toStringAsFixed(2)}"))),
-              Expanded(flex: 2, child: Align(alignment: Alignment.centerRight, child: Text("₹${item.totalPrice.toStringAsFixed(2)}", style: const TextStyle(fontWeight: FontWeight.w500, color: Color(0xFF1F2937))))),
-            ],
-          ),
-        )).toList(),
+            )
+            .toList(),
       ],
     );
   }
 
-  Widget _buildSummaryAndTotals(_Invoice invoice, bool isPaid, BuildContext context) {
+  Widget _buildSummaryAndTotals(
+    _Invoice invoice,
+    bool isPaid,
+    BuildContext context,
+  ) {
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     Widget detailsSection = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (invoice.paymentDetails != null) ...[
-          const Text("Payment Summary:", style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF374151))),
+          const Text(
+            "Payment Summary:",
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF374151),
+            ),
+          ),
           const SizedBox(height: 8),
-          Text("Payment Method: ${invoice.paymentDetails!.paymentMethod}", style: const TextStyle(fontSize: 12, color: Color(0xFF4B5563))),
-          Text("Transaction ID: ${invoice.paymentDetails!.transactionId}", style: const TextStyle(fontSize: 12, color: Color(0xFF4B5563))),
+          Text(
+            "Payment Method: ${invoice.paymentDetails!.paymentMethod}",
+            style: const TextStyle(fontSize: 12, color: Color(0xFF4B5563)),
+          ),
+          Text(
+            "Transaction ID: ${invoice.paymentDetails!.transactionId}",
+            style: const TextStyle(fontSize: 12, color: Color(0xFF4B5563)),
+          ),
         ],
         if (invoice.termsAndConditions != null) ...[
           const SizedBox(height: 24),
-          const Text("Terms & Conditions:", style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF374151))),
+          const Text(
+            "Terms & Conditions:",
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF374151),
+            ),
+          ),
           const SizedBox(height: 8),
-          Text(invoice.termsAndConditions!, style: const TextStyle(fontSize: 12, color: Color(0xFF4B5563))),
+          Text(
+            invoice.termsAndConditions!,
+            style: const TextStyle(fontSize: 12, color: Color(0xFF4B5563)),
+          ),
         ],
       ],
     );
 
     Widget totalsSection = Column(
-      crossAxisAlignment: isMobile ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+      crossAxisAlignment: isMobile
+          ? CrossAxisAlignment.start
+          : CrossAxisAlignment.end,
       children: [
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 280),
           child: Column(
             children: [
-              _buildTotalRow("Subtotal:", "₹${invoice.financial.subtotal.toStringAsFixed(2)}"),
-              _buildTotalRow("Tax:", "₹${invoice.financial.taxAmount.toStringAsFixed(2)}"),
-              _buildTotalRow("Discount:", "- ₹${invoice.financial.discountAmount.toStringAsFixed(2)}", valueColor: Colors.red),
+              _buildTotalRow(
+                "Subtotal:",
+                "₹${invoice.financial.subtotal.toStringAsFixed(2)}",
+              ),
+              _buildTotalRow(
+                "Tax:",
+                "₹${invoice.financial.taxAmount.toStringAsFixed(2)}",
+              ),
+              _buildTotalRow(
+                "Discount:",
+                "- ₹${invoice.financial.discountAmount.toStringAsFixed(2)}",
+                valueColor: Colors.red,
+              ),
               const Divider(height: 16),
-              _buildTotalRow("Total Amount:", "₹${invoice.financial.totalPrice.toStringAsFixed(2)}", isBold: true, fontSize: 18),
-              if(isPaid) ...[
-                _buildTotalRow("Amount Paid:", "- ₹${invoice.financial.amountPaid.toStringAsFixed(2)}", valueColor: Colors.green.shade700),
+              _buildTotalRow(
+                "Total Amount:",
+                "₹${invoice.financial.totalPrice.toStringAsFixed(2)}",
+                isBold: true,
+                fontSize: 18,
+              ),
+              if (isPaid) ...[
+                _buildTotalRow(
+                  "Amount Paid:",
+                  "- ₹${invoice.financial.amountPaid.toStringAsFixed(2)}",
+                  valueColor: Colors.green.shade700,
+                ),
                 Container(
                   margin: const EdgeInsets.only(top: 8),
-                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                    horizontal: 16,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.green.shade50,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: _buildTotalRow("Balance Due:", "₹${invoice.financial.balanceDue.toStringAsFixed(2)}", isBold: true, fontSize: 18, valueColor: Colors.green.shade700),
+                  child: _buildTotalRow(
+                    "Balance Due:",
+                    "₹${invoice.financial.balanceDue.toStringAsFixed(2)}",
+                    isBold: true,
+                    fontSize: 18,
+                    valueColor: Colors.green.shade700,
+                  ),
                 ),
               ],
             ],
@@ -422,23 +665,29 @@ class InvoiceViewScreen extends StatelessWidget {
 
     return isMobile
         ? Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        detailsSection,
-        const SizedBox(height: 32),
-        totalsSection,
-      ],
-    )
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              detailsSection,
+              const SizedBox(height: 32),
+              totalsSection,
+            ],
+          )
         : Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Expanded(flex: 1, child: detailsSection),
-        Expanded(flex: 1, child: totalsSection),
-      ],
-    );
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(flex: 1, child: detailsSection),
+              Expanded(flex: 1, child: totalsSection),
+            ],
+          );
   }
 
-  Widget _buildTotalRow(String title, String value, {bool isBold = false, double fontSize = 14, Color? valueColor}) {
+  Widget _buildTotalRow(
+    String title,
+    String value, {
+    bool isBold = false,
+    double fontSize = 14,
+    Color? valueColor,
+  }) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
@@ -478,8 +727,14 @@ class InvoiceViewScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text("Thank you for your business.", style: TextStyle(fontSize: 12, color: Colors.grey)),
-                  Text("This is a computer-generated invoice.", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                  Text(
+                    "Thank you for your business.",
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  Text(
+                    "This is a computer-generated invoice.",
+                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
                 ],
               ),
             ),
@@ -490,11 +745,18 @@ class InvoiceViewScreen extends StatelessWidget {
                   Container(
                     height: 48,
                     decoration: const BoxDecoration(
-                        border: Border(bottom: BorderSide(color: Colors.grey))
+                      border: Border(bottom: BorderSide(color: Colors.grey)),
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text("Authorised Signature", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Color(0xFF374151))),
+                  const Text(
+                    "Authorised Signature",
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF374151),
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -504,16 +766,36 @@ class InvoiceViewScreen extends StatelessWidget {
     );
   }
 
+  String? _formatDeliveryAddress(Map<String, dynamic>? address) {
+    if (address == null || address.isEmpty) return null;
+    final addressLine1 = address['address_line1'] ?? '';
+    final addressLine2 = address['address_line2'] ?? '';
+    final city = address['city'] ?? '';
+    final state = address['state'] ?? '';
+    final pincode = address['pincode'] ?? '';
+    final country = address['country'] ?? '';
+
+    final parts = [
+      addressLine1,
+      if (addressLine2.isNotEmpty) addressLine2,
+      city,
+      state,
+      pincode,
+      country,
+    ];
+    return parts.where((s) => s.isNotEmpty).join(', ');
+  }
+
   Widget _buildActionBar(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-          color: Colors.grey[50],
-          borderRadius: const BorderRadius.only(
-            bottomLeft: Radius.circular(12.0),
-            bottomRight: Radius.circular(12.0),
-          ),
-          border: Border(top: BorderSide(color: Colors.grey[200]!))
+        color: Colors.grey[50],
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(12.0),
+          bottomRight: Radius.circular(12.0),
+        ),
+        border: Border(top: BorderSide(color: Colors.grey[200]!)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.end,
@@ -528,7 +810,10 @@ class InvoiceViewScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8.0),
               ),
             ),
-            child: const Text("Print Invoice", style: TextStyle(fontWeight: FontWeight.w600)),
+            child: const Text(
+              "Print Invoice",
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
           ),
         ],
       ),

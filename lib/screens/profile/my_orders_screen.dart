@@ -116,10 +116,14 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
     // Apply sorting
     switch (_selectedFilter) {
       case 'recent':
-        filteredOrders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+        filteredOrders.sort(
+          (a, b) => b.orderDate.compareTo(a.orderDate),
+        ); // Use orderDate
         break;
       case 'oldest':
-        filteredOrders.sort((a, b) => a.createdAt.compareTo(b.createdAt));
+        filteredOrders.sort(
+          (a, b) => a.orderDate.compareTo(b.orderDate),
+        ); // Use orderDate
         break;
       case 'amount_high':
         filteredOrders.sort((a, b) => b.totalAmount.compareTo(a.totalAmount));
@@ -212,7 +216,7 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
 
               // Order Date
               Text(
-                'Ordered on ${DateFormat('MMM dd, yyyy').format(order.createdAt)}',
+                'Ordered on ${DateFormat('MMM dd, yyyy').format(order.orderDate)}', // Use orderDate
                 style: TextStyle(fontSize: 12, color: Colors.grey[600]),
               ),
 
@@ -231,7 +235,9 @@ class _MyOrdersScreenState extends State<MyOrdersScreen>
                 Text(
                   order.items
                           .take(2)
-                          .map((item) => item.productName)
+                          .map(
+                            (item) => item.productName ?? 'Unknown Product',
+                          ) // Add null check
                           .join(', ') +
                       (order.items.length > 2 ? '...' : ''),
                   style: TextStyle(fontSize: 12, color: Colors.grey[600]),

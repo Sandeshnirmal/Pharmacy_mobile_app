@@ -7,20 +7,15 @@ import '../../models/order.dart';
 import 'dart:io'; // For File operations
 import 'package:path_provider/path_provider.dart'; // For getting local directory
 import 'package:open_filex/open_filex.dart'; // For opening files
-import '../../models/order_model.dart';
 import 'order_tracking_screen.dart';
 import '../../services/api_service.dart'; // Import ApiService
 import 'package:pharmacy/providers/auth_provider.dart';
 import 'package:pharmacy/utils/Invoice.dart';
 
-
 class OrderDetailScreen extends StatefulWidget {
   final int orderId;
 
-  const OrderDetailScreen({
-    super.key,
-    required this.orderId,
-  });
+  const OrderDetailScreen({super.key, required this.orderId});
 
   @override
   State<OrderDetailScreen> createState() => _OrderDetailScreenState();
@@ -50,7 +45,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final user = authProvider.user;
-    print('User object in OrderDetailScreen: $user'); // Add this line to check the user object
+    print(
+      'User object in OrderDetailScreen: $user',
+    ); // Add this line to check the user object
     return Scaffold(
       appBar: AppBar(
         title: Text(_order != null ? 'Order #${_order!.id}' : 'Order Details'),
@@ -63,17 +60,22 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               tooltip: 'View Invoice',
               onPressed: () {
                 if (user == null) {
-                  Fluttertoast.showToast(msg: 'Could not retrieve user details for invoice.');
+                  Fluttertoast.showToast(
+                    msg: 'Could not retrieve user details for invoice.',
+                  );
                   return;
                 }
                 if (_order == null) {
-                  Fluttertoast.showToast(msg: 'Could not retrieve order details for invoice.');
+                  Fluttertoast.showToast(
+                    msg: 'Could not retrieve order details for invoice.',
+                  );
                   return;
                 }
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => InvoiceViewScreen(order: _order!, user: user),
+                    builder: (context) =>
+                        InvoiceViewScreen(order: _order!, user: user),
                   ),
                 );
               },
@@ -91,18 +93,24 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => OrderTrackingScreen(
-                      order: OrderModel(
+                      order: Order(
                         id: _order!.id,
-                        orderNumber: _order!.id.toString(),
-                        orderDate: _order!.createdAt,
+                        orderNumber: _order!.orderNumber, // Use orderNumber
+                        orderDate: _order!.orderDate, // Use orderDate
                         status: _order!.status,
-                        statusDisplayName: _order!.status,
+                        statusDisplayName:
+                            _order!.statusDisplayName, // Use statusDisplayName
                         totalAmount: _order!.totalAmount,
                         totalItems: _order!.items.length,
                         paymentStatus: _order!.paymentStatus ?? 'Unknown',
                         paymentMethod: _order!.paymentMethod ?? 'Unknown',
                         items: [],
-                        shippingAddress: null,
+                        deliveryAddress:
+                            _order!.deliveryAddress, // Use new field
+                        isPrescriptionOrder:
+                            _order!.isPrescriptionOrder, // New required field
+                        prescriptionId:
+                            _order!.prescriptionId, // New optional field
                       ),
                     ),
                   ),
@@ -123,63 +131,58 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         ],
       ),
       body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: Colors.teal),
-            )
+          ? const Center(child: CircularProgressIndicator(color: Colors.teal))
           : _order == null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.error_outline,
-                        size: 64,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'Order not found',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Go Back'),
-                      ),
-                    ],
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Order not found',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                )
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Order Status Card
-                      _buildOrderStatusCard(),
-
-                      const SizedBox(height: 16),
-
-                      // Order Items
-                      _buildOrderItemsCard(),
-
-                      const SizedBox(height: 16),
-
-                      // Delivery Information
-                      if (_order!.shippingAddress != null)
-                        _buildDeliveryInfoCard(),
-
-                      const SizedBox(height: 16),
-
-                      // Payment Information
-                      _buildPaymentInfoCard(),
-
-                      const SizedBox(height: 16),
-
-                      // Order Summary
-                      _buildOrderSummaryCard(),
-                    ],
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Go Back'),
                   ),
-                ),
+                ],
+              ),
+            )
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Order Status Card
+                  _buildOrderStatusCard(),
+
+                  const SizedBox(height: 16),
+
+                  // Order Items
+                  _buildOrderItemsCard(),
+
+                  const SizedBox(height: 16),
+
+                  // Delivery Information
+                  if (_order!.deliveryAddress != null &&
+                      _order!.deliveryAddress!.isNotEmpty)
+                    _buildDeliveryInfoCard(),
+
+                  const SizedBox(height: 16),
+
+                  // Payment Information
+                  _buildPaymentInfoCard(),
+
+                  const SizedBox(height: 16),
+
+                  // Order Summary
+                  _buildOrderSummaryCard(),
+                ],
+              ),
+            ),
     );
   }
 
@@ -196,13 +199,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               children: [
                 const Text(
                   'Order Status',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: _getStatusColor(_order!.status),
                     borderRadius: BorderRadius.circular(20),
@@ -221,12 +224,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
             const SizedBox(height: 16),
 
-            _buildInfoRow('Order Date', _formatDate(_order!.createdAt)),
+            _buildInfoRow('Order Date', _formatDate(_order!.orderDate)),
             if (_order!.estimatedDelivery != null)
-              _buildInfoRow('Estimated Delivery', _formatDate(_order!.estimatedDelivery!)),
+              _buildInfoRow(
+                'Estimated Delivery',
+                _formatDate(_order!.estimatedDelivery!),
+              ),
             if (_order!.trackingNumber != null)
               _buildInfoRow('Tracking Number', _order!.trackingNumber!),
-            if (_order!.notes?.contains('prescription') == true)
+            if (_order!.isPrescriptionOrder) // Use new field
               _buildInfoRow('Prescription Order', 'Yes'),
           ],
         ),
@@ -244,10 +250,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           children: [
             Text(
               'Order Items (${_order!.totalItems})',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
 
             const SizedBox(height: 16),
@@ -289,10 +292,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                       ),
                     ),
                   )
-                : const Icon(
-                    Icons.medical_services,
-                    color: Colors.grey,
-                  ),
+                : const Icon(Icons.medical_services, color: Colors.grey),
           ),
 
           const SizedBox(width: 12),
@@ -316,10 +316,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
                 Text(
                   'Qty: ${item.quantity}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                 ),
 
                 const SizedBox(height: 8),
@@ -362,10 +359,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           children: [
             const Text(
               'Delivery Information',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
 
             const SizedBox(height: 16),
@@ -381,14 +375,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 children: [
                   const Text(
                     'Delivery Address',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    _order!.shippingAddress!.fullAddress,
+                    _formatDeliveryAddress(
+                      _order!.deliveryAddress!,
+                    ), // Format from Map
                     style: const TextStyle(fontSize: 14),
                   ),
                 ],
@@ -398,6 +391,25 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         ),
       ),
     );
+  }
+
+  String _formatDeliveryAddress(Map<String, dynamic> address) {
+    final addressLine1 = address['address_line1'] ?? '';
+    final addressLine2 = address['address_line2'] ?? '';
+    final city = address['city'] ?? '';
+    final state = address['state'] ?? '';
+    final pincode = address['pincode'] ?? '';
+    final country = address['country'] ?? '';
+
+    final parts = [
+      addressLine1,
+      if (addressLine2.isNotEmpty) addressLine2,
+      city,
+      state,
+      pincode,
+      country,
+    ];
+    return parts.where((s) => s.isNotEmpty).join(', ');
   }
 
   Widget _buildPaymentInfoCard() {
@@ -410,15 +422,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           children: [
             const Text(
               'Payment Information',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
 
             const SizedBox(height: 16),
 
-            _buildInfoRow('Payment Method', _order!.paymentMethod ?? 'Not specified'),
+            _buildInfoRow(
+              'Payment Method',
+              _order!.paymentMethod ?? 'Not specified',
+            ),
             if (_order!.paymentStatus != null)
               _buildInfoRow('Payment Status', _order!.paymentStatus!),
           ],
@@ -437,10 +449,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           children: [
             const Text(
               'Order Summary',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
 
             const SizedBox(height: 16),
@@ -463,19 +472,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             width: 120,
             child: Text(
               '$label:',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
           ),
         ],
@@ -485,13 +488,19 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   List<Widget> _buildOrderSummaryRows() {
     // Calculate subtotal, shipping, etc.
-    double subtotal = _order!.items.fold(0.0, (sum, item) => sum + item.totalPrice);
+    double subtotal = _order!.items.fold(
+      0.0,
+      (sum, item) => sum + item.totalPrice,
+    );
     double shipping = subtotal >= 500 ? 0.0 : 50.0;
     double discount = subtotal >= 1000 ? subtotal * 0.1 : 0.0;
 
     return [
       _buildSummaryRow('Subtotal', '₹${subtotal.toStringAsFixed(2)}'),
-      _buildSummaryRow('Shipping', shipping == 0 ? 'Free' : '₹${shipping.toStringAsFixed(2)}'),
+      _buildSummaryRow(
+        'Shipping',
+        shipping == 0 ? 'Free' : '₹${shipping.toStringAsFixed(2)}',
+      ),
       if (discount > 0)
         _buildSummaryRow('Discount', '-₹${discount.toStringAsFixed(2)}'),
 

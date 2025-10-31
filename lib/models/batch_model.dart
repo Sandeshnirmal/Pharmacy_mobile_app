@@ -9,6 +9,9 @@ class BatchModel {
   final double sellingPrice;
   final double mrp; // Added MRP
   final double discountPercentage; // Added Discount Percentage
+  final double onlineMrpPrice; // Added online_mrp_price
+  final double onlineDiscountPercentage; // Added online_discount_percentage
+  final double onlineSellingPrice; // Added online_selling_price
   final String? mfgLicenseNumber;
 
   BatchModel({
@@ -22,6 +25,9 @@ class BatchModel {
     required this.sellingPrice,
     required this.mrp, // Added MRP
     required this.discountPercentage, // Added Discount Percentage
+    required this.onlineMrpPrice, // Added online_mrp_price
+    required this.onlineDiscountPercentage, // Added online_discount_percentage
+    required this.onlineSellingPrice, // Added online_selling_price
     this.mfgLicenseNumber,
   });
 
@@ -40,10 +46,22 @@ class BatchModel {
       sellingPrice:
           double.tryParse(json['selling_price']?.toString() ?? '0.0') ?? 0.0,
       mrp:
-          double.tryParse(json['mrp']?.toString() ?? '0.0') ?? 0.0, // Parse MRP
+          double.tryParse(json['mrp_price']?.toString() ?? '0.0') ??
+          0.0, // Parse MRP from mrp_price
       discountPercentage:
           double.tryParse(json['discount_percentage']?.toString() ?? '0.0') ??
           0.0, // Parse Discount Percentage
+      onlineMrpPrice:
+          double.tryParse(json['online_mrp_price']?.toString() ?? '0.0') ??
+          0.0, // Parse online_mrp_price
+      onlineDiscountPercentage:
+          double.tryParse(
+            json['online_discount_percentage']?.toString() ?? '0.0',
+          ) ??
+          0.0, // Parse online_discount_percentage
+      onlineSellingPrice:
+          double.tryParse(json['online_selling_price']?.toString() ?? '0.0') ??
+          0.0, // Parse online_selling_price
       mfgLicenseNumber: json['mfg_license_number']?.toString(),
     );
   }
@@ -60,6 +78,11 @@ class BatchModel {
       'selling_price': sellingPrice,
       'mrp': mrp, // Include MRP
       'discount_percentage': discountPercentage, // Include Discount Percentage
+      'online_mrp_price': onlineMrpPrice, // Include online_mrp_price
+      'online_discount_percentage':
+          onlineDiscountPercentage, // Include online_discount_percentage
+      'online_selling_price':
+          onlineSellingPrice, // Include online_selling_price
       'mfg_license_number': mfgLicenseNumber,
     };
   }

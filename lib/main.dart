@@ -139,14 +139,11 @@ class _SplashScreenState extends State<SplashScreen> {
     await authProvider.checkAuthStatus();
 
     if (mounted) {
-      // Navigate based on authentication status
+      // Always navigate to PharmacyHomePage initially, allowing exploration without login.
+      // Authentication will be handled for specific actions like checkout.
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (context) => authProvider.isAuthenticated
-              ? const PharmacyHomePage()
-              : const LoginScreen(),
-        ),
+        MaterialPageRoute(builder: (context) => const PharmacyHomePage()),
       );
     }
   }
@@ -1290,7 +1287,17 @@ class ProductCard extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                              '₹${product.currentBatch?.sellingPrice.toStringAsFixed(2) ?? product.currentSellingPrice.toStringAsFixed(2)}',
+                              product.currentBatch?.onlineSellingPrice !=
+                                          null &&
+                                      product.currentBatch!.onlineSellingPrice >
+                                          0
+                                  ? '₹${product.currentBatch!.onlineSellingPrice.toStringAsFixed(2)}'
+                                  : (product.currentBatch?.sellingPrice !=
+                                                null &&
+                                            product.currentBatch!.sellingPrice >
+                                                0
+                                        ? '₹${product.currentBatch!.sellingPrice.toStringAsFixed(2)}'
+                                        : '₹${product.currentSellingPrice.toStringAsFixed(2)}'),
                               style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
@@ -1298,11 +1305,44 @@ class ProductCard extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            if (product.currentBatch?.mrp != null &&
-                                product.currentBatch!.mrp >
-                                    product.currentBatch!.sellingPrice)
+                            if ((product.currentBatch?.onlineMrpPrice != null &&
+                                    product.currentBatch!.onlineMrpPrice >
+                                        (product
+                                                    .currentBatch!
+                                                    .onlineSellingPrice >
+                                                0
+                                            ? product
+                                                  .currentBatch!
+                                                  .onlineSellingPrice
+                                            : (product
+                                                          .currentBatch!
+                                                          .sellingPrice >
+                                                      0
+                                                  ? product
+                                                        .currentBatch!
+                                                        .sellingPrice
+                                                  : product
+                                                        .currentSellingPrice))) ||
+                                (product.currentBatch?.mrp != null &&
+                                    product.currentBatch!.mrp >
+                                        (product
+                                                    .currentBatch!
+                                                    .onlineSellingPrice >
+                                                0
+                                            ? product
+                                                  .currentBatch!
+                                                  .onlineSellingPrice
+                                            : (product
+                                                          .currentBatch!
+                                                          .sellingPrice >
+                                                      0
+                                                  ? product
+                                                        .currentBatch!
+                                                        .sellingPrice
+                                                  : product
+                                                        .currentSellingPrice))))
                               Text(
-                                '₹${product.currentBatch?.mrp.toStringAsFixed(2)}',
+                                '₹${product.currentBatch?.onlineMrpPrice != null && product.currentBatch!.onlineMrpPrice > 0 ? product.currentBatch!.onlineMrpPrice.toStringAsFixed(2) : product.currentBatch?.mrp.toStringAsFixed(2)}',
                                 style: const TextStyle(
                                   decoration: TextDecoration.lineThrough,
                                   color: Colors.grey,
@@ -1312,10 +1352,14 @@ class ProductCard extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 4),
-                        if (product.currentBatch?.discountPercentage != null &&
-                            product.currentBatch!.discountPercentage > 0)
+                        if ((product.currentBatch?.onlineDiscountPercentage !=
+                                    null &&
+                                product.currentBatch!.onlineDiscountPercentage >
+                                    0) ||
+                            (product.currentBatch?.discountPercentage != null &&
+                                product.currentBatch!.discountPercentage > 0))
                           Text(
-                            '${product.currentBatch?.discountPercentage.toStringAsFixed(0)}% off',
+                            '${(product.currentBatch?.onlineDiscountPercentage != null && product.currentBatch!.onlineDiscountPercentage > 0 ? product.currentBatch!.onlineDiscountPercentage : product.currentBatch?.discountPercentage)?.toStringAsFixed(0)}% off',
                             style: const TextStyle(
                               color: Colors.green,
                               fontWeight: FontWeight.bold,

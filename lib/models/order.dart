@@ -1,200 +1,117 @@
+// Order Model for Enhanced Order Management
 class Order {
   final int id;
+  final String orderNumber;
+  final DateTime orderDate;
   final String status;
-  final DateTime createdAt;
-  final DateTime? updatedAt;
+  final String statusDisplayName;
   final double totalAmount;
-  final double? discountAmount;
-  final double? taxAmount;
-  final double? shippingAmount;
-  final String? paymentMethod;
-  final String? paymentStatus;
+  final int totalItems;
+  final String paymentStatus;
+  final String paymentMethod;
   final List<OrderItem> items;
-  final Address? shippingAddress;
-  final Address? billingAddress;
+  final Map<String, dynamic>? deliveryAddress; // Changed to Map for JSONField
+  final bool isPrescriptionOrder; // New field
+  final int? prescriptionId; // New field
   final String? notes;
   final String? trackingNumber;
   final DateTime? estimatedDelivery;
-  final int userId;
 
   Order({
     required this.id,
+    required this.orderNumber,
+    required this.orderDate,
     required this.status,
-    required this.createdAt,
-    this.updatedAt,
+    required this.statusDisplayName,
     required this.totalAmount,
-    this.discountAmount,
-    this.taxAmount,
-    this.shippingAmount,
-    this.paymentMethod,
-    this.paymentStatus,
+    required this.totalItems,
+    required this.paymentStatus,
+    required this.paymentMethod,
     required this.items,
-    this.shippingAddress,
-    this.billingAddress,
+    this.deliveryAddress, // Updated field
+    required this.isPrescriptionOrder, // New field
+    this.prescriptionId, // New field
     this.notes,
     this.trackingNumber,
     this.estimatedDelivery,
-    required this.userId,
   });
 
   factory Order.fromJson(Map<String, dynamic> json) {
-    // Handle potential 'order_status' from Django
-    // Handle potential 'order_status' from Django
-    String? rawOrderStatus = json['order_status'] as String?;
-    String? rawStatus = json['status'] as String?;
+    print(
+      'Order.fromJson: Raw JSON for ID ${json['id']}: ${json.toString()}',
+    ); // Added for extreme debugging
+    print(
+      'Order.fromJson: Value of json[\'order_status\'] for ID ${json['id']}: ${json['order_status']}',
+    ); // Added for extreme debugging
 
-    String orderStatus = (rawOrderStatus ?? rawStatus)?.trim() ?? 'pending';
+    String orderStatus;
+    dynamic rawOrderStatus = json['order_status'];
+    dynamic rawStatus = json['status'];
 
-    // Ensure status is never empty, even if it was an empty string from JSON
-    if (orderStatus.isEmpty) {
+    if (rawOrderStatus is String && rawOrderStatus.trim().isNotEmpty) {
+      orderStatus = rawOrderStatus.trim().toLowerCase();
+    } else if (rawStatus is String && rawStatus.trim().isNotEmpty) {
+      orderStatus = rawStatus.trim().toLowerCase();
+    } else {
       orderStatus = 'pending';
     }
-    // Handle potential 'order_date' from Django
-    DateTime orderCreatedAt = json['created_at'] != null
-        ? DateTime.parse(json['created_at'])
-        : (json['order_date'] != null
-              ? DateTime.parse(json['order_date'])
-              : DateTime.now());
 
-    // Handle delivery_address as shippingAddress
-    Address? shippingAddress;
-    if (json['delivery_address'] != null && json['delivery_address'] is Map) {
-      // Create a dummy ID for the address if not provided by Django's JSONField
-      // This is a workaround as Django's JSONField for address doesn't have an ID
-      final Map<String, dynamic> addressJson = Map<String, dynamic>.from(
-        json['delivery_address'],
-      );
-      addressJson['id'] = 0; // Assign a dummy ID
-      addressJson['created_at'] = orderCreatedAt
-          .toIso8601String(); // Use order creation date
-      addressJson['updated_at'] = orderCreatedAt
-          .toIso8601String(); // Use order creation date
-      addressJson['type'] = 'delivery'; // Default type
-      addressJson['street'] =
-          addressJson['address_line_1'] ?? ''; // Map address_line_1 to street
-      addressJson['pincode'] =
-          addressJson['pincode']?.toString() ?? ''; // Ensure pincode is string
-      shippingAddress = Address.fromJson(addressJson);
-    } else if (json['address'] != null && json['address'] is Map) {
-      // If Django sends a nested Address object (less likely with current serializer)
-      shippingAddress = Address.fromJson(json['address']);
-    }
+    print(
+      'Order.fromJson: Final determined status for ID ${json['id']}: $orderStatus',
+    ); // Added for extreme debugging
 
     return Order(
       id: json['id'] ?? 0,
+      orderNumber: json['order_number'] ?? json['id']?.toString() ?? '0',
+      orderDate: json['order_date'] != null
+          ? DateTime.parse(json['order_date'])
+          : DateTime.now(),
       status: orderStatus,
-      createdAt: orderCreatedAt,
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'])
-          : null,
+      statusDisplayName: _getStatusDisplayName(
+        orderStatus,
+      ), // Use the parsed status
       totalAmount: _parseDouble(json['total_amount']),
-      discountAmount: _parseDouble(json['discount_amount']),
-      taxAmount: _parseDouble(
-        json['tax_amount'],
-      ), // Django doesn't provide this directly
-      shippingAmount: _parseDouble(
-        json['shipping_fee'],
-      ), // Map shipping_fee to shippingAmount
-      paymentMethod: json['payment_method'],
-      paymentStatus: json['payment_status'],
-      items: json['items'] != null
-          ? (json['items'] as List)
-                .map((item) => OrderItem.fromJson(item))
-                .toList()
-          : [],
-      shippingAddress: shippingAddress,
-      billingAddress: null, // Django doesn't provide this directly
+      totalItems:
+          _parseInt(json['total_items']) ??
+          _calculateItemsFromList(json['items']),
+      paymentStatus: json['payment_status'] ?? 'pending',
+      paymentMethod: json['payment_method'] ?? 'unknown',
+      items: _parseItems(json['items']),
+      deliveryAddress:
+          json['delivery_address']
+              as Map<String, dynamic>?, // Map delivery_address JSONField
+      isPrescriptionOrder: json['is_prescription_order'] ?? false,
+      prescriptionId: json['prescription_id'] as int?,
       notes: json['notes'],
       trackingNumber: json['tracking_number'],
-      estimatedDelivery: json['expected_delivery_date'] != null
-          ? DateTime.parse(json['expected_delivery_date'])
+      estimatedDelivery: json['estimated_delivery_date'] != null
+          ? DateTime.parse(json['estimated_delivery_date'])
           : null,
-      userId: json['user'] ?? 0, // Map 'user' (ID) to 'userId'
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'status': status,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt?.toIso8601String(),
-      'total_amount': totalAmount,
-      'discount_amount': discountAmount,
-      'tax_amount': taxAmount,
-      'shipping_amount': shippingAmount,
-      'payment_method': paymentMethod,
-      'payment_status': paymentStatus,
-      'items': items.map((item) => item.toJson()).toList(),
-      'shipping_address': shippingAddress?.toJson(),
-      'billing_address': billingAddress?.toJson(),
-      'notes': notes,
-      'tracking_number': trackingNumber,
-      'estimated_delivery': estimatedDelivery?.toIso8601String(),
-      'user_id': userId,
-    };
+  static double _parseDouble(dynamic value) {
+    if (value == null) return 0.0;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
   }
 
-  Order copyWith({
-    int? id,
-    String? status,
-    DateTime? createdAt,
-    DateTime? updatedAt,
-    double? totalAmount,
-    double? discountAmount,
-    double? taxAmount,
-    double? shippingAmount,
-    String? paymentMethod,
-    String? paymentStatus,
-    List<OrderItem>? items,
-    Address? shippingAddress,
-    Address? billingAddress,
-    String? notes,
-    String? trackingNumber,
-    DateTime? estimatedDelivery,
-    int? userId,
-  }) {
-    return Order(
-      id: id ?? this.id,
-      status: status ?? this.status,
-      createdAt: createdAt ?? this.createdAt,
-      updatedAt: updatedAt ?? this.updatedAt,
-      totalAmount: totalAmount ?? this.totalAmount,
-      discountAmount: discountAmount ?? this.discountAmount,
-      taxAmount: taxAmount ?? this.taxAmount,
-      shippingAmount: shippingAmount ?? this.shippingAmount,
-      paymentMethod: paymentMethod ?? this.paymentMethod,
-      paymentStatus: paymentStatus ?? this.paymentStatus,
-      items: items ?? this.items,
-      shippingAddress: shippingAddress ?? this.shippingAddress,
-      billingAddress: billingAddress ?? this.billingAddress,
-      notes: notes ?? this.notes,
-      trackingNumber: trackingNumber ?? this.trackingNumber,
-      estimatedDelivery: estimatedDelivery ?? this.estimatedDelivery,
-      userId: userId ?? this.userId,
-    );
+  static int? _parseInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is double) return value.toInt();
+    if (value is String) return int.tryParse(value);
+    return null;
   }
 
-  @override
-  String toString() {
-    return 'Order(id: $id, status: $status, totalAmount: $totalAmount)';
+  static int _calculateItemsFromList(dynamic items) {
+    if (items is List) return items.length;
+    return 0;
   }
 
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is Order && other.id == id;
-  }
-
-  @override
-  int get hashCode => id.hashCode;
-
-  // Additional getters for compatibility
-  String get orderNumber => id.toString().padLeft(6, '0');
-
-  int get totalItems => items.fold(0, (sum, item) => sum + item.quantity);
-
-  String get statusDisplayName {
+  static String _getStatusDisplayName(String status) {
     switch (status.toLowerCase()) {
       case 'pending':
         return 'Pending';
@@ -206,207 +123,91 @@ class Order {
         return 'Delivered';
       case 'cancelled':
         return 'Cancelled';
+      case 'payment_completed': // Map backend status to a displayable status
+        return 'Processing';
       default:
-        return status.toUpperCase();
+        return status;
     }
   }
 
-  // Helper method to safely parse double from various types
-  static double _parseDouble(dynamic value) {
-    if (value == null) return 0.0;
-    if (value is double) return value;
-    if (value is int) return value.toDouble();
-    if (value is String) {
-      return double.tryParse(value) ?? 0.0;
+  static List<OrderItem> _parseItems(dynamic items) {
+    if (items is List) {
+      return items.map((item) => OrderItem.fromJson(item)).toList();
     }
-    return 0.0;
+    return [];
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'order_number': orderNumber,
+      'order_date': orderDate.toIso8601String(),
+      'status': status,
+      'total_amount': totalAmount,
+      'total_items': totalItems,
+      'payment_status': paymentStatus,
+      'payment_method': paymentMethod,
+      'items': items.map((item) => item.toJson()).toList(),
+      'delivery_address': deliveryAddress, // Use deliveryAddress
+      'is_prescription_order': isPrescriptionOrder,
+      'prescription_id': prescriptionId,
+      'notes': notes,
+      'tracking_number': trackingNumber,
+      'estimated_delivery': estimatedDelivery?.toIso8601String(),
+    };
   }
 }
 
 class OrderItem {
   final int id;
-  final int productId;
   final String productName;
-  final String? productImage;
   final int quantity;
   final double unitPrice;
   final double totalPrice;
-  final String? notes;
+  final String? productImage;
+  final int? productId; // New field
+  final int? batchId; // New field
 
   OrderItem({
     required this.id,
-    required this.productId,
     required this.productName,
-    this.productImage,
     required this.quantity,
     required this.unitPrice,
     required this.totalPrice,
-    this.notes,
+    this.productImage,
+    this.productId, // New field
+    this.batchId, // New field
   });
 
   factory OrderItem.fromJson(Map<String, dynamic> json) {
-    // Extract product details from nested 'product' object
-    final productJson = json['product'] as Map<String, dynamic>?;
-    final productId = productJson?['id'] ?? json['product_id'] ?? 0;
-    final productName = productJson?['name'] ?? json['product_name'] ?? '';
-    final productImage = productJson?['image_url'] ?? json['product_image'];
+    final quantity = Order._parseInt(json['quantity']) ?? 1;
+    final unitPrice = Order._parseDouble(
+      json['unit_price_at_order'] ?? json['unit_price'],
+    );
 
     return OrderItem(
       id: json['id'] ?? 0,
-      productId: productId,
-      productName: productName,
-      productImage: productImage,
-      quantity: json['quantity'] ?? 1,
-      unitPrice: _parseDouble(
-        json['unit_price_at_order'] ?? json['unit_price'],
-      ), // Prefer unit_price_at_order
-      totalPrice: _parseDouble(json['total_price']),
-      notes: json['notes'], // Django OrderItemSerializer doesn't have 'notes'
+      productName:
+          json['product']?['name'] ?? json['product_name'] ?? 'Unknown Product',
+      quantity: quantity,
+      unitPrice: unitPrice,
+      totalPrice: quantity * unitPrice,
+      productImage: json['product']?['image_url'] ?? json['product_image'],
+      productId: json['product_id'] as int?, // Parse product_id
+      batchId: json['batch_id'] as int?, // Parse batch_id
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'product_id': productId,
       'product_name': productName,
-      'product_image': productImage,
       'quantity': quantity,
       'unit_price': unitPrice,
       'total_price': totalPrice,
-      'notes': notes,
+      'product_image': productImage,
+      'product_id': productId, // Include product_id
+      'batch_id': batchId, // Include batch_id
     };
   }
-
-  OrderItem copyWith({
-    int? id,
-    int? productId,
-    String? productName,
-    String? productImage,
-    int? quantity,
-    double? unitPrice,
-    double? totalPrice,
-    String? notes,
-  }) {
-    return OrderItem(
-      id: id ?? this.id,
-      productId: productId ?? this.productId,
-      productName: productName ?? this.productName,
-      productImage: productImage ?? this.productImage,
-      quantity: quantity ?? this.quantity,
-      unitPrice: unitPrice ?? this.unitPrice,
-      totalPrice: totalPrice ?? this.totalPrice,
-      notes: notes ?? this.notes,
-    );
-  }
-
-  @override
-  String toString() {
-    return 'OrderItem(id: $id, productName: $productName, quantity: $quantity)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is OrderItem && other.id == id;
-  }
-
-  @override
-  int get hashCode => id.hashCode;
-
-  // Helper method to safely parse double from various types
-  static double _parseDouble(dynamic value) {
-    if (value == null) return 0.0;
-    if (value is double) return value;
-    if (value is int) return value.toDouble();
-    if (value is String) {
-      return double.tryParse(value) ?? 0.0;
-    }
-    return 0.0;
-  }
-}
-
-class Address {
-  final int id;
-  final String type;
-  final String street;
-  final String city;
-  final String state;
-  final String pincode;
-  final String? landmark;
-  final bool isDefault;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-
-  Address({
-    required this.id,
-    required this.type,
-    required this.street,
-    required this.city,
-    required this.state,
-    required this.pincode,
-    this.landmark,
-    this.isDefault = false,
-    required this.createdAt,
-    required this.updatedAt,
-  });
-
-  String get fullAddress {
-    final parts = [street, city, state, pincode];
-    return parts.where((part) => part.isNotEmpty).join(', ');
-  }
-
-  factory Address.fromJson(Map<String, dynamic> json) {
-    return Address(
-      id: json['id'] ?? 0,
-      type:
-          json['address_type'] ??
-          json['type'] ??
-          'home', // Handle both 'address_type' and 'type'
-      street:
-          json['address_line_1'] ??
-          json['street'] ??
-          '', // Handle both 'address_line_1' and 'street'
-      city: json['city'] ?? '',
-      state: json['state'] ?? '',
-      pincode: json['pincode']?.toString() ?? '', // Ensure pincode is string
-      landmark: json['landmark'],
-      isDefault: json['is_default'] ?? false,
-      createdAt: json['created_at'] != null
-          ? DateTime.parse(json['created_at'])
-          : DateTime.now(),
-      updatedAt: json['updated_at'] != null
-          ? DateTime.parse(json['updated_at'])
-          : DateTime.now(),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'type': type,
-      'street': street,
-      'city': city,
-      'state': state,
-      'pincode': pincode,
-      'landmark': landmark,
-      'is_default': isDefault,
-      'created_at': createdAt.toIso8601String(),
-      'updated_at': updatedAt.toIso8601String(),
-    };
-  }
-
-  @override
-  String toString() {
-    return 'Address(id: $id, type: $type, fullAddress: $fullAddress)';
-  }
-
-  @override
-  bool operator ==(Object other) {
-    if (identical(this, other)) return true;
-    return other is Address && other.id == id;
-  }
-
-  @override
-  int get hashCode => id.hashCode;
 }

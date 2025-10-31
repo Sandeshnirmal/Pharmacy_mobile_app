@@ -33,33 +33,9 @@ class OrderProvider with ChangeNotifier {
         print(
           'OrderProvider: Successfully fetched ${result.data!.length} orders from API.',
         );
-        _allOrders = result.data!.map((orderModel) {
-          print(
-            'OrderProvider: Mapping OrderModel (ID: ${orderModel.id}, Status: ${orderModel.status})',
-          );
-          return Order(
-            id: orderModel.id,
-            status: orderModel.status,
-            createdAt: orderModel.orderDate,
-            totalAmount: orderModel.totalAmount,
-            items: orderModel.items.map((item) {
-              print(
-                'OrderProvider: Mapping OrderItemModel (ID: ${item.id}, Product: ${item.product.name}, Quantity: ${item.quantity})',
-              );
-              return OrderItem(
-                id: item.id,
-                productId: item.product.id,
-                productName: item.product.displayName,
-                productImage: item.product.imageUrl,
-                quantity: item.quantity,
-                unitPrice: item.currentSellingPrice,
-                totalPrice: item.totalPrice,
-              );
-            }).toList(),
-            userId:
-                0, // Default value - consider fetching actual user ID if available
-          );
-        }).toList();
+        _allOrders = result.data!
+            .map<Order>((orderJson) => Order.fromJson(orderJson))
+            .toList();
         _setLoading(false);
       } else {
         print('OrderProvider: Failed to load orders. Error: ${result.error}');
@@ -79,32 +55,11 @@ class OrderProvider with ChangeNotifier {
       final result = await _apiService.getOrderDetails(orderId);
 
       if (result.isSuccess && result.data != null) {
-        final orderModel = result.data!;
+        final orderJson = result.data!;
         print(
-          'OrderProvider: Successfully fetched OrderDetail for ID: ${orderModel.id}',
+          'OrderProvider: Successfully fetched OrderDetail for ID: ${orderJson['id']}',
         );
-        return Order(
-          id: orderModel.id,
-          status: orderModel.status,
-          createdAt: orderModel.orderDate,
-          totalAmount: orderModel.totalAmount,
-          items: orderModel.items.map((item) {
-            print(
-              'OrderProvider: Mapping OrderDetailItem (ID: ${item.id}, Product: ${item.product.name}, Quantity: ${item.quantity})',
-            );
-            return OrderItem(
-              id: item.id,
-              productId: item.product.id,
-              productName: item.product.displayName,
-              productImage: item.product.imageUrl,
-              quantity: item.quantity,
-              unitPrice: item.currentSellingPrice,
-              totalPrice: item.totalPrice,
-            );
-          }).toList(),
-          userId:
-              0, // Default value - consider fetching actual user ID if available
-        );
+        return Order.fromJson(orderJson);
       } else {
         print(
           'OrderProvider: Failed to get order details for ID: $orderId. Error: ${result.error}',
@@ -131,15 +86,15 @@ class OrderProvider with ChangeNotifier {
   // Get recent orders
   List<Order> getRecentOrders({int limit = 5}) {
     final sortedOrders = List<Order>.from(_allOrders);
-    sortedOrders.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    sortedOrders.sort(
+      (a, b) => b.orderDate.compareTo(a.orderDate),
+    ); // Use orderDate for sorting
     return sortedOrders.take(limit).toList();
   }
 
   // Get prescription orders
   List<Order> getPrescriptionOrders() {
-    return _allOrders
-        .where((order) => order.notes?.contains('prescription') == true)
-        .toList();
+    return _allOrders.where((order) => order.isPrescriptionOrder).toList();
   }
 
   // Calculate total spent

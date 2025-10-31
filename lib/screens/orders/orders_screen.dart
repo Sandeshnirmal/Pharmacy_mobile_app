@@ -220,7 +220,7 @@ class _OrdersScreenState extends State<OrdersScreen>
 
               // Order Date
               Text(
-                'Ordered on ${_formatDate(order.createdAt)}',
+                'Ordered on ${_formatDate(order.orderDate)}', // Use orderDate
                 style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               ),
 
@@ -303,7 +303,7 @@ class _OrdersScreenState extends State<OrdersScreen>
                   ),
                   Row(
                     children: [
-                      if (order.notes?.contains('prescription') == true)
+                      if (order.isPrescriptionOrder) // Use new field
                         Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,

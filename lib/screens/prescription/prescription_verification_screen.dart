@@ -59,12 +59,15 @@ class _PrescriptionVerificationScreenState
       final response = await _apiService.getOrderDetails(widget.orderId);
 
       if (response.isSuccess && response.data != null) {
-        final order = response.data!;
+        final order = response.data!; // This is now Map<String, dynamic>
         setState(() {
-          _orderStatus = order.status ?? 'pending_payment';
+          _orderStatus =
+              order['order_status'] ?? 'pending_payment'; // Access as map
           // Check if prescription is uploaded
-          if (order.prescriptionId != null && !_isPrescriptionUploaded) {
-            _currentPrescriptionId = order.prescriptionId;
+          if (order['prescription'] != null && !_isPrescriptionUploaded) {
+            // Access as map
+            _currentPrescriptionId =
+                order['prescription'] as int?; // Access as map
             _isPrescriptionUploaded = true;
           }
         });

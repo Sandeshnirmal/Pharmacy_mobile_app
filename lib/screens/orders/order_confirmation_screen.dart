@@ -45,28 +45,7 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
 
       if (response.isSuccess && response.data != null) {
         setState(() {
-          // Convert OrderModel to Map for compatibility
-          final order = response.data!;
-          _orderDetails = {
-            'id': order.id,
-            'order_number': order.orderNumber,
-            'status': order.status,
-            'total_amount': order.totalAmount,
-            'created_at': order.orderDate.toIso8601String(),
-            'items': order.items
-                .map(
-                  (item) => {
-                    'id': item.id,
-                    'product': {
-                      'name': item.product.name,
-                      'price': item.product.currentSellingPrice,
-                    },
-                    'quantity': item.quantity,
-                    'price': item.currentSellingPrice,
-                  },
-                )
-                .toList(),
-          };
+          _orderDetails = response.data!; // Directly assign the raw map
         });
       } else {
         setState(() {
@@ -270,10 +249,32 @@ class _OrderConfirmationScreenState extends State<OrderConfirmationScreen> {
             ),
             const SizedBox(height: 16),
             // Add order items here when available
-            const Text(
-              'Order items will be displayed here once loaded.',
-              style: TextStyle(fontSize: 14, color: Colors.grey),
-            ),
+            // Display order items from _orderDetails
+            if (_orderDetails!['items'] != null &&
+                (_orderDetails!['items'] as List).isNotEmpty)
+              ...(_orderDetails!['items'] as List).map((item) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '${item['product_name'] ?? 'Unknown Product'} x ${item['quantity'] ?? 0}',
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                      Text(
+                        '₹${(item['unit_price_at_order'] * item['quantity']).toStringAsFixed(2)}',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList()
+            else
+              const Text(
+                'No items found for this order.',
+                style: TextStyle(fontSize: 14, color: Colors.grey),
+              ),
           ],
         ),
       ),

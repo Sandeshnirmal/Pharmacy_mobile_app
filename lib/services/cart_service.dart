@@ -158,7 +158,14 @@ class CartService {
           manufacturer: product.manufacturer,
           strength: product.strength,
           form: product.form,
-          currentSellingPrice: product.currentSellingPrice,
+          currentSellingPrice:
+              product.currentBatch?.onlineSellingPrice != null &&
+                  product.currentBatch!.onlineSellingPrice > 0
+              ? product.currentBatch!.onlineSellingPrice
+              : (product.currentBatch?.sellingPrice != null &&
+                        product.currentBatch!.sellingPrice > 0
+                    ? product.currentBatch!.sellingPrice
+                    : product.currentSellingPrice),
           imageUrl: product.imageUrl,
           requiresPrescription: product.requiresPrescription,
           quantity: quantity,

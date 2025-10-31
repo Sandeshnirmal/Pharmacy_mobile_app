@@ -31,10 +31,10 @@ class OrderService {
           'payment_method': paymentMethod,
           'total_amount': totalAmount,
           'notes': notes,
+          'is_prescription_order': prescriptionDetails != null,
           if (prescriptionDetails != null)
-            'prescription_image': prescriptionDetails['prescription_image'],
-          if (prescriptionDetails != null)
-            'prescription_status': prescriptionDetails['status'],
+            'prescription_id':
+                prescriptionDetails['prescription_id'], // Use prescription_id
         }),
       );
 
@@ -97,11 +97,10 @@ class OrderService {
             'razorpay_signature': razorpaySignature,
             'amount': totalAmount,
           },
+          'is_prescription_order': prescriptionDetails != null,
           if (prescriptionDetails != null)
-            'prescription_image_base64':
-                prescriptionDetails['prescription_image'],
-          if (prescriptionDetails != null)
-            'prescription_status': prescriptionDetails['status'],
+            'prescription_id': // Use prescription_id
+                prescriptionDetails['prescription_id'],
         }),
       );
 

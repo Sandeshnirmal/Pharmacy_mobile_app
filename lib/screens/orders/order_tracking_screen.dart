@@ -1,12 +1,12 @@
 // Enhanced Order Tracking Screen
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../models/order_model.dart';
+import '../../models/order.dart'; // Changed from order_model.dart
 import '../../services/api_service.dart';
 import '../../utils/api_logger.dart';
 
 class OrderTrackingScreen extends StatefulWidget {
-  final OrderModel order;
+  final Order order;
 
   const OrderTrackingScreen({super.key, required this.order});
 
@@ -34,7 +34,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
       });
 
       final response = await _apiService.getOrderTracking(widget.order.id);
-      
+
       if (response.isSuccess && response.data != null) {
         final trackingData = response.data!['tracking_updates'] as List;
         setState(() {
@@ -67,18 +67,13 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
       ),
-      body: RefreshIndicator(
-        onRefresh: _loadTrackingData,
-        child: _buildBody(),
-      ),
+      body: RefreshIndicator(onRefresh: _loadTrackingData, child: _buildBody()),
     );
   }
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(color: Colors.teal),
-      );
+      return const Center(child: CircularProgressIndicator(color: Colors.teal));
     }
 
     if (_error != null) {
@@ -86,18 +81,11 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.grey[400],
-            ),
+            Icon(Icons.error_outline, size: 64, color: Colors.grey[400]),
             const SizedBox(height: 16),
             Text(
               _error!,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -164,16 +152,16 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                       const SizedBox(height: 4),
                       Text(
                         'Placed on ${DateFormat('MMM dd, yyyy').format(widget.order.orderDate)}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                       ),
                     ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: _getStatusColor(widget.order.status),
                     borderRadius: BorderRadius.circular(20),
@@ -230,18 +218,9 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
         const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-          ),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
         ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
       ],
     );
   }
@@ -253,26 +232,16 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
-              Icon(
-                Icons.timeline,
-                size: 48,
-                color: Colors.grey[400],
-              ),
+              Icon(Icons.timeline, size: 48, color: Colors.grey[400]),
               const SizedBox(height: 16),
               Text(
                 'No tracking updates available yet',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 16, color: Colors.grey[600]),
               ),
               const SizedBox(height: 8),
               Text(
                 'Tracking information will appear here once your order is processed',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[500],
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.grey[500]),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -325,18 +294,10 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                 color: Colors.teal,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(
-                Icons.check,
-                color: Colors.white,
-                size: 12,
-              ),
+              child: const Icon(Icons.check, color: Colors.white, size: 12),
             ),
             if (!isLast)
-              Container(
-                width: 2,
-                height: 60,
-                color: Colors.grey[300],
-              ),
+              Container(width: 2, height: 60, color: Colors.grey[300]),
           ],
         ),
         const SizedBox(width: 16),
@@ -356,10 +317,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                 const SizedBox(height: 4),
                 Text(
                   update.message,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey[700],
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey[700]),
                 ),
                 if (update.location.isNotEmpty) ...[
                   const SizedBox(height: 4),
@@ -373,10 +331,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                       const SizedBox(width: 4),
                       Text(
                         update.location,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[500],
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                       ),
                     ],
                   ),
@@ -384,10 +339,7 @@ class _OrderTrackingScreenState extends State<OrderTrackingScreen> {
                 const SizedBox(height: 4),
                 Text(
                   DateFormat('MMM dd, yyyy • hh:mm a').format(update.createdAt),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[500],
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                 ),
               ],
             ),
