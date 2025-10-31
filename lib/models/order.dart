@@ -1,4 +1,7 @@
 // Order Model for Enhanced Order Management
+import 'package:decimal/decimal.dart'; // Import Decimal for precise calculations
+
+// Order Model for Enhanced Order Management
 class Order {
   final int id;
   final String orderNumber;
@@ -6,6 +9,7 @@ class Order {
   final String status;
   final String statusDisplayName;
   final double totalAmount;
+  final double totalTaxAmount; // New field for total tax
   final int totalItems;
   final String paymentStatus;
   final String paymentMethod;
@@ -24,6 +28,7 @@ class Order {
     required this.status,
     required this.statusDisplayName,
     required this.totalAmount,
+    required this.totalTaxAmount, // New field
     required this.totalItems,
     required this.paymentStatus,
     required this.paymentMethod,
@@ -71,6 +76,9 @@ class Order {
         orderStatus,
       ), // Use the parsed status
       totalAmount: _parseDouble(json['total_amount']),
+      totalTaxAmount: _parseDouble(
+        json['total_tax_amount'],
+      ), // Parse total tax amount
       totalItems:
           _parseInt(json['total_items']) ??
           _calculateItemsFromList(json['items']),
@@ -144,6 +152,7 @@ class Order {
       'order_date': orderDate.toIso8601String(),
       'status': status,
       'total_amount': totalAmount,
+      'total_tax_amount': totalTaxAmount, // Include total tax amount
       'total_items': totalItems,
       'payment_status': paymentStatus,
       'payment_method': paymentMethod,
@@ -164,6 +173,8 @@ class OrderItem {
   final int quantity;
   final double unitPrice;
   final double totalPrice;
+  final double taxPercentage; // New field
+  final double taxAmount; // New field
   final String? productImage;
   final int? productId; // New field
   final int? batchId; // New field
@@ -174,6 +185,8 @@ class OrderItem {
     required this.quantity,
     required this.unitPrice,
     required this.totalPrice,
+    required this.taxPercentage, // New field
+    required this.taxAmount, // New field
     this.productImage,
     this.productId, // New field
     this.batchId, // New field
@@ -184,6 +197,8 @@ class OrderItem {
     final unitPrice = Order._parseDouble(
       json['unit_price_at_order'] ?? json['unit_price'],
     );
+    final taxPercentage = Order._parseDouble(json['tax_percentage']);
+    final taxAmount = Order._parseDouble(json['tax_amount']);
 
     return OrderItem(
       id: json['id'] ?? 0,
@@ -192,6 +207,8 @@ class OrderItem {
       quantity: quantity,
       unitPrice: unitPrice,
       totalPrice: quantity * unitPrice,
+      taxPercentage: taxPercentage,
+      taxAmount: taxAmount,
       productImage: json['product']?['image_url'] ?? json['product_image'],
       productId: json['product_id'] as int?, // Parse product_id
       batchId: json['batch_id'] as int?, // Parse batch_id
@@ -205,6 +222,8 @@ class OrderItem {
       'quantity': quantity,
       'unit_price': unitPrice,
       'total_price': totalPrice,
+      'tax_percentage': taxPercentage,
+      'tax_amount': taxAmount,
       'product_image': productImage,
       'product_id': productId, // Include product_id
       'batch_id': batchId, // Include batch_id

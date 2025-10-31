@@ -101,6 +101,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                         statusDisplayName:
                             _order!.statusDisplayName, // Use statusDisplayName
                         totalAmount: _order!.totalAmount,
+                        totalTaxAmount:
+                            _order!.totalTaxAmount, // Added totalTaxAmount
                         totalItems: _order!.items.length,
                         paymentStatus: _order!.paymentStatus ?? 'Unknown',
                         paymentMethod: _order!.paymentMethod ?? 'Unknown',
@@ -503,6 +505,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       ),
       if (discount > 0)
         _buildSummaryRow('Discount', '-₹${discount.toStringAsFixed(2)}'),
+
+      _buildSummaryRow(
+        'Tax Amount',
+        '₹${_order!.totalTaxAmount.toStringAsFixed(2)}',
+      ), // Display total tax amount
 
       const Divider(thickness: 2),
 
