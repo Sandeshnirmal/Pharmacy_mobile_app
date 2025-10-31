@@ -10,6 +10,7 @@ import 'package:pharmacy/main.dart';
 import 'package:pharmacy/models/product_model.dart'; // Import ProductModel
 import 'package:pharmacy/LoginScreen.dart'; // Import LoginScreen
 import 'package:pharmacy/OrderPrescriptionUploadScreen.dart';
+import '../services/cart_service.dart'; // Import CartService
 
 class PrescriptionTrackingScreen extends StatefulWidget {
   final String? prescriptionId; // Added optional prescriptionId
@@ -19,6 +20,449 @@ class PrescriptionTrackingScreen extends StatefulWidget {
   @override
   State<PrescriptionTrackingScreen> createState() =>
       _PrescriptionTrackingScreenState();
+}
+
+class PrescriptionDetailViewScreen extends StatelessWidget {
+  final PrescriptionDetailModel prescription;
+
+  const PrescriptionDetailViewScreen({super.key, required this.prescription});
+
+  @override
+  Widget build(BuildContext context) {
+    final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final cartService = CartService(); // Initialize CartService
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Prescription Details'),
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: (prescription.imageUrl.isNotEmpty)
+                    ? Image.network(
+                        prescription.imageUrl,
+                        height: 200,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          height: 200,
+                          color: Colors.grey.shade200,
+                          child: Icon(
+                            Icons.broken_image,
+                            color: Colors.grey.shade400,
+                            size: 50,
+                          ),
+                        ),
+                      )
+                    : Container(
+                        height: 200,
+                        color: Colors.grey.shade200,
+                        child: Icon(
+                          Icons.receipt_long,
+                          color: Colors.grey.shade400,
+                          size: 60,
+                        ),
+                      ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Prescription ID: ${prescription.id}',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const Divider(height: 20, thickness: 1),
+            _buildDetailRow('Status', prescription.status),
+            _buildDetailRow(
+              'Uploaded At',
+              DateFormat(
+                'dd MMM yyyy, hh:mm a',
+              ).format(prescription.uploadedAt),
+            ),
+            if (prescription.verifiedAt != null)
+              _buildDetailRow(
+                'Verified At',
+                DateFormat(
+                  'dd MMM yyyy, hh:mm a',
+                ).format(prescription.verifiedAt!),
+              ),
+            if (prescription.rejectedAt != null)
+              _buildDetailRow(
+                'Rejected At',
+                DateFormat(
+                  'dd MMM yyyy, hh:mm a',
+                ).format(prescription.rejectedAt!),
+              ),
+            const SizedBox(height: 24),
+            Text(
+              'OCR Extracted Medicines (${prescription.prescriptionMedicines?.length ?? 0})',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const Divider(height: 20, thickness: 1),
+            if (prescription.prescriptionMedicines == null ||
+                prescription.prescriptionMedicines!.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20.0),
+                  child: Text(
+                    'No medicines extracted by OCR yet.',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              )
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: prescription.prescriptionMedicines!.length,
+                itemBuilder: (context, index) {
+                  final medicineDetail =
+                      prescription.prescriptionMedicines![index];
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 8.0),
+                    elevation: 1,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            medicineDetail.extractedMedicineName ?? 'N/A',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Dosage: ${medicineDetail.extractedDosage ?? 'N/A'}',
+                            style: TextStyle(color: Colors.grey.shade700),
+                          ),
+                          Text(
+                            'Quantity: ${medicineDetail.quantityPrescribed ?? 'N/A'}',
+                            style: TextStyle(color: Colors.grey.shade700),
+                          ),
+                          if (medicineDetail.mappedProduct != null) ...[
+                            const SizedBox(height: 8),
+                            const Text(
+                              'Mapped Product:',
+                              style: TextStyle(fontWeight: FontWeight.w500),
+                            ),
+                            ListTile(
+                              leading: ClipRRect(
+                                borderRadius: BorderRadius.circular(8),
+                                child: Image.network(
+                                  medicineDetail.mappedProduct!.imageUrl ??
+                                      'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400',
+                                  width: 50,
+                                  height: 50,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Container(
+                                        width: 50,
+                                        height: 50,
+                                        color: Colors.grey.shade200,
+                                        child: Icon(
+                                          Icons.broken_image,
+                                          color: Colors.grey.shade400,
+                                        ),
+                                      ),
+                                ),
+                              ),
+                              title: Text(
+                                medicineDetail.mappedProduct!.name,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              subtitle: Text(
+                                '${medicineDetail.mappedProduct!.manufacturer} - ₹${medicineDetail.mappedProduct!.currentSellingPrice.toStringAsFixed(2)}',
+                              ),
+                              trailing: IconButton(
+                                icon: const Icon(
+                                  Icons.add_shopping_cart,
+                                  color: Colors.teal,
+                                ),
+                                onPressed: () async {
+                                  await cartService.addToCart(
+                                    medicineDetail.mappedProduct!,
+                                    quantity: 1,
+                                  );
+                                  cartProvider.addItem(
+                                    medicineDetail.mappedProduct!,
+                                    1,
+                                  );
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        '${medicineDetail.mappedProduct!.name} added to cart!',
+                                      ),
+                                      backgroundColor: Colors.green,
+                                    ),
+                                  );
+                                },
+                              ),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ProductDetailsScreen(
+                                      product: medicineDetail
+                                          .mappedProduct!, // Pass ProductModel directly
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            const SizedBox(height: 24),
+            Text(
+              'Aggregated Suggested Medicines (${prescription.suggestedMedicines?.length ?? 0})',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const Divider(height: 20, thickness: 1),
+            if (prescription.suggestedMedicines == null ||
+                prescription.suggestedMedicines!.isEmpty)
+              const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20.0),
+                  child: Text(
+                    'No aggregated medicines suggested yet.',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              )
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: prescription.suggestedMedicines!.length,
+                itemBuilder: (context, index) {
+                  final medicine = prescription.suggestedMedicines![index];
+                  return Card(
+                    margin: const EdgeInsets.symmetric(vertical: 8.0),
+                    elevation: 1,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: ListTile(
+                      leading: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          medicine.imageUrl ??
+                              'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400',
+                          width: 50,
+                          height: 50,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              Container(
+                                width: 50,
+                                height: 50,
+                                color: Colors.grey.shade200,
+                                child: Icon(
+                                  Icons.broken_image,
+                                  color: Colors.grey.shade400,
+                                ),
+                              ),
+                        ),
+                      ),
+                      title: Text(
+                        medicine.name ?? 'Unknown Medicine',
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      subtitle: Text(
+                        '${medicine.manufacturer.isNotEmpty ? medicine.manufacturer : 'N/A'} - ${medicine.currentSellingPrice > 0 ? '₹${medicine.currentSellingPrice.toStringAsFixed(2)}' : 'Price N/A'}',
+                      ),
+                      trailing: IconButton(
+                        icon: const Icon(
+                          Icons.add_shopping_cart,
+                          color: Colors.teal,
+                        ),
+                        onPressed: () async {
+                          await cartService.addToCart(medicine, quantity: 1);
+                          cartProvider.addItem(medicine, 1);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('${medicine.name} added to cart!'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        },
+                      ),
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ProductDetailsScreen(
+                              product: medicine, // Pass ProductModel directly
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                },
+              ),
+            const SizedBox(height: 24),
+            if (prescription.status == 'verified') ...[
+              const SizedBox(height: 24),
+            ] else ...[
+              const SizedBox(height: 24),
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20.0),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.admin_panel_settings,
+                        color: Colors.teal.shade400,
+                        size: 60,
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'Medicine details will be available after admin verification.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+            const Text(
+              'Notes & Reasons',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const Divider(height: 20, thickness: 1),
+            if (prescription.rejectionReason != null &&
+                prescription.rejectionReason!.isNotEmpty)
+              _buildInfoCard(
+                title: 'Rejection Reason',
+                value: prescription.rejectionReason!,
+                icon: Icons.cancel,
+                color: Colors.red,
+              ),
+            if (prescription.clarificationNotes != null &&
+                prescription.clarificationNotes!.isNotEmpty)
+              _buildInfoCard(
+                title: 'Clarification Notes',
+                value: prescription.clarificationNotes!,
+                icon: Icons.note_alt,
+                color: Colors.orange,
+              ),
+            if (prescription.pharmacistNotes != null &&
+                prescription.pharmacistNotes!.isNotEmpty)
+              _buildInfoCard(
+                title: 'Pharmacist Notes',
+                value: prescription.pharmacistNotes!,
+                icon: Icons.local_pharmacy,
+                color: Colors.blue,
+              ),
+            if (prescription.verificationNotes != null &&
+                prescription.verificationNotes!.isNotEmpty)
+              _buildInfoCard(
+                title: 'Verification Notes',
+                value: prescription.verificationNotes!,
+                icon: Icons.verified_user,
+                color: Colors.green,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 8.0), // Added margin for spacing
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: TextStyle(fontSize: 16, color: color.withOpacity(0.8)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
+          const SizedBox(width: 8),
+          Expanded(child: Text(value)),
+        ],
+      ),
+    );
+  }
 }
 
 class _PrescriptionTrackingScreenState
@@ -80,6 +524,36 @@ class _PrescriptionTrackingScreenState
 
   String _formatDate(DateTime date) {
     return DateFormat('dd MMM yyyy, hh:mm a').format(date);
+  }
+
+  Color _getStatusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Colors.orange;
+      case 'processing':
+        return Colors.blue;
+      case 'verified':
+        return Colors.green;
+      case 'rejected':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+
+  IconData _getStatusIcon(String status) {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return Icons.hourglass_empty;
+      case 'processing':
+        return Icons.cached;
+      case 'verified':
+        return Icons.check_circle_outline;
+      case 'rejected':
+        return Icons.cancel_outlined;
+      default:
+        return Icons.info_outline;
+    }
   }
 
   @override
@@ -384,757 +858,6 @@ class _PrescriptionTrackingScreenState
         backgroundColor: Colors.teal,
         foregroundColor: Colors.white,
         child: const Icon(Icons.add_a_photo),
-      ),
-    );
-  }
-}
-
-// Helper functions for status icons and colors (moved to top-level)
-Color _getStatusColor(String status) {
-  switch (status.toLowerCase()) {
-    case 'pending':
-      return Colors.orange;
-    case 'processing':
-      return Colors.blue;
-    case 'verified':
-      return Colors.green;
-    case 'rejected':
-      return Colors.red;
-    default:
-      return Colors.grey;
-  }
-}
-
-IconData _getStatusIcon(String status) {
-  switch (status.toLowerCase()) {
-    case 'pending':
-      return Icons.hourglass_empty;
-    case 'processing':
-      return Icons.cached;
-    case 'verified':
-      return Icons.check_circle_outline;
-    case 'rejected':
-      return Icons.cancel_outlined;
-    default:
-      return Icons.info_outline;
-  }
-}
-
-class PrescriptionDetailViewScreen extends StatelessWidget {
-  final PrescriptionDetailModel prescription;
-
-  const PrescriptionDetailViewScreen({super.key, required this.prescription});
-
-  @override
-  Widget build(BuildContext context) {
-    final cartProvider = Provider.of<CartProvider>(context, listen: false);
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Prescription #${prescription.id}'),
-        backgroundColor: Colors.teal,
-        foregroundColor: Colors.white,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Container(
-            // padding: const EdgeInsets.all(12.0),
-            // decoration: BoxDecoration(
-            //   color: Colors.yellow.shade100,
-            //   borderRadius: BorderRadius.circular(8.0),
-            // ),
-            // child: const Text(
-            //   'Disclaimer: The information provided is based on AI-powered extraction and is for informational purposes only. It is not a substitute for professional medical advice, diagnosis, or treatment. Always seek the advice of your physician or other qualified health provider with any questions you may have regarding a medical condition.',
-            //   style: TextStyle(fontSize: 12, color: Colors.black87),
-            //   textAlign: TextAlign.center,
-            // ),
-            // ),
-            const SizedBox(height: 16),
-            Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: (prescription.imageUrl.isNotEmpty)
-                    ? Image.network(
-                        prescription.imageUrl,
-                        height: 250,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          height: 250,
-                          color: Colors.grey.shade200,
-                          child: Icon(
-                            Icons.broken_image,
-                            color: Colors.grey.shade400,
-                            size: 80,
-                          ),
-                        ),
-                      )
-                    : Container(
-                        height: 250,
-                        color: Colors.grey.shade200,
-                        child: Icon(
-                          Icons.receipt_long, // Placeholder icon
-                          color: Colors.grey.shade400,
-                          size: 80,
-                        ),
-                      ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            _buildInfoCard(
-              title: 'Status',
-              value: prescription.status,
-              icon: _getStatusIcon(prescription.status),
-              color: _getStatusColor(prescription.status),
-            ),
-            const SizedBox(height: 16),
-            _buildInfoCard(
-              title: 'Uploaded On',
-              value: DateFormat(
-                'dd MMM yyyy, hh:mm a',
-              ).format(prescription.uploadedAt),
-              icon: Icons.calendar_today,
-              color: Colors.blueGrey,
-            ),
-            if (prescription.prescriptionNumber != null &&
-                prescription.prescriptionNumber!.isNotEmpty)
-              _buildInfoCard(
-                title: 'Prescription Number',
-                value: prescription.prescriptionNumber!,
-                icon: Icons.confirmation_number,
-                color: Colors.indigo,
-              ),
-            if (prescription.prescriptionDate != null)
-              _buildInfoCard(
-                title: 'Prescription Date',
-                value: DateFormat(
-                  'dd MMM yyyy',
-                ).format(prescription.prescriptionDate!),
-                icon: Icons.date_range,
-                color: Colors.deepOrange,
-              ),
-            if (prescription.processingStatus != null &&
-                prescription.processingStatus!.isNotEmpty)
-              _buildInfoCard(
-                title: 'Processing Status',
-                value: prescription.processingStatus!,
-                icon: Icons.data_usage,
-                color: Colors.purple,
-              ),
-            if (prescription.aiConfidenceScore != null)
-              _buildInfoCard(
-                title: 'AI Confidence Score',
-                value:
-                    '${(prescription.aiConfidenceScore! * 100).toStringAsFixed(1)}%',
-                icon: Icons.psychology,
-                color: Colors.green,
-              ),
-            if (prescription.totalMedicines != null)
-              _buildInfoCard(
-                title: 'Total Medicines',
-                value: prescription.totalMedicines.toString(),
-                icon: Icons.format_list_numbered,
-                color: Colors.brown,
-              ),
-            if (prescription.verifiedMedicines != null)
-              _buildInfoCard(
-                title: 'Verified Medicines',
-                value: prescription.verifiedMedicines.toString(),
-                icon: Icons.check_circle,
-                color: Colors.teal,
-              ),
-            const SizedBox(height: 24),
-            const Text(
-              'User Information',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const Divider(height: 20, thickness: 1),
-            if (prescription.userName != null &&
-                prescription.userName!.isNotEmpty)
-              _buildInfoCard(
-                title: 'User Name',
-                value: prescription.userName!,
-                icon: Icons.person,
-                color: Colors.blueGrey,
-              ),
-            if (prescription.userEmail != null &&
-                prescription.userEmail!.isNotEmpty)
-              _buildInfoCard(
-                title: 'User Email',
-                value: prescription.userEmail!,
-                icon: Icons.email,
-                color: Colors.blueGrey,
-              ),
-            if (prescription.userPhone != null &&
-                prescription.userPhone!.isNotEmpty)
-              _buildInfoCard(
-                title: 'User Phone',
-                value: prescription.userPhone!,
-                icon: Icons.phone,
-                color: Colors.blueGrey,
-              ),
-
-            const SizedBox(height: 24),
-            if (prescription.status.toLowerCase() == 'verified') ...[
-              // Display extracted medicine details if available
-              if (prescription.extractedMedicineName != null &&
-                  prescription.extractedMedicineName!.isNotEmpty) ...[
-                const Text(
-                  'Extracted Prescription Details (Legacy)',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
-                  ),
-                ),
-                const Divider(height: 20, thickness: 1),
-                _buildInfoCard(
-                  title: 'Medicine Name',
-                  value: prescription.extractedMedicineName!,
-                  icon: Icons.medical_information,
-                  color: Colors.deepPurple,
-                ),
-                if (prescription.extractedDosage != null &&
-                    prescription.extractedDosage!.isNotEmpty)
-                  _buildInfoCard(
-                    title: 'Dosage',
-                    value: prescription.extractedDosage!,
-                    icon: Icons.straighten,
-                    color: Colors.indigo,
-                  ),
-                if (prescription.extractedForm != null &&
-                    prescription.extractedForm!.isNotEmpty)
-                  _buildInfoCard(
-                    title: 'Form',
-                    value: prescription.extractedForm!,
-                    icon: Icons.category,
-                    color: Colors.blue,
-                  ),
-                if (prescription.extractedFrequency != null &&
-                    prescription.extractedFrequency!.isNotEmpty)
-                  _buildInfoCard(
-                    title: 'Frequency',
-                    value: prescription.extractedFrequency!,
-                    icon: Icons.access_time,
-                    color: Colors.lightBlue,
-                  ),
-              ],
-              const SizedBox(height: 24),
-              Text(
-                'Prescription Medicines (${prescription.prescriptionMedicines?.length ?? 0})',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const Divider(height: 20, thickness: 1),
-              if (prescription.prescriptionMedicines == null ||
-                  prescription.prescriptionMedicines!.isEmpty)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20.0),
-                    child: Text(
-                      'No detailed medicines found for this prescription.',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  ),
-                )
-              else
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: prescription.prescriptionMedicines!.length,
-                  itemBuilder: (context, index) {
-                    final medicineDetail =
-                        prescription.prescriptionMedicines![index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 8.0),
-                      elevation: 1,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: ExpansionTile(
-                        title: Text(
-                          medicineDetail.extractedMedicineName ??
-                              'Unknown Medicine',
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        subtitle: Text(
-                          'Status: ${medicineDetail.verificationStatusDisplay ?? 'N/A'}',
-                        ),
-                        children: [
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16.0,
-                              vertical: 8.0,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                if (medicineDetail.recognizedTextRaw != null &&
-                                    medicineDetail
-                                        .recognizedTextRaw!
-                                        .isNotEmpty)
-                                  _buildDetailRow(
-                                    'Raw Text:',
-                                    medicineDetail.recognizedTextRaw!,
-                                  ),
-                                if (medicineDetail.extractedMedicineName !=
-                                        null &&
-                                    medicineDetail
-                                        .extractedMedicineName!
-                                        .isNotEmpty)
-                                  _buildDetailRow(
-                                    'Extracted Name:',
-                                    medicineDetail.extractedMedicineName!,
-                                  ),
-                                if (medicineDetail.extractedDosage != null &&
-                                    medicineDetail.extractedDosage!.isNotEmpty)
-                                  _buildDetailRow(
-                                    'Extracted Dosage:',
-                                    medicineDetail.extractedDosage!,
-                                  ),
-                                if (medicineDetail.extractedFrequency != null &&
-                                    medicineDetail
-                                        .extractedFrequency!
-                                        .isNotEmpty)
-                                  _buildDetailRow(
-                                    'Extracted Frequency:',
-                                    medicineDetail.extractedFrequency!,
-                                  ),
-                                if (medicineDetail.extractedForm != null &&
-                                    medicineDetail.extractedForm!.isNotEmpty)
-                                  _buildDetailRow(
-                                    'Extracted Form:',
-                                    medicineDetail.extractedForm!,
-                                  ),
-                                if (medicineDetail.extractedDuration != null &&
-                                    medicineDetail
-                                        .extractedDuration!
-                                        .isNotEmpty)
-                                  _buildDetailRow(
-                                    'Extracted Duration:',
-                                    medicineDetail.extractedDuration!,
-                                  ),
-                                if (medicineDetail.extractedInstructions !=
-                                        null &&
-                                    medicineDetail
-                                        .extractedInstructions!
-                                        .isNotEmpty)
-                                  _buildDetailRow(
-                                    'Extracted Instructions:',
-                                    medicineDetail.extractedInstructions!,
-                                  ),
-                                if (medicineDetail.aiConfidenceScore != null)
-                                  _buildDetailRow(
-                                    'AI Confidence:',
-                                    '${(medicineDetail.aiConfidenceScore! * 100).toStringAsFixed(1)}%',
-                                  ),
-                                if (medicineDetail.verifiedMedicineName !=
-                                        null &&
-                                    medicineDetail
-                                        .verifiedMedicineName!
-                                        .isNotEmpty)
-                                  _buildDetailRow(
-                                    'Verified Name:',
-                                    medicineDetail.verifiedMedicineName!,
-                                  ),
-                                if (medicineDetail.verifiedDosage != null &&
-                                    medicineDetail.verifiedDosage!.isNotEmpty)
-                                  _buildDetailRow(
-                                    'Verified Dosage:',
-                                    medicineDetail.verifiedDosage!,
-                                  ),
-                                if (medicineDetail.verifiedFrequency != null &&
-                                    medicineDetail
-                                        .verifiedFrequency!
-                                        .isNotEmpty)
-                                  _buildDetailRow(
-                                    'Verified Frequency:',
-                                    medicineDetail.verifiedFrequency!,
-                                  ),
-                                if (medicineDetail.verifiedDuration != null &&
-                                    medicineDetail.verifiedDuration!.isNotEmpty)
-                                  _buildDetailRow(
-                                    'Verified Duration:',
-                                    medicineDetail.verifiedDuration!,
-                                  ),
-                                if (medicineDetail.verifiedQuantity != null)
-                                  _buildDetailRow(
-                                    'Verified Quantity:',
-                                    medicineDetail.verifiedQuantity.toString(),
-                                  ),
-                                if (medicineDetail.verifiedInstructions !=
-                                        null &&
-                                    medicineDetail
-                                        .verifiedInstructions!
-                                        .isNotEmpty)
-                                  _buildDetailRow(
-                                    'Verified Instructions:',
-                                    medicineDetail.verifiedInstructions!,
-                                  ),
-                                if (medicineDetail.quantityPrescribed != null)
-                                  _buildDetailRow(
-                                    'Quantity Prescribed:',
-                                    medicineDetail.quantityPrescribed
-                                        .toString(),
-                                  ),
-                                if (medicineDetail.quantityDispensed != null)
-                                  _buildDetailRow(
-                                    'Quantity Dispensed:',
-                                    medicineDetail.quantityDispensed.toString(),
-                                  ),
-                                if (medicineDetail.unitPrice != null)
-                                  _buildDetailRow(
-                                    'Unit Price:',
-                                    '₹${medicineDetail.unitPrice!.toStringAsFixed(2)}',
-                                  ),
-                                if (medicineDetail.totalPrice != null)
-                                  _buildDetailRow(
-                                    'Total Price:',
-                                    '₹${medicineDetail.totalPrice!.toStringAsFixed(2)}',
-                                  ),
-                                if (medicineDetail.isPrescriptionRequired !=
-                                    null)
-                                  _buildDetailRow(
-                                    'Prescription Required:',
-                                    medicineDetail.isPrescriptionRequired!
-                                        ? 'Yes'
-                                        : 'No',
-                                  ),
-                                if (medicineDetail.customerApproved != null)
-                                  _buildDetailRow(
-                                    'Customer Approved:',
-                                    medicineDetail.customerApproved!
-                                        ? 'Yes'
-                                        : 'No',
-                                  ),
-                                if (medicineDetail.pharmacistComment != null &&
-                                    medicineDetail
-                                        .pharmacistComment!
-                                        .isNotEmpty)
-                                  _buildDetailRow(
-                                    'Pharmacist Comment:',
-                                    medicineDetail.pharmacistComment!,
-                                  ),
-                                if (medicineDetail.clarificationNotes != null &&
-                                    medicineDetail
-                                        .clarificationNotes!
-                                        .isNotEmpty)
-                                  _buildDetailRow(
-                                    'Clarification Notes:',
-                                    medicineDetail.clarificationNotes!,
-                                  ),
-                                const SizedBox(height: 10),
-                                if (medicineDetail.mappedProduct != null) ...[
-                                  const Text(
-                                    'Mapped Product:',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                  ListTile(
-                                    leading: ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Image.network(
-                                        medicineDetail
-                                                .mappedProduct!
-                                                .imageUrl ??
-                                            'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400',
-                                        width: 40,
-                                        height: 40,
-                                        fit: BoxFit.cover,
-                                        errorBuilder:
-                                            (context, error, stackTrace) =>
-                                                Container(
-                                                  width: 40,
-                                                  height: 40,
-                                                  color: Colors.grey.shade200,
-                                                  child: Icon(
-                                                    Icons.broken_image,
-                                                    color: Colors.grey.shade400,
-                                                  ),
-                                                ),
-                                      ),
-                                    ),
-                                    title: Text(
-                                      medicineDetail.mappedProduct!.name,
-                                    ),
-                                    subtitle: Text(
-                                      '₹${medicineDetail.mappedProduct!.currentSellingPrice.toStringAsFixed(2)}',
-                                    ),
-                                    trailing: IconButton(
-                                      icon: const Icon(
-                                        Icons.add_shopping_cart,
-                                        color: Colors.teal,
-                                      ),
-                                      onPressed: () {
-                                        cartProvider.addItem(
-                                          medicineDetail.mappedProduct!,
-                                          1,
-                                        );
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          SnackBar(
-                                            content: Text(
-                                              '${medicineDetail.mappedProduct!.name} added to cart!',
-                                            ),
-                                            backgroundColor: Colors.green,
-                                          ),
-                                        );
-                                      },
-                                    ),
-                                    onTap: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) =>
-                                              ProductDetailsScreen(
-                                                product: medicineDetail
-                                                    .mappedProduct!, // Pass ProductModel directly
-                                              ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-              const SizedBox(height: 24),
-              Text(
-                'Aggregated Suggested Medicines (${prescription.suggestedMedicines?.length ?? 0})',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const Divider(height: 20, thickness: 1),
-              if (prescription.suggestedMedicines == null ||
-                  prescription.suggestedMedicines!.isEmpty)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(vertical: 20.0),
-                    child: Text(
-                      'No aggregated medicines suggested yet.',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                  ),
-                )
-              else
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: prescription.suggestedMedicines!.length,
-                  itemBuilder: (context, index) {
-                    final medicine = prescription.suggestedMedicines![index];
-                    return Card(
-                      margin: const EdgeInsets.symmetric(vertical: 8.0),
-                      elevation: 1,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: ListTile(
-                        leading: ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: Image.network(
-                            medicine.imageUrl ??
-                                'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400',
-                            width: 50,
-                            height: 50,
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) =>
-                                Container(
-                                  width: 50,
-                                  height: 50,
-                                  color: Colors.grey.shade200,
-                                  child: Icon(
-                                    Icons.broken_image,
-                                    color: Colors.grey.shade400,
-                                  ),
-                                ),
-                          ),
-                        ),
-                        title: Text(
-                          medicine.name ?? 'Unknown Medicine',
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                        subtitle: Text(
-                          '${medicine.manufacturer.isNotEmpty ? medicine.manufacturer : 'N/A'} - ${medicine.currentSellingPrice > 0 ? '₹${medicine.currentSellingPrice.toStringAsFixed(2)}' : 'Price N/A'}',
-                        ),
-                        trailing: IconButton(
-                          icon: const Icon(
-                            Icons.add_shopping_cart,
-                            color: Colors.teal,
-                          ),
-                          onPressed: () {
-                            cartProvider.addItem(medicine, 1);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  '${medicine.name} added to cart!',
-                                ),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                          },
-                        ),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ProductDetailsScreen(
-                                product: medicine, // Pass ProductModel directly
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    );
-                  },
-                ),
-              const SizedBox(height: 24),
-            ] else ...[
-              const SizedBox(height: 24),
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 20.0),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.admin_panel_settings,
-                        color: Colors.teal.shade400,
-                        size: 60,
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Medicine details will be available after admin verification.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-            ],
-            const Text(
-              'Notes & Reasons',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const Divider(height: 20, thickness: 1),
-            if (prescription.rejectionReason != null &&
-                prescription.rejectionReason!.isNotEmpty)
-              _buildInfoCard(
-                title: 'Rejection Reason',
-                value: prescription.rejectionReason!,
-                icon: Icons.cancel,
-                color: Colors.red,
-              ),
-            if (prescription.clarificationNotes != null &&
-                prescription.clarificationNotes!.isNotEmpty)
-              _buildInfoCard(
-                title: 'Clarification Notes',
-                value: prescription.clarificationNotes!,
-                icon: Icons.note_alt,
-                color: Colors.orange,
-              ),
-            if (prescription.pharmacistNotes != null &&
-                prescription.pharmacistNotes!.isNotEmpty)
-              _buildInfoCard(
-                title: 'Pharmacist Notes',
-                value: prescription.pharmacistNotes!,
-                icon: Icons.local_pharmacy,
-                color: Colors.blue,
-              ),
-            if (prescription.verificationNotes != null &&
-                prescription.verificationNotes!.isNotEmpty)
-              _buildInfoCard(
-                title: 'Verification Notes',
-                value: prescription.verificationNotes!,
-                icon: Icons.verified_user,
-                color: Colors.green,
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildInfoCard({
-    required String title,
-    required String value,
-    required IconData icon,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      margin: const EdgeInsets.only(bottom: 8.0), // Added margin for spacing
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  style: TextStyle(fontSize: 16, color: color.withOpacity(0.8)),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
-          const SizedBox(width: 8),
-          Expanded(child: Text(value)),
-        ],
       ),
     );
   }

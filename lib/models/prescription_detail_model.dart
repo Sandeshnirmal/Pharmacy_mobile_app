@@ -38,6 +38,8 @@ class PrescriptionDetailModel {
   final String? rejectionReason;
   final String? clarificationNotes;
   final String? pharmacistNotes;
+  final DateTime? verifiedAt;
+  final DateTime? rejectedAt;
   final String? verificationNotes;
 
   PrescriptionDetailModel({
@@ -70,6 +72,8 @@ class PrescriptionDetailModel {
     this.clarificationNotes,
     this.pharmacistNotes,
     this.verificationNotes,
+    this.verifiedAt,
+    this.rejectedAt,
   });
 
   factory PrescriptionDetailModel.fromJson(Map<String, dynamic> json) {
@@ -138,6 +142,8 @@ class PrescriptionDetailModel {
       clarificationNotes: json['clarification_notes']?.toString(),
       pharmacistNotes: json['pharmacist_notes']?.toString(),
       verificationNotes: json['verification_notes']?.toString(),
+      verifiedAt: DateTime.tryParse(json['verified_at']?.toString() ?? ''),
+      rejectedAt: DateTime.tryParse(json['rejected_at']?.toString() ?? ''),
     );
   }
 
@@ -176,6 +182,8 @@ class PrescriptionDetailModel {
       'clarification_notes': clarificationNotes,
       'pharmacist_notes': pharmacistNotes,
       'verification_notes': verificationNotes,
+      'verified_at': verifiedAt?.toIso8601String(),
+      'rejected_at': rejectedAt?.toIso8601String(),
     };
   }
 }

@@ -14,7 +14,7 @@ class PrescriptionMedicineDetailModel {
   final String? verifiedMedicineName;
   final String? verifiedDosage;
   final String? verifiedForm;
-  final ProductModel? mappedProduct;
+  final ProductModel? mappedProduct; // Changed back to ProductModel?
   final List<ProductModel>? suggestedProducts;
   final String? productName;
   final double? productPrice;
@@ -51,7 +51,7 @@ class PrescriptionMedicineDetailModel {
     this.verifiedMedicineName,
     this.verifiedDosage,
     this.verifiedForm,
-    this.mappedProduct,
+    this.mappedProduct, // Changed back
     this.suggestedProducts,
     this.productName,
     this.productPrice,
@@ -105,7 +105,7 @@ class PrescriptionMedicineDetailModel {
       verifiedMedicineName: json['verified_medicine_name'] as String?,
       verifiedDosage: json['verified_dosage'] as String?,
       verifiedForm: json['verified_form'] as String?,
-      mappedProduct: mappedProductModel,
+      mappedProduct: mappedProductModel, // Parse as ProductModel
       suggestedProducts: suggestedProductsList,
       productName: json['product_name'] as String?,
       productPrice: json['product_price'] is String
@@ -149,7 +149,7 @@ class PrescriptionMedicineDetailModel {
       'verified_medicine_name': verifiedMedicineName,
       'verified_dosage': verifiedDosage,
       'verified_form': verifiedForm,
-      'mapped_product': mappedProduct?.toJson(),
+      'mapped_product': mappedProduct?.toJson(), // Include as nested object
       'suggested_products': suggestedProducts
           ?.map((ProductModel e) => e.toJson())
           .toList(),
