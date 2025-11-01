@@ -62,16 +62,15 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
       } else {
         // Load products for regular search, using categoryId or searchQuery
         final response = await _apiService.getProducts(
-          categoryId: widget.categoryId, // Pass category ID if available
+          categoryId: widget.categoryId?.toString(), // Pass category ID if available
           searchQuery: widget.categoryId == null
               ? _currentQuery
               : null, // Only pass searchQuery if no categoryId
         );
         if (response.isSuccess && response.data != null) {
           setState(() {
-            _allProducts = response.data!;
-            _searchResults = response
-                .data!; // Directly set search results as they are already filtered by API
+            _allProducts = response.data!.products;
+            _searchResults = response.data!.products; // Directly set search results as they are already filtered by API
           });
         }
       }
@@ -137,8 +136,8 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
           }
 
           setState(() {
-            _allProducts = prescriptionProducts;
-            _searchResults = prescriptionProducts;
+          _allProducts = prescriptionProducts;
+          _searchResults = prescriptionProducts;
           });
         }
       }
@@ -147,7 +146,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
       final response = await _apiService.getProducts();
       if (response.isSuccess && response.data != null) {
         setState(() {
-          _allProducts = response.data!;
+          _allProducts = response.data!.products;
         });
         _performSearch(_currentQuery);
       }
@@ -257,10 +256,10 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
       if (query.isNotEmpty && query != _currentQuery) {
         final response = await _apiService.getProducts(
           searchQuery: query,
-          categoryId: widget.categoryId, // Keep category filter if present
+          categoryId: widget.categoryId?.toString(), // Keep category filter if present
         );
         if (response.isSuccess && response.data != null) {
-          results = response.data!;
+          results = response.data!.products;
         }
       } else {
         results =
@@ -294,17 +293,21 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
+      backgroundColor: Colors.white, // Consistent white background
       appBar: AppBar(
         title: Text(
           widget.isFromPrescription ? 'Prescription Results' : 'Search Results',
+          style: const TextStyle(
+            color: Colors.teal, // Teal title for consistency
+            fontWeight: FontWeight.bold,
+          ),
         ),
         backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
-        elevation: 0,
+        foregroundColor: Colors.teal, // Teal icons
+        elevation: 1, // Subtle elevation for app bar
         actions: [
           IconButton(
-            icon: const Icon(Icons.shopping_cart),
+            icon: const Icon(Icons.shopping_cart_outlined), // Outlined icon
             onPressed: () {
               Navigator.push(
                 context,
@@ -317,56 +320,62 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
       body: Column(
         children: [
           // Search Bar
-          Container(
-            padding: const EdgeInsets.all(16),
-            color: Colors.white,
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search medicines...',
-                prefixIcon: const Icon(Icons.search, color: Colors.teal),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.clear, color: Colors.grey),
-                  onPressed: () {
-                    _searchController.clear();
-                    _performSearch('');
-                  },
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(25),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(25),
-                  borderSide: const BorderSide(color: Colors.teal, width: 2),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  vertical: 12,
-                  horizontal: 20,
-                ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.grey[100], // Lighter grey for search bar background
+                borderRadius: BorderRadius.circular(25.0),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.grey.withOpacity(0.1),
+                    spreadRadius: 1,
+                    blurRadius: 5,
+                    offset: const Offset(0, 3), // subtle shadow
+                  ),
+                ],
               ),
-              onSubmitted: _performSearch,
-              onChanged: (value) {
-                if (value.isEmpty) {
-                  _performSearch('');
-                }
-              },
+              child: TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search medicines...',
+                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.clear, color: Colors.grey),
+                    onPressed: () {
+                      _searchController.clear();
+                      _performSearch('');
+                    },
+                  ),
+                  border: InputBorder.none, // No border
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 14.0,
+                    horizontal: 20.0,
+                  ),
+                ),
+                onSubmitted: _performSearch,
+                onChanged: (value) {
+                  if (value.isEmpty) {
+                    _performSearch('');
+                  }
+                },
+              ),
             ),
           ),
 
           // Prescription Info Banner (if from prescription)
           if (widget.isFromPrescription) ...[
             Container(
-              margin: const EdgeInsets.all(16),
+              margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: Colors.teal.shade50, // Light teal for banner
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue.shade200),
+                border: Border.all(color: Colors.teal.shade200),
               ),
               child: Row(
                 children: [
-                  Icon(Icons.medical_services, color: Colors.blue.shade600),
+                  Icon(Icons.receipt_long, color: Colors.teal.shade600, size: 28), // More prominent icon
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
@@ -375,17 +384,17 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                         Text(
                           'Prescription-based Results',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 17,
                             fontWeight: FontWeight.bold,
-                            color: Colors.blue.shade700,
+                            color: Colors.teal.shade800,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Showing medicines based on your uploaded prescription',
+                          'Medicines matched from your uploaded prescription',
                           style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.blue.shade600,
+                            fontSize: 13,
+                            color: Colors.teal.shade700,
                           ),
                         ),
                       ],
@@ -489,8 +498,8 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      elevation: 5, // Increased elevation for a more prominent card
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)), // More rounded corners
       child: InkWell(
         onTap: () {
           Navigator.push(
@@ -498,85 +507,90 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
             MaterialPageRoute(
               builder: (context) => ProductDetailsScreen(
                 product: product,
-              ), // Pass ProductModel directly
+              ),
             ),
           );
         },
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(18),
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(15),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Colors.white, Colors.grey.withOpacity(0.05)],
-            ),
+            borderRadius: BorderRadius.circular(18),
+            color: Colors.white, // Solid white background for card
           ),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start, // Align items to the top
               children: [
-                // Enhanced Product Image
+                // Product Image
                 Stack(
                   children: [
                     Container(
-                      width: 80,
-                      height: 80,
+                      width: 90, // Slightly larger image
+                      height: 90,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(14), // More rounded image corners
                         color: Colors.grey.shade100,
                         boxShadow: [
                           BoxShadow(
                             color: Colors.grey.withOpacity(0.2),
                             spreadRadius: 1,
-                            blurRadius: 4,
-                            offset: const Offset(0, 2),
+                            blurRadius: 5,
+                            offset: const Offset(0, 3),
                           ),
                         ],
                       ),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(14),
                         child: Image.network(
-                          product.imageUrl ?? '',
+                          product.imageUrl != null && product.imageUrl!.isNotEmpty
+                              ? product.imageUrl!
+                              : 'https://via.placeholder.com/150', // Default image if imageUrl is null or empty
                           fit: BoxFit.cover,
                           errorBuilder: (context, error, stackTrace) {
                             return Container(
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: [
-                                    Colors.teal.withOpacity(0.1),
-                                    Colors.teal.withOpacity(0.3),
+                                    Colors.teal.shade100, // Lighter teal gradient
+                                    Colors.teal.shade300,
                                   ],
                                 ),
                               ),
                               child: Icon(
-                                Icons.medical_services,
-                                color: Colors.teal,
-                                size: 35,
+                                Icons.image_not_supported, // More appropriate icon
+                                color: Colors.teal.shade700,
+                                size: 40,
                               ),
                             );
                           },
                         ),
                       ),
                     ),
-                    if (isOnSale && discountPercent > 0)
+                    // Display discount percentage badge
+                    if (product.currentBatch != null &&
+                        ((product.currentBatch!.onlineDiscountPercentage != null && product.currentBatch!.onlineDiscountPercentage! > 0) ||
+                            (product.currentBatch!.discountPercentage != null && product.currentBatch!.discountPercentage! > 0)))
                       Positioned(
-                        top: -2,
-                        right: -2,
+                        top: 0,
+                        right: 0,
                         child: Container(
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 6,
-                            vertical: 2,
+                            horizontal: 8,
+                            vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.red,
-                            borderRadius: BorderRadius.circular(8),
+                            color: Colors.red.shade600, // Darker red for discount
+                            borderRadius: const BorderRadius.only(
+                              topRight: Radius.circular(14),
+                              bottomLeft: Radius.circular(10),
+                            ),
                           ),
                           child: Text(
-                            '${discountPercent.toInt()}% OFF',
+                            '${(product.currentBatch!.onlineDiscountPercentage ?? product.currentBatch!.discountPercentage)?.toStringAsFixed(0)}% OFF',
                             style: const TextStyle(
                               color: Colors.white,
-                              fontSize: 9,
+                              fontSize: 10,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -587,7 +601,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
 
                 const SizedBox(width: 16),
 
-                // Enhanced Product Details
+                // Product Details
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -595,250 +609,166 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                       Text(
                         product.name,
                         style: const TextStyle(
-                          fontSize: 17,
+                          fontSize: 18, // Slightly larger font
                           fontWeight: FontWeight.bold,
                           color: Colors.black87,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
+
+                      // Manufacturer
+                      Text(
+                        product.manufacturer,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 8),
 
                       // Generic name if available
                       if (product.genericName != null &&
                           product.genericName!.isNotEmpty)
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.science,
-                              size: 14,
-                              color: Colors.grey[600],
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8.0),
+                          child: Text(
+                            'Generic: ${product.genericName!}',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[700],
+                              fontStyle: FontStyle.italic,
                             ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(
-                                product.genericName!,
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: Colors.grey[700],
-                                  fontWeight: FontWeight.w500,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-
-                      // Manufacturer
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.business,
-                            size: 14,
-                            color: Colors.grey[600],
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              product.manufacturer,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey[600],
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
 
                       // Price and badges row
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           // Price
-                          Text(
-                            '₹${product.currentBatch?.sellingPrice.toStringAsFixed(2) ?? product.currentSellingPrice.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.teal,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          if (product.currentBatch?.mrp != null &&
-                              product.currentBatch!.mrp >
-                                  (product.currentBatch?.sellingPrice ??
-                                      product.currentSellingPrice))
-                            Text(
-                              '₹${product.currentBatch?.mrp.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                decoration: TextDecoration.lineThrough,
-                                color: Colors.grey,
-                                fontSize: 14,
-                              ),
-                            ),
-                          const Spacer(),
-
-                          // Prescription badge
-                          if (product.requiresPrescription)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.orange.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: Colors.orange,
-                                  width: 1,
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '₹${product.currentBatch?.sellingPrice.toStringAsFixed(2)}',
+                                style: const TextStyle(
+                                  fontSize: 20, // More prominent price
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.teal,
                                 ),
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.receipt,
-                                    size: 12,
-                                    color: Colors.orange,
-                                  ),
-                                  const SizedBox(width: 4),
-                                  const Text(
-                                    'Rx',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.orange,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      // Stock status and prescription badge
-                      Row(
-                        children: [
-                          // Stock status
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: product.isActive
-                                  ? Colors.green.withOpacity(0.1)
-                                  : Colors.red.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: product.isActive
-                                    ? Colors.green
-                                    : Colors.red,
-                                width: 1,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  product.isActive
-                                      ? Icons.check_circle
-                                      : Icons.cancel,
-                                  size: 12,
-                                  color: product.isActive
-                                      ? Colors.green
-                                      : Colors.red,
-                                ),
-                                const SizedBox(width: 4),
+                              if (product.currentBatch?.mrp != null &&
+                                  product.currentBatch!.mrp >
+                                      (product.currentBatch?.sellingPrice ??
+                                          product.currentSellingPrice))
                                 Text(
-                                  product.isActive
-                                      ? 'In Stock'
-                                      : 'Out of Stock',
-                                  style: TextStyle(
-                                    fontSize: 11,
+                                  'MRP: ₹${product.currentBatch?.mrp.toStringAsFixed(2)}',
+                                  style: const TextStyle(
+                                    decoration: TextDecoration.lineThrough,
+                                    color: Colors.grey,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                            ],
+                          ),
+
+                          // Stock status and prescription badge
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              // Stock status
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: product.isActive
+                                      ? Colors.green.withOpacity(0.1)
+                                      : Colors.red.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
                                     color: product.isActive
                                         ? Colors.green
                                         : Colors.red,
-                                    fontWeight: FontWeight.w600,
+                                    width: 1,
                                   ),
                                 ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(width: 8),
-
-                          // Prescription-based badge
-                          if (widget.isFromPrescription)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: Colors.blue,
-                                  width: 1,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      product.isActive
+                                          ? Icons.check_circle_outline
+                                          : Icons.highlight_off,
+                                      size: 14,
+                                      color: product.isActive
+                                          ? Colors.green
+                                          : Colors.red,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      product.isActive
+                                          ? 'In Stock'
+                                          : 'Out of Stock',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: product.isActive
+                                            ? Colors.green
+                                            : Colors.red,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.assignment,
-                                    size: 12,
-                                    color: Colors.blue,
+                              const SizedBox(height: 6),
+                              // Prescription badge
+                              if (product.requiresPrescription)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
                                   ),
-                                  const SizedBox(width: 4),
-                                  const Text(
-                                    'Prescribed',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.blue,
-                                      fontWeight: FontWeight.bold,
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.orange,
+                                      width: 1,
                                     ),
                                   ),
-                                ],
-                              ),
-                            ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.receipt_long,
+                                        size: 14,
+                                        color: Colors.orange,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      const Text(
+                                        'Rx Required',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: Colors.orange,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                            ],
+                          ),
                         ],
                       ),
                     ],
-                  ),
-                ),
-
-                // Enhanced Add to Cart Button
-                Container(
-                  decoration: BoxDecoration(
-                    color: product.isActive
-                        ? Colors.teal
-                        : Colors.grey.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: product.isActive
-                        ? [
-                            BoxShadow(
-                              color: Colors.teal.withOpacity(0.3),
-                              spreadRadius: 1,
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: IconButton(
-                    onPressed: product.isActive
-                        ? () => _addToCart(product)
-                        : null,
-                    icon: const Icon(Icons.add_shopping_cart),
-                    color: Colors.white,
-                    iconSize: 22,
                   ),
                 ),
               ],

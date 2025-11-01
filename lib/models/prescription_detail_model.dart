@@ -41,6 +41,7 @@ class PrescriptionDetailModel {
   final DateTime? verifiedAt;
   final DateTime? rejectedAt;
   final String? verificationNotes;
+  final String? ocrText; // Added ocrText field
 
   PrescriptionDetailModel({
     required this.id,
@@ -74,6 +75,7 @@ class PrescriptionDetailModel {
     this.verificationNotes,
     this.verifiedAt,
     this.rejectedAt,
+    this.ocrText, // Added to constructor
   });
 
   factory PrescriptionDetailModel.fromJson(Map<String, dynamic> json) {
@@ -144,6 +146,7 @@ class PrescriptionDetailModel {
       verificationNotes: json['verification_notes']?.toString(),
       verifiedAt: DateTime.tryParse(json['verified_at']?.toString() ?? ''),
       rejectedAt: DateTime.tryParse(json['rejected_at']?.toString() ?? ''),
+      ocrText: json['ocr_text']?.toString(), // Added fromJson mapping
     );
   }
 
@@ -184,6 +187,7 @@ class PrescriptionDetailModel {
       'verification_notes': verificationNotes,
       'verified_at': verifiedAt?.toIso8601String(),
       'rejected_at': rejectedAt?.toIso8601String(),
+      'ocr_text': ocrText, // Added to toJson
     };
   }
 }

@@ -5,6 +5,7 @@ import 'package:carousel_slider/carousel_slider.dart' as carousel;
 // import 'package:shimmer/shimmer.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 import 'dart:async'; // Import for StreamSubscription
+import 'dart:convert'; // Import for JSON encoding/decoding and base64
 // Import for File
 import 'package:http/http.dart' as http; // Import for http requests
 import 'package:image_picker/image_picker.dart'; // Import for image_picker
@@ -15,7 +16,7 @@ import 'AccountScreen.dart';
 import 'CartScreen.dart';
 // import 'ScannerScreen.dart'; // Removed as direct camera access is implemented
 import 'ProductDetailsScreen.dart';
-import 'CategoryPage.dart';
+import 'ShopPage.dart';
 import 'SearchResultsScreen.dart';
 import 'screens/prescription_tracking_screen.dart'; // Import for Prescription Tracking
 import 'OrderPrescriptionUploadScreen.dart'; // Import for OrderPrescriptionUploadScreen
@@ -29,8 +30,23 @@ import 'providers/order_provider.dart';
 import 'providers/prescription_provider.dart';
 import 'providers/cart_provider.dart';
 import 'dart:ui' as ui;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() {
+Future<void> main() async {
+  // Determine the environment and load the appropriate .env file
+  // You can use Flutter build flavors or a simple conditional check
+  // For example, to load based on a FLUTTER_ENV environment variable set during build:
+  const String flutterEnv = String.fromEnvironment(
+    'FLUTTER_ENV',
+    defaultValue: 'development',
+  );
+
+  if (flutterEnv == 'production') {
+    await dotenv.load(fileName: ".env.production");
+  } else {
+    await dotenv.load(fileName: ".env.development");
+  }
+
   runApp(const MyApp());
 }
 
@@ -130,7 +146,9 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeAuthAndNavigate();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeAuthAndNavigate();
+    });
   }
 
   Future<void> _initializeAuthAndNavigate() async {
@@ -238,23 +256,23 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
       final response = await _apiService.getProducts();
 
       if (response.isSuccess && response.data != null) {
-        final allProducts = response.data!;
+        final paginatedProducts = response.data!;
 
         setState(() {
           // Store all products for search functionality
-          _allProducts = allProducts;
+          _allProducts = paginatedProducts.products;
 
           // Get featured products (first 4 products)
-          _featuredProducts = allProducts.take(4).toList();
+          _featuredProducts = paginatedProducts.products.take(4).toList();
 
           // Get everyday medicines (non-prescription products)
-          _everydayProducts = allProducts
+          _everydayProducts = paginatedProducts.products
               .where((product) => !product.requiresPrescription)
               .take(6)
               .toList();
 
           // Get cold & cough medicines (filter by category or name)
-          _coldCoughProducts = allProducts
+          _coldCoughProducts = paginatedProducts.products
               .where(
                 (product) =>
                     product.category?.toLowerCase().contains('cold') == true ||
@@ -297,32 +315,51 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
       });
 
       try {
-        var request = http.MultipartRequest(
-          'POST',
-          Uri.parse(
-            'http://192.168.1.7:8000/api/prescriptions/ocr/analyze/',
-          ), // Use the provided URL
-        );
-        request.files.add(
-          await http.MultipartFile.fromPath('image', image.path),
-        );
+        final imageBytes = await image.readAsBytes();
+        final base64Image = base64Encode(imageBytes);
 
-        var response = await request.send();
+        var response = await http.post(
+          Uri.parse(
+            '${dotenv.env['API_BASE_URL']}/api/prescriptions/ocr/analyze/',
+          ),
+          headers: <String, String>{
+            'Content-Type': 'application/json; charset=UTF-8',
+          },
+          body: jsonEncode(<String, String>{
+            'image': base64Image,
+            'filename': image.name, // Include filename if backend needs it
+          }),
+        );
 
         if (response.statusCode == 200) {
-          final responseBody = await http.Response.fromStream(response);
-          final ocrResult =
-              responseBody.body; // Assuming the body is the OCR text
+          final ocrResult = response.body; // Assuming the body is the OCR text
 
-          // Navigate to SearchResultsScreen with the OCR result
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => SearchResultsScreen(
-                searchQuery: ocrResult,
-                isFromPrescription: true,
-              ),
-            ),
+          // Display the OCR result in an AlertDialog
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: const Text('Prescription Scan Result'),
+                content: SingleChildScrollView(
+                  child: Text(ocrResult),
+                ),
+                actions: <Widget>[
+                  TextButton(
+                    child: const Text('Search Products'),
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Close the dialog
+                      _performSearch(ocrResult); // Perform search with OCR result
+                    },
+                  ),
+                  TextButton(
+                    child: const Text('Close'),
+                    onPressed: () {
+                      Navigator.of(context).pop(); // Close the dialog
+                    },
+                  ),
+                ],
+              );
+            },
           );
         } else {
           Fluttertoast.showToast(
@@ -1097,7 +1134,7 @@ class _PharmacyHomePageState extends State<PharmacyHomePage> {
               onPressed: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => const CategoryPage()),
+                  MaterialPageRoute(builder: (context) => const ShopPage()),
                 );
               },
               iconSize: 30.0, // Increased icon size
@@ -1242,8 +1279,9 @@ class ProductCard extends StatelessWidget {
                 top: Radius.circular(15.0),
               ),
               child: Image.network(
-                product.imageUrl ??
-                    'https://placehold.co/150x150/F0E6D2/000000?text=${Uri.encodeComponent(product.name)}',
+                product.imageUrl != null && product.imageUrl!.isNotEmpty
+                    ? product.imageUrl!
+                    : 'https://via.placeholder.com/150', // Default image if imageUrl is null or empty
                 height: 120,
                 width: double.infinity,
                 fit: BoxFit.cover,
@@ -1251,7 +1289,7 @@ class ProductCard extends StatelessWidget {
                   height: 120,
                   width: double.infinity,
                   color: Colors.grey[200],
-                  child: const Icon(Icons.broken_image, color: Colors.grey),
+                  child: const Icon(Icons.image_not_supported, color: Colors.grey), // More appropriate icon
                 ),
               ),
             ),
@@ -1352,14 +1390,12 @@ class ProductCard extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 4),
-                        if ((product.currentBatch?.onlineDiscountPercentage !=
-                                    null &&
-                                product.currentBatch!.onlineDiscountPercentage >
-                                    0) ||
-                            (product.currentBatch?.discountPercentage != null &&
-                                product.currentBatch!.discountPercentage > 0))
+                        // Display discount percentage
+                        if (product.currentBatch != null &&
+                            ((product.currentBatch!.onlineDiscountPercentage != null && product.currentBatch!.onlineDiscountPercentage! > 0) ||
+                                (product.currentBatch!.discountPercentage != null && product.currentBatch!.discountPercentage! > 0)))
                           Text(
-                            '${(product.currentBatch?.onlineDiscountPercentage != null && product.currentBatch!.onlineDiscountPercentage > 0 ? product.currentBatch!.onlineDiscountPercentage : product.currentBatch?.discountPercentage)?.toStringAsFixed(0)}% off',
+                            '${(product.currentBatch!.onlineDiscountPercentage ?? product.currentBatch!.discountPercentage)?.toStringAsFixed(0)}% off',
                             style: const TextStyle(
                               color: Colors.green,
                               fontWeight: FontWeight.bold,

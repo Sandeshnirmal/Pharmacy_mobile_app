@@ -12,6 +12,8 @@ import '../models/prescription_model.dart';
 import '../models/prescription_detail_model.dart'; // Import the new model
 import '../models/product_model.dart';
 import '../models/category_model.dart'; // Import CategoryModel
+import '../models/paginated_products_response.dart';
+import '../models/batch_model.dart'; // Import BatchModel
 import '../utils/api_logger.dart';
 import '../utils/network_helper.dart';
 
@@ -121,8 +123,29 @@ class ApiService {
       ApiLogger.logResponse(response.statusCode, response.body);
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
-        final data = json.decode(response.body);
-        return ApiResponse.success(fromJson(data));
+        final dynamic data = json.decode(response.body);
+
+        // Handle cases where the API might return a list directly instead of a paginated object
+        if (data is List && T == PaginatedProductsResponse) {
+          final products = data
+              .map((e) => ProductModel.fromJson(e as Map<String, dynamic>))
+              .toList();
+          return ApiResponse.success(
+            PaginatedProductsResponse(
+              products: products,
+              currentPage: 1,
+              totalPages: 1,
+              totalCount: products.length,
+            ) as T, // Cast to T (PaginatedProductsResponse)
+          );
+        } else if (data is Map<String, dynamic>) {
+          return ApiResponse.success(fromJson(data));
+        } else {
+          return ApiResponse.error(
+            'Failed to parse response: Unexpected data type ${data.runtimeType}',
+            response.statusCode,
+          );
+        }
       } else {
         String errorMessage = 'Request failed';
         try {
@@ -607,20 +630,23 @@ class ApiService {
   }
 
   // Product APIs
-  Future<ApiResponse<List<ProductModel>>> getProducts({
+  Future<ApiResponse<PaginatedProductsResponse>> getProducts({
+    int page = 1,
+    int pageSize = 10,
     String? searchQuery,
-    int? categoryId, // Changed to int? categoryId
+    String? categoryId, // Changed to String? categoryId for flexibility
     Map<String, String>? additionalQueryParams,
   }) async {
     try {
-      Map<String, String> queryParams = {};
+      Map<String, String> queryParams = {
+        'page': page.toString(),
+        'page_size': pageSize.toString(),
+      };
       if (searchQuery != null && searchQuery.isNotEmpty) {
         queryParams['search'] = searchQuery;
       }
-      if (categoryId != null) {
-        // Check for int? categoryId
-        queryParams['category'] = categoryId
-            .toString(); // Convert to string for query parameter
+      if (categoryId != null && categoryId.isNotEmpty) {
+        queryParams['category'] = categoryId;
       }
       if (additionalQueryParams != null) {
         queryParams.addAll(additionalQueryParams);
@@ -636,42 +662,17 @@ class ApiService {
             .timeout(Duration(milliseconds: timeoutDuration)),
       );
 
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        final data = json.decode(response.body);
-        if (data is List) {
-          final list = data
-              .map(
-                (item) => ProductModel.fromJson(item as Map<String, dynamic>),
-              )
-              .toList();
-          return ApiResponse.success(list);
-        } else if (data is Map && data.containsKey('results')) {
-          final results = data['results'] as List;
-          final list = results
-              .map(
-                (item) => ProductModel.fromJson(item as Map<String, dynamic>),
-              )
-              .toList();
-          return ApiResponse.success(list);
-        } else {
-          return ApiResponse.error(
-            'Invalid response format',
-            response.statusCode,
-          );
-        }
-      } else {
-        final errorData = json.decode(response.body);
-        final errorMessage =
-            errorData['error'] ?? errorData['detail'] ?? 'Request failed';
-        return ApiResponse.error(errorMessage, response.statusCode);
-      }
+      return handleResponse(
+        response,
+        (data) => PaginatedProductsResponse.fromJson(data),
+      );
     } catch (e) {
       return ApiResponse.error('Network error: $e', 0);
     }
   }
 
   // Search products
-  Future<ApiResponse<List<ProductModel>>> searchProducts(String query) async {
+  Future<ApiResponse<PaginatedProductsResponse>> searchProducts(String query) async {
     return getProducts(searchQuery: query);
   }
 
@@ -707,6 +708,9 @@ class ApiService {
                   isActive: json['in_stock'] ?? false,
                   strength: json['strength'] ?? '',
                   form: json['form'] ?? '',
+                  currentBatch: json['current_batch'] != null
+                      ? BatchModel.fromJson(json['current_batch'])
+                      : null,
                 ),
               )
               .toList();
@@ -759,6 +763,9 @@ class ApiService {
                       json['is_prescription_required'] ?? true,
                   stockQuantity: json['stock_quantity'] ?? 0,
                   isActive: json['in_stock'] ?? false,
+                  currentBatch: json['current_batch'] != null
+                      ? BatchModel.fromJson(json['current_batch'])
+                      : null,
                 ),
               )
               .toList();
